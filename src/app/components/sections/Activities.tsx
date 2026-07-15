@@ -30,7 +30,7 @@ export function Activities({
           </div>
           {editMode && <button onClick={addActivityPhoto} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.activityAdd}</span></button>}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-background">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-background items-start">
           {activityPhotos.map((photo, idx) => {
             const actImg = img(`activity-${photo.id}`);
             const isEditingCap = editMode && editingActivityCaption === photo.id;

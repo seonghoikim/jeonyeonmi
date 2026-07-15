@@ -31,7 +31,7 @@ export function Works({
 }: WorksProps) {
   const { lang, u, MONO, SERIF, editMode, img, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, triggerUpload, openLightbox, scrollTo, C } = usePortfolioContext();
   const selectedWork = artworkList.find((w) => w.id === selectedWorkId) ?? null;
-  useModalLock(!!selectedWork, () => setSelectedWorkId(null));
+  const modalRef = useModalLock<HTMLDivElement>(!!selectedWork, () => setSelectedWorkId(null));
 
   return (
     <>
@@ -152,7 +152,7 @@ export function Works({
 
       {/* ── ARTWORK MODAL ── */}
       {selectedWork && (
-        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-8" onClick={() => setSelectedWorkId(null)}>
+        <div ref={modalRef} tabIndex={-1} className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-8 outline-none" onClick={() => setSelectedWorkId(null)}>
           <div className="relative max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 bg-card max-h-[95dvh]" onClick={(e) => e.stopPropagation()}>
             <button className="absolute top-3 right-3 z-10 bg-card/80 text-muted-foreground hover:text-foreground p-1.5 transition-colors" onClick={() => setSelectedWorkId(null)}><X size={18} /></button>
             {/* image panel */}

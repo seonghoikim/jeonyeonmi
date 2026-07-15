@@ -41,7 +41,7 @@ export function CurrentExhibitions({
         </div>
 
         {/* active / upcoming cards */}
-        <div className="flex gap-px overflow-x-auto hide-sb pl-4 sm:pl-6 lg:pl-12 pr-4 sm:pr-6 lg:pr-12 pb-2" style={{ scrollSnapType: "x mandatory" }}>
+        <div className="flex items-start gap-px overflow-x-auto hide-sb pl-4 sm:pl-6 lg:pl-12 pr-4 sm:pr-6 lg:pr-12 pb-2" style={{ scrollSnapType: "x mandatory" }}>
           {activeList.map((ex, idx) => {
             const isEditing = editMode && editingCurrentId === ex.id;
             const exImg = img(`current-${ex.id}`);

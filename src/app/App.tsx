@@ -164,7 +164,7 @@ export default function App() {
   /* other state */
   const [currentExList, setCurrentExList] = useState(initCurrentEx);
   const [editingCurrentId, setEditingCurrentId] = useState<number | null>(null);
-  const [showPastEx, setShowPastEx] = useState(true);
+  const [showPastEx, setShowPastEx] = useState(false);
 
   const [artworkList, setArtworkList] = useState(initArtworks);
   const [selectedWorkId, setSelectedWorkId] = useState<number | null>(null);
@@ -189,7 +189,7 @@ export default function App() {
   const [editingVideoId, setEditingVideoId] = useState<number | null>(null);
   const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
   const [fullscreenVideoYtId, setFullscreenVideoYtId] = useState<string | null>(null);
-  useModalLock(!!fullscreenVideoYtId, () => setFullscreenVideoYtId(null));
+  const videoOverlayRef = useModalLock<HTMLDivElement>(!!fullscreenVideoYtId, () => setFullscreenVideoYtId(null));
   const [contactItems, setContactItems] = useState(initContacts);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -476,7 +476,7 @@ export default function App() {
 
         {/* ── Video fullscreen overlay ── */}
         {fullscreenVideoYtId && (
-          <div className="fixed inset-0 z-[350] bg-black flex flex-col">
+          <div ref={videoOverlayRef} tabIndex={-1} className="fixed inset-0 z-[350] bg-black flex flex-col outline-none">
             <div className="flex items-center justify-end px-4 py-2.5 shrink-0">
               <button onClick={() => setFullscreenVideoYtId(null)}
                 className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white px-3 py-1.5 border border-white/20 hover:border-white/40 transition-colors" style={MONO}>
@@ -546,7 +546,6 @@ export default function App() {
         {editMode && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-accent text-accent-foreground px-5 py-2.5 shadow-lg" style={MONO}>
             <Edit3 size={13} /><span className="text-xs tracking-widest hidden sm:inline">{u.editBanner}</span>
-            <button onClick={translateAll} disabled={isTranslating} className="flex items-center gap-1.5 text-xs bg-accent-foreground/15 hover:bg-accent-foreground/25 px-3 py-1 transition-colors disabled:opacity-50"><Languages size={11} />{isTranslating ? "번역 중…" : "전체 번역"}</button>
             <button onClick={() => setEditMode(false)} className="ml-2 sm:ml-4 flex items-center gap-1.5 text-xs bg-accent-foreground/15 hover:bg-accent-foreground/25 px-3 py-1 transition-colors"><Check size={11} />{u.editDone}</button>
           </div>
         )}
@@ -566,6 +565,11 @@ export default function App() {
                 <span className={`text-xs transition-all duration-500 ${isSaving ? "text-accent/70 opacity-100" : "opacity-0"}`} style={MONO}>
                   {isSaving ? "saving…" : ""}
                 </span>
+              )}
+              {editMode && (
+                <button onClick={translateAll} disabled={isTranslating} title="전체 번역" className="flex items-center gap-1.5 text-xs tracking-widest border border-accent text-accent px-2.5 py-1.5 hover:bg-accent/10 transition-colors disabled:opacity-50" style={MONO}>
+                  <Languages size={13} /><span className="hidden sm:inline">{isTranslating ? "번역 중…" : "전체 번역"}</span>
+                </button>
               )}
               <button onClick={handleLangClick} className={`text-xs tracking-widest border px-2.5 py-1.5 transition-all ${editMode ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"}`} style={MONO}>{u.langLabel}</button>
               <button className="lg:hidden text-foreground p-1" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>

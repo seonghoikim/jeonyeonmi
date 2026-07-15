@@ -16,9 +16,9 @@ type PasswordModalProps = {
 
 export function PasswordModal({ pwInput, setPwInput, pwErrorMsg, setPwErrorMsg, showPw, setShowPw, pwSubmitting, onSubmit, onCancel }: PasswordModalProps) {
   const { u, MONO, SERIF } = usePortfolioContext();
-  useModalLock(true, onCancel);
+  const containerRef = useModalLock<HTMLDivElement>(true, onCancel);
   return (
-    <div className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-sm flex items-center justify-center p-6">
+    <div ref={containerRef} tabIndex={-1} className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-sm flex items-center justify-center p-6 outline-none">
       <div className="bg-card border border-border p-8 w-full max-w-sm">
         <div className="flex items-center gap-2 mb-6"><Lock size={14} className="text-accent" /><h3 className="text-sm font-light" style={SERIF}>{u.pwTitle}</h3></div>
         <div className="relative mb-3">
