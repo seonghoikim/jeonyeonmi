@@ -5,6 +5,20 @@ export function moveItem<T>(arr: T[], from: number, to: number): T[] {
   return a;
 }
 
+// Moves an item one step within a *filtered* view (e.g. a tag/status filter),
+// translating back to the right positions in the full underlying list.
+export function moveInFiltered<T extends { id: number | string }>(
+  full: T[], filtered: T[], idx: number, dir: -1 | 1
+): T[] {
+  const targetIdx = idx + dir;
+  if (targetIdx < 0 || targetIdx >= filtered.length) return full;
+  const fromId = filtered[idx].id;
+  const toId = filtered[targetIdx].id;
+  const fromFullIdx = full.findIndex((x) => x.id === fromId);
+  const toFullIdx = full.findIndex((x) => x.id === toId);
+  return moveItem(full, fromFullIdx, toFullIdx);
+}
+
 /* ─── font helpers ───────────────────────────────────── */
 export const MONO = { fontFamily: "'DM Mono', monospace" };
 // Heading: same family as body but ultra-light + wide tracking for distinction

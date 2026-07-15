@@ -1,5 +1,6 @@
 import { X, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
+import { useModalLock } from "../../useModalLock";
 
 type LightboxProps = {
   src: string;
@@ -26,6 +27,7 @@ export function Lightbox({
   onWheel, onMouseDown, onMouseMove, onMouseUp, onTouchStart, onTouchMove, onTouchEnd, onDoubleClick,
 }: LightboxProps) {
   const { u, MONO } = usePortfolioContext();
+  useModalLock(true, onClose);
   return (
     <div className="fixed inset-0 z-[300] bg-black/97 flex flex-col">
       {/* toolbar */}

@@ -1,6 +1,7 @@
 import { Plus, GripVertical, Maximize2, Play, Trash2, Edit3, Check } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, getYoutubeId, type VideoEntry } from "../../data";
+import { ReorderButtons } from "../ReorderButtons";
 
 type VideoProps = {
   videoList: VideoEntry[];
@@ -52,6 +53,15 @@ export function Video({
                 style={{ outline: dragOverKey === "vid-" + idx ? "2px solid var(--accent)" : "none" }}>
                 <div className="relative aspect-video overflow-hidden bg-background">
                   {editMode && <div className="absolute top-1.5 left-1.5 z-10 text-accent/60 cursor-grab"><GripVertical size={14} /></div>}
+                  {editMode && (
+                    <ReorderButtons
+                      className="absolute top-1.5 right-1.5 z-10 bg-background/70"
+                      onMoveUp={() => setVideoList((prev) => moveItem(prev, idx, idx - 1))}
+                      onMoveDown={() => setVideoList((prev) => moveItem(prev, idx, idx + 1))}
+                      disableUp={idx === 0}
+                      disableDown={idx === videoList.length - 1}
+                    />
+                  )}
                   {playingVideoId === vid.id && youtubeId ? (
                     <>
                       <iframe

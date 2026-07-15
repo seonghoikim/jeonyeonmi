@@ -1,6 +1,8 @@
 import { Plus, GripVertical, ArrowUpRight, Trash2, Edit3, Check, Upload, Maximize2, X } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
-import { moveItem, hSize, type Artwork, type Series } from "../../data";
+import { moveItem, moveInFiltered, hSize, type Artwork, type Series } from "../../data";
+import { useModalLock } from "../../useModalLock";
+import { ReorderButtons } from "../ReorderButtons";
 
 type WorksProps = {
   artworkList: Artwork[];
@@ -29,6 +31,7 @@ export function Works({
 }: WorksProps) {
   const { lang, u, MONO, SERIF, editMode, img, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, triggerUpload, openLightbox, scrollTo, C } = usePortfolioContext();
   const selectedWork = artworkList.find((w) => w.id === selectedWorkId) ?? null;
+  useModalLock(!!selectedWork, () => setSelectedWorkId(null));
 
   return (
     <>
@@ -74,6 +77,15 @@ export function Works({
                     <button onClick={() => setSelectedSeries(s.name)} className={`text-xs tracking-wider px-3 sm:px-4 py-2 border transition-all ${isActive ? "border-accent text-accent" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>{name}</button>
                   )}
                   {editMode && !isEditingThis && <button onClick={() => setEditingSeriesId(s.id)} className="absolute -top-2 -right-2 bg-background border border-border text-muted-foreground hover:text-foreground p-0.5 opacity-0 group-hover/series:opacity-100 transition-opacity"><Edit3 size={9} /></button>}
+                  {editMode && !isEditingThis && (
+                    <ReorderButtons
+                      className="absolute -top-2 -left-2 bg-background border border-border opacity-0 group-hover/series:opacity-100 transition-opacity"
+                      onMoveUp={() => setSeriesList((prev) => moveItem(prev, idx, idx - 1))}
+                      onMoveDown={() => setSeriesList((prev) => moveItem(prev, idx, idx + 1))}
+                      disableUp={idx === 0}
+                      disableDown={idx === seriesList.length - 1}
+                    />
+                  )}
                 </div>
               );
             })}
@@ -107,6 +119,15 @@ export function Works({
               onClick={() => setSelectedWorkId(work.id)}>
               <div className="relative aspect-[4/5] overflow-hidden bg-background shrink-0">
                 {editMode && <div className="absolute top-1.5 left-1.5 z-10 text-accent/60 cursor-grab"><GripVertical size={14} /></div>}
+                {editMode && (
+                  <ReorderButtons
+                    className="absolute top-1.5 right-1.5 z-10 bg-background/70"
+                    onMoveUp={() => setArtworkList((prev) => moveInFiltered(prev, filteredWorks, idx, -1))}
+                    onMoveDown={() => setArtworkList((prev) => moveInFiltered(prev, filteredWorks, idx, 1))}
+                    disableUp={idx === 0}
+                    disableDown={idx === filteredWorks.length - 1}
+                  />
+                )}
                 {img(`artwork-${work.id}`) ? <img src={img(`artwork-${work.id}`)!} alt={work.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" decoding="async" /> : <div className="w-full h-full img-placeholder" />}
                 <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-all duration-500" />
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"><ArrowUpRight size={16} className="text-foreground" /></div>

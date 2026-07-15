@@ -8,6 +8,7 @@ import {
 } from "./data";
 import { useGoogleAnalytics } from "./useGoogleAnalytics";
 import { useSeoMeta } from "./useSeoMeta";
+import { useModalLock } from "./useModalLock";
 import { PortfolioContext, type PortfolioContextValue } from "./PortfolioContext";
 import { Hero } from "./components/sections/Hero";
 import { CurrentExhibitions } from "./components/sections/CurrentExhibitions";
@@ -109,11 +110,11 @@ export default function App() {
   };
   const handleLbTouchEnd = () => { setLbDragging(false); setLbPinchDist(null); };
 
-  /* lightbox keyboard */
+  /* lightbox zoom keyboard shortcuts — Escape-to-close and scroll lock live in
+     Lightbox itself via useModalLock */
   useEffect(() => {
     if (!lightboxSrc) return;
     const h = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setLightboxSrc(null); setFullscreenVideoYtId(null); }
       if (e.key === "=" || e.key === "+") lbZoomIn();
       if (e.key === "-") lbZoomOut();
       if (e.key === "0") lbReset();
@@ -188,6 +189,7 @@ export default function App() {
   const [editingVideoId, setEditingVideoId] = useState<number | null>(null);
   const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
   const [fullscreenVideoYtId, setFullscreenVideoYtId] = useState<string | null>(null);
+  useModalLock(!!fullscreenVideoYtId, () => setFullscreenVideoYtId(null));
   const [contactItems, setContactItems] = useState(initContacts);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -371,26 +373,26 @@ export default function App() {
   /* CRUD */
   const updateWork = (id: number, f: keyof Artwork, v: string | boolean) => setArtworkList((p) => p.map((w) => w.id === id ? { ...w, [f]: v } : w));
   const addArtwork = () => { const newId = Math.max(0, ...artworkList.map((w) => w.id)) + 1; setArtworkList((p) => [...p, { id: newId, title: "새 작품", titleEn: "New Work", year: String(new Date().getFullYear()), medium: "재료", mediumEn: "Medium", size: "크기", image: "", category: "회화", categoryEn: "Painting", series: "", collected: false }]); setSelectedWorkId(newId); };
-  const deleteWork = (id: number) => { setArtworkList((p) => p.filter((w) => w.id !== id)); if (selectedWorkId === id) setSelectedWorkId(null); };
+  const deleteWork = (id: number) => { if (!window.confirm("이 작품을 삭제하시겠습니까?")) return; setArtworkList((p) => p.filter((w) => w.id !== id)); if (selectedWorkId === id) setSelectedWorkId(null); };
   const addSeries = () => { const newId = Math.max(0, ...seriesList.map((s) => s.id)) + 1; setSeriesList((p) => [...p, { id: newId, name: "새 시리즈", nameEn: "New Series" }]); setEditingSeriesId(newId); };
   const updateSeries = (id: number, f: keyof Series, v: string) => setSeriesList((p) => p.map((s) => s.id === id ? { ...s, [f]: v } : s));
-  const deleteSeries = (id: number) => { const s = seriesList.find((s) => s.id === id); setSeriesList((p) => p.filter((s) => s.id !== id)); if (selectedSeries === s?.name) setSelectedSeries("전체"); };
+  const deleteSeries = (id: number) => { if (!window.confirm("이 시리즈를 삭제하시겠습니까?")) return; const s = seriesList.find((s) => s.id === id); setSeriesList((p) => p.filter((s) => s.id !== id)); if (selectedSeries === s?.name) setSelectedSeries("전체"); };
   const updateSlide = (id: number, f: keyof Slide, v: string) => setSlides((p) => p.map((s) => s.id === id ? { ...s, [f]: v } : s));
   const addSlide = () => { const newId = Math.max(0, ...slides.map((s) => s.id)) + 1; setSlides((p) => [...p, { id: newId, heading: "새 작가노트", headingEn: "New Statement", body: "내용을 입력하세요.", bodyEn: "Enter content here." }]); setCurrentSlide(slides.length); };
-  const deleteSlide = (id: number) => { setSlides((p) => p.filter((s) => s.id !== id)); setCurrentSlide((p) => Math.max(0, p - 1)); };
+  const deleteSlide = (id: number) => { if (!window.confirm("이 작가노트 슬라이드를 삭제하시겠습니까?")) return; setSlides((p) => p.filter((s) => s.id !== id)); setCurrentSlide((p) => Math.max(0, p - 1)); };
   const addExhibition = () => { const newId = Math.max(0, ...exhibitionList.map((e) => e.id)) + 1; setExhibitionList((p) => [{ id: newId, year: String(new Date().getFullYear()), title: "새 항목", titleEn: "New Item", venue: "장소", venueEn: "Venue", location: "서울", tag: "전시" }, ...p]); setEditingExId(newId); };
   const updateEx = (id: number, f: keyof ExhibitionEntry, v: string | number | undefined) => setExhibitionList((p) => p.map((e) => e.id === id ? { ...e, [f]: v } : e));
-  const deleteEx = (id: number) => { setExhibitionList((p) => p.filter((e) => e.id !== id)); if (editingExId === id) setEditingExId(null); };
+  const deleteEx = (id: number) => { if (!window.confirm("이 항목을 삭제하시겠습니까?")) return; setExhibitionList((p) => p.filter((e) => e.id !== id)); if (editingExId === id) setEditingExId(null); };
   const addCurrentEx = () => { const newId = Math.max(0, ...currentExList.map((e) => e.id)) + 1; setCurrentExList((p) => [...p, { id: newId, title: "새 전시", titleEn: "New Exhibition", venue: "장소", venueEn: "Venue", location: "서울", locationEn: "Seoul", startDate: "2025.01.01", endDate: "2025.02.01", status: "예정", visible: true }]); setEditingCurrentId(newId); };
   const toggleCurrentExVisible = (id: number) => setCurrentExList((p) => p.map((e) => e.id === id ? { ...e, visible: !e.visible } : e));
   const updateCurrentEx = (id: number, f: keyof CurrentExhibition, v: string) => setCurrentExList((p) => p.map((e) => e.id === id ? { ...e, [f]: v } : e));
-  const deleteCurrentEx = (id: number) => { setCurrentExList((p) => p.filter((e) => e.id !== id)); if (editingCurrentId === id) setEditingCurrentId(null); };
+  const deleteCurrentEx = (id: number) => { if (!window.confirm("이 전시를 삭제하시겠습니까?")) return; setCurrentExList((p) => p.filter((e) => e.id !== id)); if (editingCurrentId === id) setEditingCurrentId(null); };
   const addActivityPhoto = () => { const newId = Math.max(0, ...activityPhotos.map((p) => p.id)) + 1; setActivityPhotos((p) => [...p, { id: newId, caption: "새 사진", captionEn: "New Photo" }]); };
-  const deleteActivityPhoto = (id: number) => setActivityPhotos((p) => p.filter((ph) => ph.id !== id));
+  const deleteActivityPhoto = (id: number) => { if (!window.confirm("이 사진을 삭제하시겠습니까?")) return; setActivityPhotos((p) => p.filter((ph) => ph.id !== id)); };
   const updateActivityPhoto = (id: number, f: keyof ActivityPhoto, v: string) => setActivityPhotos((p) => p.map((ph) => ph.id === id ? { ...ph, [f]: v } : ph));
   const addVideo = () => { const newId = Math.max(0, ...videoList.map((v) => v.id)) + 1; setVideoList((p) => [...p, { id: newId, youtubeUrl: "", title: "새 영상", titleEn: "New Video", description: "설명", descriptionEn: "Description" }]); setEditingVideoId(newId); };
   const updateVideoField = (id: number, f: keyof VideoEntry, v: string) => setVideoList((p) => p.map((vid) => vid.id === id ? { ...vid, [f]: v } : vid));
-  const deleteVideo = (id: number) => { setVideoList((p) => p.filter((v) => v.id !== id)); if (editingVideoId === id) setEditingVideoId(null); };
+  const deleteVideo = (id: number) => { if (!window.confirm("이 영상을 삭제하시겠습니까?")) return; setVideoList((p) => p.filter((v) => v.id !== id)); if (editingVideoId === id) setEditingVideoId(null); };
   const updateContact = (id: string, patch: Partial<ContactItem>) => setContactItems((p) => p.map((c) => c.id === id ? { ...c, ...patch } : c));
   const toggleContactVisibility = (id: string) => setContactItems((p) => p.map((c) => c.id === id ? { ...c, visible: !c.visible } : c));
 
