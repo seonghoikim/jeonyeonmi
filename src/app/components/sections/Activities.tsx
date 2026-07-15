@@ -53,7 +53,7 @@ export function Activities({
                 <div
                   className={`relative aspect-square overflow-hidden bg-background ${editMode ? "cursor-pointer" : "cursor-zoom-in"}`}
                   onClick={() => {
-                    if (editMode) { triggerUpload(`activity-${photo.id}`); return; }
+                    if (editMode) { triggerUpload(`activity-${photo.id}`, photo.captionEn); return; }
                     if (actImg) openLightbox(actImg);
                   }}>
                   {actImg ? <img src={actImg} alt={photo.caption} className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${isHighlighted ? "opacity-100" : "opacity-80"}`} loading="lazy" decoding="async" /> : <div className="absolute inset-0 img-placeholder" />}

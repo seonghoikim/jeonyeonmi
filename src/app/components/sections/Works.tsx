@@ -135,7 +135,7 @@ export function Works({
           <div className="relative max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 bg-card max-h-[95dvh]" onClick={(e) => e.stopPropagation()}>
             <button className="absolute top-3 right-3 z-10 bg-card/80 text-muted-foreground hover:text-foreground p-1.5 transition-colors" onClick={() => setSelectedWorkId(null)}><X size={18} /></button>
             {/* image panel */}
-            <div className={`relative bg-background overflow-hidden flex items-center justify-center ${editMode ? "cursor-pointer" : ""}`} style={{ minHeight: "260px", maxHeight: "min(60vh, 560px)" }} onClick={() => editMode && triggerUpload(`artwork-${selectedWork.id}`)}>
+            <div className={`relative bg-background overflow-hidden flex items-center justify-center ${editMode ? "cursor-pointer" : ""}`} style={{ minHeight: "260px", maxHeight: "min(60vh, 560px)" }} onClick={() => editMode && triggerUpload(`artwork-${selectedWork.id}`, selectedWork.titleEn)}>
               {img(`artwork-${selectedWork.id}`) || selectedWork.image
                 ? <img src={img(`artwork-${selectedWork.id}`)!} alt={selectedWork.title} className="w-full h-full object-contain" style={{ maxHeight: "min(60vh, 560px)" }} decoding="async" />
                 : <div className="w-full img-placeholder" style={{ minHeight: "260px" }} />}

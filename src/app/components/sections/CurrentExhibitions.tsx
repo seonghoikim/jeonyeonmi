@@ -69,7 +69,7 @@ export function CurrentExhibitions({
                 onDragEnd={() => { dragSrc.current = null; setDragOverKey(null); }}
                 className={`shrink-0 bg-background border flex flex-col overflow-hidden transition-all ${ex.visible ? "border-border" : "border-dashed border-border/40 opacity-50"}`}
                 style={{ width: "clamp(240px, 72vw, 300px)", scrollSnapAlign: "start", outline: dragOverKey === "cur-" + idx ? "2px solid var(--accent)" : "none" }}>
-                <div className={`current-ex-img relative overflow-hidden bg-card ${editMode ? "cursor-pointer" : ""}`} style={{ height: "340px" }} onClick={() => editMode && triggerUpload(`current-${ex.id}`)}>
+                <div className={`current-ex-img relative overflow-hidden bg-card ${editMode ? "cursor-pointer" : ""}`} style={{ height: "340px" }} onClick={() => editMode && triggerUpload(`current-${ex.id}`, ex.titleEn)}>
                   {exImg ? <img src={exImg} alt={ex.title} className="w-full h-full object-cover" loading="lazy" decoding="async" /> : <div className="w-full h-full bg-secondary flex items-center justify-center"><span className="text-xs text-muted-foreground" style={MONO}>{u.currentUpload}</span></div>}
                   {!isEditing && (
                     <div className="absolute top-3 left-3 flex gap-1.5">
@@ -176,7 +176,7 @@ export function CurrentExhibitions({
                       {/* thumbnail */}
                       <div className="shrink-0 overflow-hidden bg-secondary" style={{ width: 52, height: 68 }}>
                         {pastThumb
-                          ? <img src={pastThumb} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
+                          ? <img src={pastThumb} alt={lang === "ko" ? ex.title : ex.titleEn} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
                           : <div className="w-full h-full flex items-center justify-center"><span className="text-muted-foreground/20 text-xs">✦</span></div>
                         }
                       </div>

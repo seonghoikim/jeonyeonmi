@@ -61,7 +61,7 @@ export async function loginEditor(password: string): Promise<string> {
 /* ── Upload image → Supabase Storage as WebP, return public URL ──
    Goes through the Edge Function (service role) since the storage bucket
    blocks anon INSERT/UPDATE — requires a valid editor session token. */
-export async function uploadImage(key: string, file: File, token: string): Promise<string> {
+export async function uploadImage(key: string, file: File, token: string, label?: string): Promise<string> {
   // Convert to WebP with resize. If the first attempt fails (e.g. very large HEIC),
   // retry at half the max size before giving up.
   let webp: File;
@@ -78,6 +78,9 @@ export async function uploadImage(key: string, file: File, token: string): Promi
   const form = new FormData();
   form.append("file", webp);
   form.append("key", key);
+  // Used server-side to build a descriptive filename (e.g. floating-memory-i-<ts>.webp)
+  // instead of a bare timestamp — pass the English title/caption when available.
+  if (label) form.append("label", label);
   const res = await fetch(`${FUNCTIONS_URL}/portfolio/upload`, {
     method: "POST",
     headers: { ...gatewayHeaders(), "X-Edit-Token": token },

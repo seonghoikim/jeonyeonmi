@@ -7,6 +7,7 @@ import {
   type Lang, type ContentKey, type CurrentExhibition, type Artwork, type Series, type Slide, type ExhibitionEntry, type ActivityPhoto, type VideoEntry, type ContactItem,
 } from "./data";
 import { useGoogleAnalytics } from "./useGoogleAnalytics";
+import { useSeoMeta } from "./useSeoMeta";
 import { PortfolioContext, type PortfolioContextValue } from "./PortfolioContext";
 import { Hero } from "./components/sections/Hero";
 import { CurrentExhibitions } from "./components/sections/CurrentExhibitions";
@@ -157,6 +158,7 @@ export default function App() {
   const saveDataRef = useRef<Parameters<typeof savePortfolio>[0]>({}); // always latest
   const lastUpdatedAtRef = useRef<string | undefined>(undefined); // last known DB updated_at, for conflict checks
   const img = useCallback((key: string) => imageUrls[key] ?? null, [imageUrls]);
+  useSeoMeta({ name: c("heroName"), description: c("heroDesc"), imageUrl: img("hero") });
 
   /* other state */
   const [currentExList, setCurrentExList] = useState(initCurrentEx);
@@ -190,6 +192,7 @@ export default function App() {
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingTarget = useRef<string | null>(null);
+  const pendingLabel = useRef<string | undefined>(undefined);
   const langClickTs = useRef<number[]>([]);
   const dragSrc = useRef<number | null>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
@@ -334,7 +337,7 @@ export default function App() {
     setHighlightedPhotoId(activityId);
   };
 
-  const triggerUpload = (target: string) => { pendingTarget.current = target; fileInputRef.current?.click(); };
+  const triggerUpload = (target: string, label?: string) => { pendingTarget.current = target; pendingLabel.current = label; fileInputRef.current?.click(); };
 
   const applyImageUrl = (key: string, url: string) => {
     setImageUrls((p) => ({ ...p, [key]: url }));
@@ -348,12 +351,13 @@ export default function App() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     const target = pendingTarget.current; if (!target) return;
+    const label = pendingLabel.current;
     e.target.value = "";
     const token = editTokenRef.current;
     if (!token) { alert("편집 권한이 필요합니다. 다시 로그인해주세요."); return; }
     setUploadingTarget(target);
     try {
-      const url = await uploadImage(target, file, token);
+      const url = await uploadImage(target, file, token, label);
       applyImageUrl(target, url);
     } catch (err) {
       console.error("[Upload] failed:", err);

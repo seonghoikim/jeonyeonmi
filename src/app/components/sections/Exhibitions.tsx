@@ -72,7 +72,7 @@ export function Exhibitions({
                 <div className={`${editMode ? "col-span-1" : "col-span-2 sm:col-span-1"} flex items-center justify-center`}>
                   {exThumb ? (
                     <button onClick={() => linkedPhoto && scrollToActivity(linkedPhoto.id)} className="shrink-0 overflow-hidden bg-secondary" style={{ width: 40, height: 40 }}>
-                      <img src={exThumb} alt="" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
+                      <img src={exThumb} alt={lang === "ko" ? ex.title : ex.titleEn} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
                     </button>
                   ) : (
                     <span className="text-xs text-accent" style={MONO}>{ex.year}</span>
