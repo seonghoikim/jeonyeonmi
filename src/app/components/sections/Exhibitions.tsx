@@ -1,0 +1,98 @@
+import { Plus, GripVertical, Link2, Edit3, Check, Trash2 } from "lucide-react";
+import { usePortfolioContext } from "../../PortfolioContext";
+import { moveItem, hSize, type ExhibitionEntry, type ActivityPhoto } from "../../data";
+
+type ExFilter = "전체" | "전시" | "수상" | "아트페어";
+
+type ExhibitionsProps = {
+  exhibitionList: ExhibitionEntry[];
+  setExhibitionList: React.Dispatch<React.SetStateAction<ExhibitionEntry[]>>;
+  filteredEx: ExhibitionEntry[];
+  exFilter: ExFilter;
+  exVisible: boolean;
+  editingExId: number | null;
+  setEditingExId: (id: number | null) => void;
+  activityPhotos: ActivityPhoto[];
+  changeExFilter: (f: ExFilter) => void;
+  addExhibition: () => void;
+  updateEx: (id: number, f: keyof ExhibitionEntry, v: string | number | undefined) => void;
+  deleteEx: (id: number) => void;
+};
+
+export function Exhibitions({
+  exhibitionList, setExhibitionList, filteredEx, exFilter, exVisible, editingExId, setEditingExId,
+  activityPhotos, changeExFilter, addExhibition, updateEx, deleteEx,
+}: ExhibitionsProps) {
+  const { lang, u, MONO, SERIF, editMode, img, dragSrc, dragOverKey, setDragOverKey, scrollToActivity, C } = usePortfolioContext();
+
+  return (
+    <section id="exhibitions" className="py-16 sm:py-24 border-t border-border">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-10 sm:mb-12 gap-5">
+          <div>
+            <div className="text-xs tracking-[0.25em] text-accent mb-4 uppercase" style={MONO}><C field="s04label" /></div>
+            <h2 className={`font-light text-foreground ${hSize("text-3xl sm:text-4xl", "text-4xl sm:text-5xl", lang)}`} style={SERIF}><C field="s04heading" /></h2>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {([["전체", u.exAll], ["전시", u.exExhibition], ["아트페어", u.exFair], ["수상", u.exAward]] as const).map(([f, label]) => (
+              <button key={f} onClick={() => changeExFilter(f as ExFilter)} className={`text-xs tracking-wider px-3 sm:px-4 py-2 border transition-all ${exFilter === f ? "border-accent text-accent" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>{label}</button>
+            ))}
+            {editMode && <button onClick={addExhibition} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.exAdd}</span></button>}
+          </div>
+        </div>
+        <div className="transition-opacity duration-200" style={{ opacity: exVisible ? 1 : 0 }}>
+          {filteredEx.map((ex, idx) => {
+            const isEditing = editMode && editingExId === ex.id;
+            const linkedPhoto = activityPhotos.find((p) => p.id === ex.activityId);
+            const exThumb = ex.activityId ? img(`activity-${ex.activityId}`) : null;
+            return (
+              <div key={ex.id}
+                draggable={editMode}
+                onDragStart={() => { dragSrc.current = idx; }}
+                onDragOver={(e) => { e.preventDefault(); if (dragSrc.current !== idx) setDragOverKey("ex-" + idx); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragSrc.current !== null && dragSrc.current !== idx) {
+                    setExhibitionList(prev => {
+                      const full = [...prev];
+                      const fromId = filteredEx[dragSrc.current!].id;
+                      const toId = filteredEx[idx].id;
+                      const fromFullIdx = full.findIndex(e => e.id === fromId);
+                      const toFullIdx = full.findIndex(e => e.id === toId);
+                      return moveItem(full, fromFullIdx, toFullIdx);
+                    });
+                  }
+                  dragSrc.current = null; setDragOverKey(null);
+                }}
+                onDragEnd={() => { dragSrc.current = null; setDragOverKey(null); }}
+                className="group grid grid-cols-12 gap-1 sm:gap-2 py-3 sm:py-4 border-b border-border hover:bg-secondary/30 transition-colors px-2 -mx-2 items-center"
+                style={{ outline: dragOverKey === "ex-" + idx ? "2px solid var(--accent)" : "none" }}>
+                {editMode && <div className="col-span-1 flex items-center justify-center text-accent/40 cursor-grab"><GripVertical size={13} /></div>}
+                {/* thumbnail */}
+                <div className={`${editMode ? "col-span-1" : "col-span-2 sm:col-span-1"} flex items-center justify-center`}>
+                  {exThumb ? (
+                    <button onClick={() => linkedPhoto && scrollToActivity(linkedPhoto.id)} className="shrink-0 overflow-hidden bg-secondary" style={{ width: 40, height: 40 }}>
+                      <img src={exThumb} alt="" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
+                    </button>
+                  ) : (
+                    <span className="text-xs text-accent" style={MONO}>{ex.year}</span>
+                  )}
+                </div>
+                <div className={editMode ? "col-span-4 lg:col-span-4" : "col-span-5 lg:col-span-4"}>
+                  {exThumb && <span className="text-xs text-accent block mb-0.5" style={MONO}>{ex.year}</span>}
+                  {isEditing ? <div className="space-y-1"><input value={ex.year} onChange={(e) => updateEx(ex.id, "year", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 text-xs text-accent outline-none w-16 mb-1" style={MONO} /><input value={ex.title} onChange={(e) => updateEx(ex.id, "title", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 text-xs sm:text-sm text-foreground font-light outline-none w-full" style={SERIF} placeholder="제목 KO" /><input value={ex.titleEn} onChange={(e) => updateEx(ex.id, "titleEn", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 text-xs text-accent outline-none w-full" style={MONO} placeholder="Title EN" /></div> : <p className="text-xs sm:text-sm text-foreground font-light leading-snug" style={SERIF}>{lang === "ko" ? ex.title : ex.titleEn}</p>}
+                </div>
+                <div className="hidden lg:block col-span-3">
+                  {isEditing ? (<div className="space-y-1"><div className="flex gap-2"><input value={ex.venue} onChange={(e) => updateEx(ex.id, "venue", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none flex-1" placeholder="장소 KO" /><input value={ex.location} onChange={(e) => updateEx(ex.id, "location", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none w-16" placeholder="지역" /></div><input value={ex.venueEn ?? ""} onChange={(e) => updateEx(ex.id, "venueEn", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none w-full" placeholder="Venue EN" /><div className="flex items-center gap-1"><Link2 size={10} className="text-muted-foreground shrink-0" /><select value={ex.activityId ?? ""} onChange={(e) => updateEx(ex.id, "activityId", e.target.value ? Number(e.target.value) : undefined)} className="bg-transparent text-xs text-muted-foreground outline-none flex-1 cursor-pointer" style={MONO}><option value="">{u.exNoLink}</option>{activityPhotos.map((p) => <option key={p.id} value={p.id}>{lang === "ko" ? p.caption : p.captionEn}</option>)}</select></div></div>) : <p className="text-xs text-muted-foreground">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {ex.location}</p>}
+                </div>
+                <div className="col-span-2 lg:col-span-1 flex justify-center">{isEditing ? <button onClick={() => updateEx(ex.id, "tag", ex.tag === "전시" ? "아트페어" : ex.tag === "아트페어" ? "수상" : "전시")} className={`text-xs px-1.5 py-0.5 border transition-colors ${ex.tag === "수상" ? "border-yellow-600/60 text-yellow-500" : ex.tag === "아트페어" ? "border-blue-500/60 text-blue-400" : "border-accent text-accent"}`} style={MONO}>{ex.tag === "전시" ? u.exExhibition : ex.tag === "아트페어" ? u.exFair : u.exAward} ⇄</button> : <span className={`text-xs px-1.5 py-0.5 border ${ex.tag === "수상" ? "border-yellow-600/60 text-yellow-500" : ex.tag === "아트페어" ? "border-blue-500/40 text-blue-400" : "border-border text-muted-foreground"}`} style={MONO}>{ex.tag === "전시" ? u.exExhibition : ex.tag === "아트페어" ? u.exFair : u.exAward}</span>}</div>
+                <div className="col-span-1 flex justify-end">{!isEditing && linkedPhoto && !exThumb && <button onClick={() => scrollToActivity(linkedPhoto.id)} className="text-muted-foreground hover:text-accent transition-colors p-1" title={lang === "ko" ? linkedPhoto.caption : linkedPhoto.captionEn}><Link2 size={14} /></button>}</div>
+                <div className="col-span-1 flex justify-end">{editMode && <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => setEditingExId(isEditing ? null : ex.id)} className={`p-1 transition-colors ${isEditing ? "text-accent" : "text-muted-foreground hover:text-foreground"}`}>{isEditing ? <Check size={12} /> : <Edit3 size={12} />}</button><button onClick={() => deleteEx(ex.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button></div>}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
