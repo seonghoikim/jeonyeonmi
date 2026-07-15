@@ -41,11 +41,17 @@ export async function toWebP(file: File, quality = 0.85, maxPx = 2000): Promise<
   });
 }
 
+// Supabase's Edge Function gateway itself requires a valid Supabase JWT in the
+// Authorization header (independent of our own login), so every call passes the
+// public anon key there; our own editor session token rides in a separate header
+// so the two don't collide.
+const gatewayHeaders = () => ({ Authorization: `Bearer ${publicAnonKey}` });
+
 /* ── Editor login: password is verified server-side, never shipped to the client ── */
 export async function loginEditor(password: string): Promise<string> {
   const res = await fetch(`${FUNCTIONS_URL}/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...gatewayHeaders() },
     body: JSON.stringify({ password }),
   });
   const body = await res.json().catch(() => ({}));
@@ -75,7 +81,7 @@ export async function uploadImage(key: string, file: File, token: string): Promi
   form.append("key", key);
   const res = await fetch(`${FUNCTIONS_URL}/portfolio/upload`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { ...gatewayHeaders(), "X-Edit-Token": token },
     body: form,
   });
   const body = await res.json().catch(() => ({}));
@@ -129,7 +135,7 @@ export async function savePortfolio(
 
   const res = await fetch(`${FUNCTIONS_URL}/portfolio/save`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    headers: { "Content-Type": "application/json", ...gatewayHeaders(), "X-Edit-Token": token },
     body: JSON.stringify({ patch: { ...patch, image_urls: safeImageUrls }, expectedUpdatedAt }),
   });
   const body = await res.json().catch(() => ({}));
