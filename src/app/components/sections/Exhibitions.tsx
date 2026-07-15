@@ -48,7 +48,7 @@ export function Exhibitions({
             const exThumb = ex.activityId ? img(`activity-${ex.activityId}`) : null;
             return (
               <div key={ex.id}
-                draggable={editMode}
+                draggable={editMode && !isEditing}
                 onDragStart={() => { dragSrc.current = idx; }}
                 onDragOver={(e) => { e.preventDefault(); if (dragSrc.current !== idx) setDragOverKey("ex-" + idx); }}
                 onDrop={(e) => {
@@ -66,39 +66,83 @@ export function Exhibitions({
                   dragSrc.current = null; setDragOverKey(null);
                 }}
                 onDragEnd={() => { dragSrc.current = null; setDragOverKey(null); }}
-                className="group grid grid-cols-12 gap-1 sm:gap-2 py-3 sm:py-4 border-b border-border hover:bg-secondary/30 transition-colors px-2 -mx-2 items-center"
+                className={isEditing
+                  ? "group flex flex-col gap-2 py-3 sm:py-4 border-b border-border px-2 -mx-2 bg-secondary/20"
+                  : "group grid grid-cols-12 gap-1 sm:gap-2 py-3 sm:py-4 border-b border-border hover:bg-secondary/30 transition-colors px-2 -mx-2 items-center"}
                 style={{ outline: dragOverKey === "ex-" + idx ? "2px solid var(--accent)" : "none" }}>
-                {editMode && (
-                  <div className="col-span-1 flex items-center justify-center gap-0.5 text-accent/40 cursor-grab">
-                    <GripVertical size={13} />
-                    <ReorderButtons
-                      onMoveUp={() => setExhibitionList((prev) => moveInFiltered(prev, filteredEx, idx, -1))}
-                      onMoveDown={() => setExhibitionList((prev) => moveInFiltered(prev, filteredEx, idx, 1))}
-                      disableUp={idx === 0}
-                      disableDown={idx === filteredEx.length - 1}
-                    />
-                  </div>
+                {isEditing ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      {editMode && (
+                        <div className="flex items-center gap-0.5 text-accent/40 cursor-grab shrink-0">
+                          <GripVertical size={13} />
+                          <ReorderButtons
+                            onMoveUp={() => setExhibitionList((prev) => moveInFiltered(prev, filteredEx, idx, -1))}
+                            onMoveDown={() => setExhibitionList((prev) => moveInFiltered(prev, filteredEx, idx, 1))}
+                            disableUp={idx === 0}
+                            disableDown={idx === filteredEx.length - 1}
+                          />
+                        </div>
+                      )}
+                      <input value={ex.year} onChange={(e) => updateEx(ex.id, "year", e.target.value)} className="w-16 shrink-0 bg-transparent border-b border-dashed border-accent/60 text-xs text-accent outline-none" style={MONO} placeholder="연도" />
+                      <button onClick={() => updateEx(ex.id, "tag", ex.tag === "전시" ? "아트페어" : ex.tag === "아트페어" ? "수상" : "전시")} className={`text-xs px-1.5 py-0.5 border transition-colors shrink-0 ${ex.tag === "수상" ? "border-yellow-600/60 text-yellow-500" : ex.tag === "아트페어" ? "border-blue-500/60 text-blue-400" : "border-accent text-accent"}`} style={MONO}>{ex.tag === "전시" ? u.exExhibition : ex.tag === "아트페어" ? u.exFair : u.exAward} ⇄</button>
+                      <div className="flex items-center gap-1 ml-auto shrink-0">
+                        <button onClick={() => setEditingExId(null)} className="p-1 text-accent transition-colors"><Check size={13} /></button>
+                        <button onClick={() => deleteEx(ex.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
+                      </div>
+                    </div>
+                    <input value={ex.title} onChange={(e) => updateEx(ex.id, "title", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground font-light outline-none" style={SERIF} placeholder="제목 KO" />
+                    <input value={ex.titleEn} onChange={(e) => updateEx(ex.id, "titleEn", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-accent outline-none" style={MONO} placeholder="Title EN" />
+                    <div className="flex gap-2">
+                      <input value={ex.venue} onChange={(e) => updateEx(ex.id, "venue", e.target.value)} className="flex-1 bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" placeholder="장소 KO" />
+                      <input value={ex.location} onChange={(e) => updateEx(ex.id, "location", e.target.value)} className="w-20 shrink-0 bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" placeholder="지역" />
+                    </div>
+                    <input value={ex.venueEn ?? ""} onChange={(e) => updateEx(ex.id, "venueEn", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" placeholder="Venue EN" />
+                    <div className="flex items-center gap-1">
+                      <Link2 size={10} className="text-muted-foreground shrink-0" />
+                      <select value={ex.activityId ?? ""} onChange={(e) => updateEx(ex.id, "activityId", e.target.value ? Number(e.target.value) : undefined)} className="bg-transparent text-xs text-muted-foreground outline-none flex-1 cursor-pointer" style={MONO}>
+                        <option value="">{u.exNoLink}</option>
+                        {activityPhotos.map((p) => <option key={p.id} value={p.id}>{lang === "ko" ? p.caption : p.captionEn}</option>)}
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {editMode && (
+                      <div className="col-span-1 flex items-center justify-center gap-0.5 text-accent/40 cursor-grab">
+                        <GripVertical size={13} />
+                        <ReorderButtons
+                          onMoveUp={() => setExhibitionList((prev) => moveInFiltered(prev, filteredEx, idx, -1))}
+                          onMoveDown={() => setExhibitionList((prev) => moveInFiltered(prev, filteredEx, idx, 1))}
+                          disableUp={idx === 0}
+                          disableDown={idx === filteredEx.length - 1}
+                        />
+                      </div>
+                    )}
+                    {/* thumbnail */}
+                    <div className={`${editMode ? "col-span-1" : "col-span-2 sm:col-span-1"} flex items-center justify-center`}>
+                      {exThumb ? (
+                        <button onClick={() => linkedPhoto && scrollToActivity(linkedPhoto.id)} className="shrink-0 overflow-hidden bg-secondary" style={{ width: 40, height: 40 }}>
+                          <img src={exThumb} alt={lang === "ko" ? ex.title : ex.titleEn} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
+                        </button>
+                      ) : (
+                        <span className="text-xs text-accent" style={MONO}>{ex.year}</span>
+                      )}
+                    </div>
+                    <div className={editMode ? "col-span-4 lg:col-span-4" : "col-span-5 lg:col-span-4"}>
+                      {exThumb && <span className="text-xs text-accent block mb-0.5" style={MONO}>{ex.year}</span>}
+                      <p className="text-xs sm:text-sm text-foreground font-light leading-snug" style={SERIF}>{lang === "ko" ? ex.title : ex.titleEn}</p>
+                    </div>
+                    <div className="hidden lg:block col-span-3">
+                      <p className="text-xs text-muted-foreground">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {ex.location}</p>
+                    </div>
+                    <div className="col-span-2 lg:col-span-1 flex justify-center">
+                      <span className={`text-xs px-1.5 py-0.5 border ${ex.tag === "수상" ? "border-yellow-600/60 text-yellow-500" : ex.tag === "아트페어" ? "border-blue-500/40 text-blue-400" : "border-border text-muted-foreground"}`} style={MONO}>{ex.tag === "전시" ? u.exExhibition : ex.tag === "아트페어" ? u.exFair : u.exAward}</span>
+                    </div>
+                    <div className="col-span-1 flex justify-end">{linkedPhoto && !exThumb && <button onClick={() => scrollToActivity(linkedPhoto.id)} className="text-muted-foreground hover:text-accent transition-colors p-1" title={lang === "ko" ? linkedPhoto.caption : linkedPhoto.captionEn}><Link2 size={14} /></button>}</div>
+                    <div className="col-span-1 flex justify-end">{editMode && <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => setEditingExId(ex.id)} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><Edit3 size={12} /></button><button onClick={() => deleteEx(ex.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button></div>}</div>
+                  </>
                 )}
-                {/* thumbnail */}
-                <div className={`${editMode ? "col-span-1" : "col-span-2 sm:col-span-1"} flex items-center justify-center`}>
-                  {exThumb ? (
-                    <button onClick={() => linkedPhoto && scrollToActivity(linkedPhoto.id)} className="shrink-0 overflow-hidden bg-secondary" style={{ width: 40, height: 40 }}>
-                      <img src={exThumb} alt={lang === "ko" ? ex.title : ex.titleEn} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
-                    </button>
-                  ) : (
-                    <span className="text-xs text-accent" style={MONO}>{ex.year}</span>
-                  )}
-                </div>
-                <div className={editMode ? "col-span-4 lg:col-span-4" : "col-span-5 lg:col-span-4"}>
-                  {exThumb && <span className="text-xs text-accent block mb-0.5" style={MONO}>{ex.year}</span>}
-                  {isEditing ? <div className="space-y-1"><input value={ex.year} onChange={(e) => updateEx(ex.id, "year", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 text-xs text-accent outline-none w-16 mb-1" style={MONO} /><input value={ex.title} onChange={(e) => updateEx(ex.id, "title", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 text-xs sm:text-sm text-foreground font-light outline-none w-full" style={SERIF} placeholder="제목 KO" /><input value={ex.titleEn} onChange={(e) => updateEx(ex.id, "titleEn", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 text-xs text-accent outline-none w-full" style={MONO} placeholder="Title EN" /></div> : <p className="text-xs sm:text-sm text-foreground font-light leading-snug" style={SERIF}>{lang === "ko" ? ex.title : ex.titleEn}</p>}
-                </div>
-                <div className="hidden lg:block col-span-3">
-                  {isEditing ? (<div className="space-y-1"><div className="flex gap-2"><input value={ex.venue} onChange={(e) => updateEx(ex.id, "venue", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none flex-1" placeholder="장소 KO" /><input value={ex.location} onChange={(e) => updateEx(ex.id, "location", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none w-16" placeholder="지역" /></div><input value={ex.venueEn ?? ""} onChange={(e) => updateEx(ex.id, "venueEn", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none w-full" placeholder="Venue EN" /><div className="flex items-center gap-1"><Link2 size={10} className="text-muted-foreground shrink-0" /><select value={ex.activityId ?? ""} onChange={(e) => updateEx(ex.id, "activityId", e.target.value ? Number(e.target.value) : undefined)} className="bg-transparent text-xs text-muted-foreground outline-none flex-1 cursor-pointer" style={MONO}><option value="">{u.exNoLink}</option>{activityPhotos.map((p) => <option key={p.id} value={p.id}>{lang === "ko" ? p.caption : p.captionEn}</option>)}</select></div></div>) : <p className="text-xs text-muted-foreground">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {ex.location}</p>}
-                </div>
-                <div className="col-span-2 lg:col-span-1 flex justify-center">{isEditing ? <button onClick={() => updateEx(ex.id, "tag", ex.tag === "전시" ? "아트페어" : ex.tag === "아트페어" ? "수상" : "전시")} className={`text-xs px-1.5 py-0.5 border transition-colors ${ex.tag === "수상" ? "border-yellow-600/60 text-yellow-500" : ex.tag === "아트페어" ? "border-blue-500/60 text-blue-400" : "border-accent text-accent"}`} style={MONO}>{ex.tag === "전시" ? u.exExhibition : ex.tag === "아트페어" ? u.exFair : u.exAward} ⇄</button> : <span className={`text-xs px-1.5 py-0.5 border ${ex.tag === "수상" ? "border-yellow-600/60 text-yellow-500" : ex.tag === "아트페어" ? "border-blue-500/40 text-blue-400" : "border-border text-muted-foreground"}`} style={MONO}>{ex.tag === "전시" ? u.exExhibition : ex.tag === "아트페어" ? u.exFair : u.exAward}</span>}</div>
-                <div className="col-span-1 flex justify-end">{!isEditing && linkedPhoto && !exThumb && <button onClick={() => scrollToActivity(linkedPhoto.id)} className="text-muted-foreground hover:text-accent transition-colors p-1" title={lang === "ko" ? linkedPhoto.caption : linkedPhoto.captionEn}><Link2 size={14} /></button>}</div>
-                <div className="col-span-1 flex justify-end">{editMode && <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => setEditingExId(isEditing ? null : ex.id)} className={`p-1 transition-colors ${isEditing ? "text-accent" : "text-muted-foreground hover:text-foreground"}`}>{isEditing ? <Check size={12} /> : <Edit3 size={12} />}</button><button onClick={() => deleteEx(ex.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button></div>}</div>
               </div>
             );
           })}
