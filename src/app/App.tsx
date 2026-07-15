@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { loadPortfolio, savePortfolio, uploadImage, loginEditor, translateTexts, unfurlPress, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
-import { Menu, X, Edit3, Check, Languages } from "lucide-react";
+import { Menu, X, Edit3, Check, Languages, Download } from "lucide-react";
 import {
   MONO, serifOf, sansOf, hSize, GLOBAL_CSS,
   initContent, UI, initCurrentEx, initSeries, initArtworks, initSlides, initExhibitions, initActivityPhotos, initVideos, initContacts, initPress,
@@ -341,6 +341,22 @@ export default function App() {
     const h = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", h); return () => window.removeEventListener("scroll", h);
   }, []);
+
+  /* mobile nav menu: close on outside click or on scroll */
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnScroll = () => setMenuOpen(false);
+    const closeOnOutsideClick = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    window.addEventListener("scroll", closeOnScroll, { passive: true });
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => {
+      window.removeEventListener("scroll", closeOnScroll);
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+    };
+  }, [menuOpen]);
   useEffect(() => {
     if (currentSlide >= slides.length) setCurrentSlide(Math.max(0, slides.length - 1));
   }, [slides.length]);
@@ -629,7 +645,7 @@ export default function App() {
         )}
 
         {/* ── NAV ── */}
-        <nav className={`nav-bar fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? "bg-background/95 backdrop-blur-sm border-b border-border" : ""}`}
+        <nav ref={navRef} className={`nav-bar fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled || menuOpen ? "bg-background/95 backdrop-blur-sm border-b border-border" : ""}`}
           style={{ height: "64px" }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 flex items-center justify-between h-full">
             <button onClick={() => scrollTo("hero")} style={{ ...SERIF, fontWeight: 400, letterSpacing: lang === "en" ? "0.08em" : "0.05em", fontSize: lang === "en" ? "1.1rem" : "1rem" }} className="text-foreground hover:text-accent transition-colors shrink-0">
@@ -637,6 +653,7 @@ export default function App() {
             </button>
             <div className="hidden lg:flex items-center gap-7">
               {navItems.map(([id, label]) => <button key={id} onClick={() => scrollTo(id)} className="text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}>{label}</button>)}
+              <button onClick={() => setShowCvPrint(true)} className="flex items-center gap-1.5 text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}><Download size={13} />{u.cvDownload}</button>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               {isSupabaseReady && (
@@ -656,6 +673,7 @@ export default function App() {
           {menuOpen && (
             <div className="lg:hidden bg-background/98 border-t border-border px-6 py-6 flex flex-col gap-5">
               {navItems.map(([id, label]) => <button key={id} onClick={() => scrollTo(id)} className="text-left text-foreground text-sm tracking-widest uppercase" style={MONO}>{label}</button>)}
+              <button onClick={() => { setMenuOpen(false); setShowCvPrint(true); }} className="flex items-center gap-2 text-left text-foreground text-sm tracking-widest uppercase" style={MONO}><Download size={14} />{u.cvDownload}</button>
             </div>
           )}
         </nav>
@@ -727,7 +745,6 @@ export default function App() {
           addExhibition={addExhibition}
           updateEx={updateEx}
           deleteEx={deleteEx}
-          onDownloadCv={() => setShowCvPrint(true)}
         />
 
         <Press
