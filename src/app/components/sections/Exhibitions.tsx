@@ -121,16 +121,14 @@ export function Exhibitions({
                     )}
                     {/* thumbnail */}
                     <div className={`${editMode ? "col-span-1" : "col-span-2 sm:col-span-1"} flex items-center justify-center`}>
-                      {exThumb ? (
+                      {exThumb && (
                         <button onClick={() => linkedPhoto && scrollToActivity(linkedPhoto.id)} className="shrink-0 overflow-hidden bg-secondary" style={{ width: 40, height: 40 }}>
                           <img src={exThumb} alt={lang === "ko" ? ex.title : ex.titleEn} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
                         </button>
-                      ) : (
-                        <span className="text-xs text-accent" style={MONO}>{ex.year}</span>
                       )}
                     </div>
                     <div className={editMode ? "col-span-4 lg:col-span-4" : "col-span-5 lg:col-span-4"}>
-                      {exThumb && <span className="text-xs text-accent block mb-0.5" style={MONO}>{ex.year}</span>}
+                      <span className="text-xs text-accent block mb-0.5" style={MONO}>{ex.year}</span>
                       <p className="text-xs sm:text-sm text-foreground font-light leading-snug" style={SERIF}>{lang === "ko" ? ex.title : ex.titleEn}</p>
                     </div>
                     <div className="hidden lg:block col-span-3">

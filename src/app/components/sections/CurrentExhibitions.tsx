@@ -115,7 +115,7 @@ export function CurrentExhibitions({
                       <input value={ex.url ?? ""} onChange={(e) => updateCurrentEx(ex.id, "url", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" style={MONO} placeholder="링크 URL (선택)" />
                     </div>
                   ) : (
-                    <div className="flex-1">
+                    <div className="flex-1 flex flex-col justify-center">
                       <h3 className={`font-light text-foreground mb-1 leading-snug ${hSize("text-sm sm:text-base", "text-base sm:text-lg", lang)}`} style={SERIF}>{lang === "ko" ? ex.title : ex.titleEn}</h3>
                       <p className="text-xs text-accent mb-3" style={MONO}>{lang === "ko" ? ex.titleEn : ex.title}</p>
                       <p className="text-xs text-muted-foreground mb-1">{lang === "ko" ? ex.venue : ex.venueEn}</p>
