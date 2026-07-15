@@ -47,7 +47,7 @@ export function Works({
             <div className="text-xs tracking-[0.25em] text-accent mb-4 uppercase" style={MONO}><C field="s02label" /></div>
             <h2 className={`font-light text-foreground ${hSize("text-3xl sm:text-4xl lg:text-5xl", "text-4xl sm:text-5xl lg:text-6xl", lang)}`} style={SERIF}><C field="s02heading" /></h2>
           </div>
-          <div className="capture-hide flex gap-2 flex-wrap items-center">
+          <div className="flex gap-2 flex-wrap items-center">
             <button
               onClick={() => setSelectedSeries("전체")}
               className={`text-xs tracking-wider px-3 sm:px-4 py-2 border transition-all ${selectedSeries === "전체" ? "border-accent text-accent" : "border-border text-muted-foreground hover:border-foreground/40"}`}

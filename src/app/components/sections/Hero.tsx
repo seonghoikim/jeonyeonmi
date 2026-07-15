@@ -37,9 +37,14 @@ export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCapti
             ? <textarea value={lang === "ko" ? content.heroDesc : content.heroDescEn} onChange={(e) => updateContent(lang === "ko" ? "heroDesc" : "heroDescEn", e.target.value)} rows={3} className="bg-transparent border-b border-dashed border-accent/60 outline-none resize-none w-full text-base text-muted-foreground leading-relaxed" style={SANS} />
             : c("heroDesc")}
         </p>
-        <button onClick={() => scrollTo("works")} className="flex items-center gap-2 text-xs tracking-widest text-foreground border border-border px-5 py-3 hover:border-accent hover:text-accent transition-all w-fit" style={MONO}>
-          {c("heroCta")} <ArrowUpRight size={14} />
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => scrollTo("statement")} className="flex items-center gap-2 text-xs tracking-widest text-foreground border border-border px-5 py-3 hover:border-accent hover:text-accent transition-all w-fit" style={MONO}>
+            {u.navStatement}
+          </button>
+          <button onClick={() => scrollTo("works")} className="flex items-center gap-2 text-xs tracking-widest text-foreground border border-border px-5 py-3 hover:border-accent hover:text-accent transition-all w-fit" style={MONO}>
+            {c("heroCta")} <ArrowUpRight size={14} />
+          </button>
+        </div>
       </div>
       <div className={`hero-image relative min-h-[50vh] md:min-h-screen bg-card overflow-hidden flex-1 order-1 md:order-2 ${editMode && !editingCaption ? "cursor-pointer" : ""}`}
         style={{ transition: "flex 0.6s cubic-bezier(0.4,0,0.2,1)" }}
