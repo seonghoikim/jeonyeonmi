@@ -15,7 +15,7 @@ app.use(
   "/*",
   cors({
     origin: "*",
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Edit-Token"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
@@ -69,9 +69,10 @@ app.post(`${PREFIX}/auth/login`, async (c) => {
   return c.json({ token });
 });
 
+// Our own editor-session token travels in X-Edit-Token, not Authorization — that
+// header is reserved for the Supabase gateway's own JWT check (the anon key).
 async function requireAuth(c: any, next: any) {
-  const authHeader = c.req.header("Authorization") ?? "";
-  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const token = c.req.header("X-Edit-Token") ?? "";
   const sessionSecret = Deno.env.get("SESSION_SECRET");
   if (!sessionSecret || !(await verifySessionToken(sessionSecret, token))) {
     return c.json({ error: "인증이 필요합니다" }, 401);
