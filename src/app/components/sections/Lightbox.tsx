@@ -1,3 +1,4 @@
+import { type RefObject } from "react";
 import { X, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { useModalLock } from "../../useModalLock";
@@ -8,6 +9,8 @@ type LightboxProps = {
   offset: { x: number; y: number };
   dragging: boolean;
   showZoom: boolean;
+  imgRef: RefObject<HTMLImageElement>;
+  containerRef: RefObject<HTMLDivElement>;
   onClose: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -23,13 +26,13 @@ type LightboxProps = {
 };
 
 export function Lightbox({
-  src, scale, offset, dragging, showZoom, onClose, onZoomIn, onZoomOut, onReset,
+  src, scale, offset, dragging, showZoom, imgRef, containerRef, onClose, onZoomIn, onZoomOut, onReset,
   onWheel, onMouseDown, onMouseMove, onMouseUp, onTouchStart, onTouchMove, onTouchEnd, onDoubleClick,
 }: LightboxProps) {
   const { u, MONO } = usePortfolioContext();
-  const containerRef = useModalLock<HTMLDivElement>(true, onClose);
+  const modalRef = useModalLock<HTMLDivElement>(true, onClose);
   return (
-    <div ref={containerRef} tabIndex={-1} className="fixed inset-0 z-[300] bg-black/97 flex flex-col outline-none">
+    <div ref={modalRef} tabIndex={-1} className="fixed inset-0 z-[300] bg-black/97 flex flex-col outline-none">
       {/* toolbar */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-1">
@@ -55,7 +58,7 @@ export function Lightbox({
         </button>
       </div>
       {/* canvas */}
-      <div className="flex-1 overflow-hidden flex items-center justify-center"
+      <div ref={containerRef} className="flex-1 overflow-hidden flex items-center justify-center"
         style={{ cursor: dragging ? "grabbing" : scale > 1 ? "grab" : "default", touchAction: "none" }}
         onWheel={showZoom ? onWheel : (e) => e.preventDefault()}
         onMouseDown={onMouseDown}
@@ -66,14 +69,14 @@ export function Lightbox({
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onDoubleClick={onDoubleClick}>
-        <img src={src} alt=""
+        <img ref={imgRef} src={src} alt=""
           draggable={false}
           className={`pointer-events-none lb-img ${dragging ? "dragging" : ""}`}
           style={{
             transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
             transformOrigin: "center center",
-            maxWidth: scale <= 1 ? "min(92vw, 1200px)" : "none",
-            maxHeight: scale <= 1 ? "calc(100dvh - 60px)" : "none",
+            maxWidth: "min(92vw, 1200px)",
+            maxHeight: "calc(100dvh - 60px)",
           }} />
       </div>
       {/* hint overlay on first open */}

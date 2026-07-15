@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { loadPortfolio, savePortfolio, uploadImage, loginEditor, translateTexts, unfurlPress, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
 import { Menu, X, Edit3, Check, Languages } from "lucide-react";
 import {
@@ -74,20 +74,57 @@ export default function App() {
   const [lbScaleAtPinch, setLbScaleAtPinch] = useState(1);
 
   const [lbShowZoom, setLbShowZoom] = useState(true);
+  const lbImgRef = useRef<HTMLImageElement>(null);
+  const lbContainerRef = useRef<HTMLDivElement>(null);
+  const lbBaseSizeRef = useRef({ width: 0, height: 0 }); // rendered image size at scale=1
+
+  // Keeps the zoomed image from being panned/scrolled entirely off-screen with
+  // no way back — clamps so the container is always at least partially covered.
+  const clampLbOffset = (x: number, y: number, scale: number) => {
+    if (scale <= 1) return { x: 0, y: 0 };
+    const container = lbContainerRef.current;
+    const { width: bw, height: bh } = lbBaseSizeRef.current;
+    if (!container || bw === 0 || bh === 0) return { x, y };
+    const overflowX = Math.max(0, (bw * scale - container.clientWidth) / 2);
+    const overflowY = Math.max(0, (bh * scale - container.clientHeight) / 2);
+    return {
+      x: Math.min(overflowX, Math.max(-overflowX, x)),
+      y: Math.min(overflowY, Math.max(-overflowY, y)),
+    };
+  };
+
+  // Measure the image's rendered (unscaled) box once it loads — used as the
+  // baseline for pan-clamping math above.
+  useLayoutEffect(() => {
+    if (!lightboxSrc) return;
+    const measure = () => {
+      const img = lbImgRef.current;
+      if (img) lbBaseSizeRef.current = { width: img.offsetWidth, height: img.offsetHeight };
+    };
+    measure();
+    const img = lbImgRef.current;
+    img?.addEventListener("load", measure);
+    return () => img?.removeEventListener("load", measure);
+  }, [lightboxSrc]);
 
   const openLightbox = (src: string, showZoom = true) => { setLightboxSrc(src); setLbScale(1); setLbOffset({ x: 0, y: 0 }); setLbShowZoom(showZoom); };
   const lbStep = (s: number, dir: 1 | -1) => {
     const step = s >= 1 ? 0.05 : 0.15;
     return parseFloat((s + dir * step).toFixed(2));
   };
-  const lbZoomIn = () => setLbScale((s) => Math.min(8, lbStep(s, 1)));
-  const lbZoomOut = () => setLbScale((s) => Math.max(0.25, lbStep(s, -1)));
+  const applyLbScale = (newScale: number) => {
+    const clamped = Math.max(0.25, Math.min(8, newScale));
+    setLbScale(clamped);
+    setLbOffset((prev) => clampLbOffset(prev.x, prev.y, clamped));
+  };
+  const lbZoomIn = () => applyLbScale(lbStep(lbScale, 1));
+  const lbZoomOut = () => applyLbScale(lbStep(lbScale, -1));
   const lbReset = () => { setLbScale(1); setLbOffset({ x: 0, y: 0 }); };
 
   const handleLbWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const dir = e.deltaY < 0 ? 1 : -1;
-    setLbScale((s) => Math.max(0.25, Math.min(8, lbStep(s, dir))));
+    applyLbScale(lbStep(lbScale, dir));
   };
   const handleLbMouseDown = (e: React.MouseEvent) => {
     setLbDragging(true);
@@ -95,7 +132,7 @@ export default function App() {
   };
   const handleLbMouseMove = (e: React.MouseEvent) => {
     if (!lbDragging) return;
-    setLbOffset({ x: e.clientX - lbDragStart.x, y: e.clientY - lbDragStart.y });
+    setLbOffset(clampLbOffset(e.clientX - lbDragStart.x, e.clientY - lbDragStart.y, lbScale));
   };
   const handleLbMouseUp = () => setLbDragging(false);
 
@@ -111,9 +148,11 @@ export default function App() {
   const handleLbTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 2 && lbPinchDist !== null) {
       const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-      setLbScale(Math.max(0.25, Math.min(8, lbScaleAtPinch * (d / lbPinchDist))));
+      const newScale = Math.max(0.25, Math.min(8, lbScaleAtPinch * (d / lbPinchDist)));
+      setLbScale(newScale);
+      setLbOffset((prev) => clampLbOffset(prev.x, prev.y, newScale));
     } else if (e.touches.length === 1 && lbDragging) {
-      setLbOffset({ x: e.touches[0].clientX - lbDragStart.x, y: e.touches[0].clientY - lbDragStart.y });
+      setLbOffset(clampLbOffset(e.touches[0].clientX - lbDragStart.x, e.touches[0].clientY - lbDragStart.y, lbScale));
     }
   };
   const handleLbTouchEnd = () => { setLbDragging(false); setLbPinchDist(null); };
@@ -549,6 +588,8 @@ export default function App() {
             offset={lbOffset}
             dragging={lbDragging}
             showZoom={lbShowZoom}
+            imgRef={lbImgRef}
+            containerRef={lbContainerRef}
             onClose={() => setLightboxSrc(null)}
             onZoomIn={lbZoomIn}
             onZoomOut={lbZoomOut}
@@ -560,7 +601,7 @@ export default function App() {
             onTouchStart={handleLbTouchStart}
             onTouchMove={handleLbTouchMove}
             onTouchEnd={handleLbTouchEnd}
-            onDoubleClick={() => lbScale === 1 ? setLbScale(2) : lbReset()}
+            onDoubleClick={() => lbScale === 1 ? applyLbScale(2) : lbReset()}
           />
         )}
 
