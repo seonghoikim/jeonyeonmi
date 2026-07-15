@@ -218,4 +218,83 @@ ${numbered}
   }
 });
 
+/* ── unfurl: authenticated link-preview extraction (og:title/og:image/og:site_name) ──
+   Lets the editor paste a press-article URL and auto-fill outlet/title/thumbnail
+   instead of manually screenshotting and uploading a logo for every article. */
+function extractMeta(html: string, prop: string): string | null {
+  const patterns = [
+    new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]*content=["']([^"']*)["']`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*(?:property|name)=["']${prop}["']`, "i"),
+  ];
+  for (const re of patterns) {
+    const m = html.match(re);
+    if (m?.[1]) return m[1];
+  }
+  return null;
+}
+
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&nbsp;/g, " ");
+}
+
+const UNFURL_MAX_BYTES = 300_000;
+const UNFURL_TIMEOUT_MS = 8000;
+
+app.post(`${PREFIX}/portfolio/unfurl`, requireAuth, async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const url = body?.url;
+  if (typeof url !== "string" || !/^https?:\/\//i.test(url)) {
+    return c.json({ error: "올바른 URL이 아닙니다" }, 400);
+  }
+  let parsed: URL;
+  try { parsed = new URL(url); } catch { return c.json({ error: "올바른 URL이 아닙니다" }, 400); }
+  if (["localhost", "127.0.0.1", "0.0.0.0", "::1"].includes(parsed.hostname) || parsed.hostname.endsWith(".local")) {
+    return c.json({ error: "허용되지 않는 주소입니다" }, 400);
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), UNFURL_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      redirect: "follow",
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; JeonYeonmiBot/1.0; +https://jeonyeonmi.vercel.app)" },
+    });
+    if (!res.ok) return c.json({ error: `페이지를 가져올 수 없습니다 (${res.status})` }, 502);
+
+    let html = "";
+    const reader = res.body?.getReader();
+    if (reader) {
+      const decoder = new TextDecoder();
+      let received = 0;
+      while (received < UNFURL_MAX_BYTES) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        html += decoder.decode(value, { stream: true });
+        received += value.byteLength;
+      }
+      reader.cancel().catch(() => {});
+    } else {
+      html = await res.text();
+    }
+
+    const rawTitle = extractMeta(html, "og:title") ?? html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? "";
+    const rawImage = extractMeta(html, "og:image") ?? "";
+    const rawSite = extractMeta(html, "og:site_name") ?? parsed.hostname.replace(/^www\./, "");
+
+    return c.json({
+      title: decodeHtmlEntities(rawTitle).trim(),
+      image: rawImage ? new URL(rawImage, url).toString() : "",
+      siteName: decodeHtmlEntities(rawSite).trim(),
+    });
+  } catch (err) {
+    console.error("[unfurl] error:", err);
+    return c.json({ error: "미리보기를 가져오지 못했습니다" }, 500);
+  } finally {
+    clearTimeout(timeout);
+  }
+});
+
 Deno.serve(app.fetch);

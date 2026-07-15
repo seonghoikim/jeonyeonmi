@@ -105,6 +105,20 @@ export async function translateTexts(texts: string[], token: string): Promise<st
   return body.translations as string[];
 }
 
+/* ── Press link preview: server-side og:title/og:image/og:site_name extraction ──
+   Avoids CORS (fetching another site's HTML from the browser is blocked) and lets the
+   editor paste a URL instead of manually cropping/uploading a logo for every article. */
+export async function unfurlPress(url: string, token: string): Promise<{ title: string; image: string; siteName: string }> {
+  const res = await fetch(`${FUNCTIONS_URL}/portfolio/unfurl`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...gatewayHeaders(), "X-Edit-Token": token },
+    body: JSON.stringify({ url }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error ?? `미리보기 가져오기 실패 (${res.status})`);
+  return body as { title: string; image: string; siteName: string };
+}
+
 /* ── DB operations ── */
 export type PortfolioRow = {
   id: number;
@@ -117,6 +131,7 @@ export type PortfolioRow = {
   activity_photos: unknown[];
   videos: unknown[];
   contacts: unknown[];
+  press: unknown[];
   settings: Record<string, string>;
   image_urls: Record<string, string>;
   updated_at: string;
