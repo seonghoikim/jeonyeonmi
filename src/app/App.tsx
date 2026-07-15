@@ -528,6 +528,12 @@ export default function App() {
     return unsubscribe;
   }, [applyRemoteRow]);
 
+  /* ── Leaving edit mode fully ends the editor session: drop the token so no
+     further save can fire from this tab, and require the password again to resume. ── */
+  useEffect(() => {
+    if (!editMode) { editTokenRef.current = null; setIsAuth(false); }
+  }, [editMode]);
+
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", h); return () => window.removeEventListener("scroll", h);
