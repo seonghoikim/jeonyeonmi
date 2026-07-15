@@ -21,7 +21,7 @@ export type PortfolioContextValue = {
   setDragOverKey: (key: string | null) => void;
   scrollTo: (id: string) => void;
   scrollToActivity: (activityId: number) => void;
-  triggerUpload: (target: string) => void;
+  triggerUpload: (target: string, label?: string) => void;
   openLightbox: (src: string, showZoom?: boolean) => void;
 };
 

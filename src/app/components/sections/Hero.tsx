@@ -43,9 +43,9 @@ export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCapti
       </div>
       <div className={`hero-image relative min-h-[50vh] md:min-h-screen bg-card overflow-hidden flex-1 order-1 md:order-2 ${editMode && !editingCaption ? "cursor-pointer" : ""}`}
         style={{ transition: "flex 0.6s cubic-bezier(0.4,0,0.2,1)" }}
-        onClick={() => { if (editMode && !editingCaption) triggerUpload("hero"); }}>
+        onClick={() => { if (editMode && !editingCaption) triggerUpload("hero", heroCaptionEn); }}>
         {img("hero")
-          ? <img src={img("hero")!} alt="hero" className="absolute inset-0 w-full h-full object-cover opacity-70 hover:opacity-80 transition-opacity duration-700" />
+          ? <img src={img("hero")!} alt={`${c("heroName")} — ${lang === "ko" ? heroCaption : heroCaptionEn}`} className="absolute inset-0 w-full h-full object-cover opacity-70 hover:opacity-80 transition-opacity duration-700" />
           : <div className="absolute inset-0 img-placeholder" />}
         <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
         {editMode && !editingCaption && (

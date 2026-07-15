@@ -118,10 +118,19 @@ app.post(`${PREFIX}/portfolio/save`, requireAuth, async (c) => {
 /* ── upload: authenticated image upload, server performs the storage write ── */
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
+// Turns e.g. "Floating Memory I" into "floating-memory-i" for descriptive,
+// search-friendly filenames instead of a bare timestamp.
+function slugify(text: string): string {
+  const stripped = text.normalize("NFKD").replace(/\p{Diacritic}/gu, "");
+  const slug = stripped.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+  return slug || "image";
+}
+
 app.post(`${PREFIX}/portfolio/upload`, requireAuth, async (c) => {
   const form = await c.req.formData().catch(() => null);
   const file = form?.get("file");
   const key = form?.get("key");
+  const label = form?.get("label");
   if (!(file instanceof File) || typeof key !== "string" || !key) {
     return c.json({ error: "잘못된 요청" }, 400);
   }
@@ -129,7 +138,8 @@ app.post(`${PREFIX}/portfolio/upload`, requireAuth, async (c) => {
     return c.json({ error: "파일이 너무 큽니다 (최대 10MB)" }, 413);
   }
 
-  const path = `${key}/${Date.now()}.webp`;
+  const namePart = typeof label === "string" && label.trim() ? `${slugify(label)}-${Date.now()}` : `${Date.now()}`;
+  const path = `${key}/${namePart}.webp`;
   const bytes = new Uint8Array(await file.arrayBuffer());
   const { error } = await supabaseAdmin.storage
     .from("portfolio")
