@@ -39,7 +39,7 @@ export const getYoutubeId = (url: string) =>
 export type Lang = "ko" | "en";
 export type ContentKey = keyof typeof initContent;
 export type CurrentExhibition = { id: number; title: string; titleEn: string; venue: string; venueEn: string; location: string; locationEn: string; startDate: string; endDate: string; status: "진행중" | "예정" | "지난전시"; visible: boolean; url?: string; };
-export type Artwork = { id: number; title: string; titleEn: string; year: string; medium: string; mediumEn: string; size: string; image: string; category: string; categoryEn: string; series: string; collected: boolean; };
+export type Artwork = { id: number; title: string; titleEn: string; year: string; medium: string; mediumEn: string; size: string; image: string; category: string; categoryEn: string; series: string; collected: boolean; description?: string; descriptionEn?: string; };
 export type Series = { id: number; name: string; nameEn: string; };
 export type Slide = { id: number; heading: string; headingEn: string; body: string; bodyEn: string; };
 export type ExhibitionEntry = { id: number; year: string; title: string; titleEn: string; venue: string; venueEn: string; location: string; tag: "전시" | "수상" | "아트페어"; activityId?: number; };
@@ -93,6 +93,7 @@ export const UI = {
     worksInquiry: "작품 문의 →", worksDelete: "삭제", worksNoImg: "이미지 없음",
     worksViewOriginal: "원본 보기",
     fieldYear: "연도", fieldMedium: "재료", fieldSize: "크기", fieldCategory: "분류", fieldSeries: "시리즈",
+    fieldDescription: "작품 설명", descriptionPlaceholderKo: "작품 설명 (한국어)", descriptionPlaceholderEn: "Description (English)",
     statAddSlide: "슬라이드 추가", statFirstSlide: "첫 슬라이드 추가",
     statNone: "작가노트가 없습니다", statDeleteSlide: "이 슬라이드 삭제",
     statUpload: "이미지 교체", statUploading: "업로드 중…",
@@ -122,6 +123,7 @@ export const UI = {
     worksInquiry: "Inquire →", worksDelete: "Delete", worksNoImg: "No image",
     worksViewOriginal: "View Original",
     fieldYear: "Year", fieldMedium: "Medium", fieldSize: "Size", fieldCategory: "Category", fieldSeries: "Series",
+    fieldDescription: "Description", descriptionPlaceholderKo: "설명 (한국어)", descriptionPlaceholderEn: "Description (English)",
     statAddSlide: "Add Slide", statFirstSlide: "Add First Slide",
     statNone: "No statements yet", statDeleteSlide: "Delete this slide",
     statUpload: "Replace Image", statUploading: "Uploading…",

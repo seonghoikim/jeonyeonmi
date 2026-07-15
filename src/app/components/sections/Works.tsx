@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, GripVertical, ArrowUpRight, Trash2, Edit3, Check, Upload, Maximize2, X } from "lucide-react";
+import { Plus, GripVertical, ArrowUpRight, Trash2, Edit3, Check, Upload, Maximize2, X, AlignLeft } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, moveInFiltered, hSize, type Artwork, type Series } from "../../data";
 import { useModalLock } from "../../useModalLock";
@@ -144,7 +144,10 @@ export function Works({
               </div>
               <div className="p-3 sm:p-5 flex flex-col gap-1">
                 <div className="flex justify-between items-baseline gap-2">
-                  <h3 className="text-xs sm:text-sm font-light text-foreground line-clamp-1 flex-1" style={SERIF}>{lang === "ko" ? work.title : work.titleEn}</h3>
+                  <h3 className="text-xs sm:text-sm font-light text-foreground line-clamp-1 flex-1 flex items-center gap-1.5" style={SERIF}>
+                    {lang === "ko" ? work.title : work.titleEn}
+                    {(work.description || work.descriptionEn) && <AlignLeft size={11} className="text-accent/85 shrink-0" title={u.fieldDescription} />}
+                  </h3>
                   <span className="text-xs text-accent shrink-0" style={MONO}>{work.year}</span>
                 </div>
                 <p className="text-xs text-muted-foreground hidden sm:block" style={MONO}>{lang === "ko" ? work.medium : work.mediumEn}</p>
@@ -231,6 +234,19 @@ export function Works({
                     )}
                   </div>
                 </div>
+                {(editMode || selectedWork.description || selectedWork.descriptionEn) && (
+                  <div className="mt-5 sm:mt-6 pt-5 border-t border-border">
+                    <span className="text-xs text-accent uppercase tracking-widest block mb-3" style={MONO}>{u.fieldDescription}</span>
+                    {editMode ? (
+                      <div className="space-y-2">
+                        <textarea value={selectedWork.description ?? ""} onChange={(e) => updateWork(selectedWork.id, "description", e.target.value)} rows={4} placeholder={u.descriptionPlaceholderKo} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground font-light leading-relaxed outline-none resize-none" />
+                        <textarea value={selectedWork.descriptionEn ?? ""} onChange={(e) => updateWork(selectedWork.id, "descriptionEn", e.target.value)} rows={4} placeholder={u.descriptionPlaceholderEn} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground leading-relaxed outline-none resize-none" />
+                      </div>
+                    ) : (
+                      <p className="text-sm text-foreground/90 font-light leading-[1.9] whitespace-pre-wrap">{lang === "ko" ? selectedWork.description : selectedWork.descriptionEn}</p>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="mt-6 sm:mt-8 flex items-center justify-between flex-wrap gap-3">
                 <button onClick={() => setShowInquiry(true)} className="text-xs tracking-widest text-muted-foreground hover:text-accent border border-border px-4 py-2 hover:border-accent transition-all" style={MONO}>{u.worksInquiry}</button>
