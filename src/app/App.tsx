@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { loadPortfolio, savePortfolio, uploadImage, loginEditor, translateTexts, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
+import { loadPortfolio, savePortfolio, uploadImage, loginEditor, translateTexts, unfurlPress, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
 import { Menu, X, Edit3, Check, Languages } from "lucide-react";
 import {
   MONO, serifOf, sansOf, hSize, GLOBAL_CSS,
-  initContent, UI, initCurrentEx, initSeries, initArtworks, initSlides, initExhibitions, initActivityPhotos, initVideos, initContacts,
-  type Lang, type ContentKey, type CurrentExhibition, type Artwork, type Series, type Slide, type ExhibitionEntry, type ActivityPhoto, type VideoEntry, type ContactItem,
+  initContent, UI, initCurrentEx, initSeries, initArtworks, initSlides, initExhibitions, initActivityPhotos, initVideos, initContacts, initPress,
+  type Lang, type ContentKey, type CurrentExhibition, type Artwork, type Series, type Slide, type ExhibitionEntry, type ActivityPhoto, type VideoEntry, type ContactItem, type PressEntry,
 } from "./data";
 import { useGoogleAnalytics } from "./useGoogleAnalytics";
 import { useSeoMeta } from "./useSeoMeta";
@@ -15,6 +15,7 @@ import { CurrentExhibitions } from "./components/sections/CurrentExhibitions";
 import { Works } from "./components/sections/Works";
 import { ArtistStatement } from "./components/sections/ArtistStatement";
 import { Exhibitions } from "./components/sections/Exhibitions";
+import { Press } from "./components/sections/Press";
 import { Activities } from "./components/sections/Activities";
 import { Video } from "./components/sections/Video";
 import { Contact } from "./components/sections/Contact";
@@ -144,6 +145,7 @@ export default function App() {
       if ((row.activity_photos as ActivityPhoto[])?.length) setActivityPhotos(row.activity_photos as ActivityPhoto[]);
       if ((row.videos as VideoEntry[])?.length) setVideoList(row.videos as VideoEntry[]);
       if ((row.contacts as ContactItem[])?.length) setContactItems(row.contacts as ContactItem[]);
+      if ((row.press as PressEntry[])?.length) setPressList(row.press as PressEntry[]);
       if (row.settings?.heroCaption) setHeroCaption(row.settings.heroCaption);
       if (row.settings?.heroCaptionEn) setHeroCaptionEn(row.settings.heroCaptionEn);
       if (row.image_urls && Object.keys(row.image_urls).length > 0) {
@@ -200,6 +202,9 @@ export default function App() {
   const [showCvPrint, setShowCvPrint] = useState(false);
   const [contactItems, setContactItems] = useState(initContacts);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
+  const [pressList, setPressList] = useState(initPress);
+  const [editingPressId, setEditingPressId] = useState<number | null>(null);
+  const [fetchingPressId, setFetchingPressId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingTarget = useRef<string | null>(null);
   const pendingLabel = useRef<string | undefined>(undefined);
@@ -218,7 +223,7 @@ export default function App() {
   saveDataRef.current = {
     content, current_exhibitions: currentExList, artworks: artworkList,
     series_list: seriesList, slides, exhibitions: exhibitionList,
-    activity_photos: activityPhotos, videos: videoList, contacts: contactItems,
+    activity_photos: activityPhotos, videos: videoList, contacts: contactItems, press: pressList,
     settings: { heroCaption, heroCaptionEn }, image_urls: imageUrls,
   };
 
@@ -233,6 +238,7 @@ export default function App() {
     if ((row.activity_photos as ActivityPhoto[])?.length) setActivityPhotos(row.activity_photos as ActivityPhoto[]);
     if ((row.videos as VideoEntry[])?.length) setVideoList(row.videos as VideoEntry[]);
     if ((row.contacts as ContactItem[])?.length) setContactItems(row.contacts as ContactItem[]);
+    if ((row.press as PressEntry[])?.length) setPressList(row.press as PressEntry[]);
     if (row.settings?.heroCaption) setHeroCaption(row.settings.heroCaption);
     if (row.settings?.heroCaptionEn) setHeroCaptionEn(row.settings.heroCaptionEn);
     if (row.image_urls && Object.keys(row.image_urls).length > 0) {
@@ -273,7 +279,7 @@ export default function App() {
     }, 4000);
     return () => clearTimeout(saveTimerRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content, currentExList, artworkList, seriesList, slides, exhibitionList, activityPhotos, videoList, contactItems, heroCaption, heroCaptionEn, imageUrls, isLoading]);
+  }, [content, currentExList, artworkList, seriesList, slides, exhibitionList, activityPhotos, videoList, contactItems, pressList, heroCaption, heroCaptionEn, imageUrls, isLoading]);
 
   /* ── Realtime: keep other open tabs/devices in sync ── */
   useEffect(() => {
@@ -403,6 +409,28 @@ export default function App() {
   const deleteVideo = (id: number) => { if (!window.confirm("이 영상을 삭제하시겠습니까?")) return; setVideoList((p) => p.filter((v) => v.id !== id)); if (editingVideoId === id) setEditingVideoId(null); };
   const updateContact = (id: string, patch: Partial<ContactItem>) => setContactItems((p) => p.map((c) => c.id === id ? { ...c, ...patch } : c));
   const toggleContactVisibility = (id: string) => setContactItems((p) => p.map((c) => c.id === id ? { ...c, visible: !c.visible } : c));
+  const addPress = () => { const newId = Math.max(0, ...pressList.map((p) => p.id)) + 1; setPressList((p) => [{ id: newId, url: "", outlet: "", outletEn: "", title: "새 보도자료", titleEn: "New Press Item", date: String(new Date().getFullYear()), image: "", type: "기사" }, ...p]); setEditingPressId(newId); };
+  const updatePress = (id: number, f: keyof PressEntry, v: string) => setPressList((p) => p.map((item) => item.id === id ? { ...item, [f]: v } : item));
+  const deletePress = (id: number) => { if (!window.confirm("이 보도자료를 삭제하시겠습니까?")) return; setPressList((p) => p.filter((item) => item.id !== id)); if (editingPressId === id) setEditingPressId(null); };
+  const fetchPressPreview = async (id: number, url: string) => {
+    const token = editTokenRef.current;
+    if (!token) { alert("편집 권한이 필요합니다. 다시 로그인해주세요."); return; }
+    if (!url.trim()) { alert(u.pressNoUrl); return; }
+    setFetchingPressId(id);
+    try {
+      const { title, image, siteName } = await unfurlPress(url.trim(), token);
+      setPressList((p) => p.map((item) => item.id === id ? {
+        ...item,
+        title: title || item.title,
+        outlet: siteName || item.outlet,
+        image: image || item.image,
+      } : item));
+    } catch (err) {
+      console.error("[Press] unfurl failed:", err);
+      alert(u.pressFetchError);
+    }
+    setFetchingPressId(null);
+  };
 
   /* ── Translate all empty EN fields from their KO counterpart, in one batched call ── */
   const translateAll = async () => {
@@ -659,6 +687,18 @@ export default function App() {
           updateEx={updateEx}
           deleteEx={deleteEx}
           onDownloadCv={() => setShowCvPrint(true)}
+        />
+
+        <Press
+          pressList={pressList}
+          setPressList={setPressList}
+          editingPressId={editingPressId}
+          setEditingPressId={setEditingPressId}
+          fetchingPressId={fetchingPressId}
+          addPress={addPress}
+          updatePress={updatePress}
+          deletePress={deletePress}
+          fetchPressPreview={fetchPressPreview}
         />
 
         <CvPrintView

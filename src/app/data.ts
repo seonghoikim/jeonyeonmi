@@ -46,6 +46,7 @@ export type ExhibitionEntry = { id: number; year: string; title: string; titleEn
 export type ActivityPhoto = { id: number; caption: string; captionEn: string; };
 export type VideoEntry = { id: number; youtubeUrl: string; title: string; titleEn: string; description: string; descriptionEn: string; };
 export type ContactItem = { id: string; type: "email" | "phone" | "instagram" | "blog"; labelKo: string; labelEn: string; display: string; href: string; visible: boolean; };
+export type PressEntry = { id: number; url: string; outlet: string; outletEn: string; title: string; titleEn: string; date: string; image: string; type: "기사" | "인터뷰" | "방송"; };
 
 /* ─── page content ───────────────────────────────────── */
 export const initContent = {
@@ -62,14 +63,16 @@ export const initContent = {
   s03heading: "Artist Statement", s03headingEn: "Artist Statement",
   s04label: "04 — 전시 및 수상", s04labelEn: "04 — Exhibitions & Awards",
   s04heading: "전시 및 수상이력", s04headingEn: "Exhibitions & Awards",
-  s05label: "05 — 활동", s05labelEn: "05 — Activities",
+  s05label: "06 — 활동", s05labelEn: "06 — Activities",
   s05heading: "Activities", s05headingEn: "Activities",
-  s06label: "06 — 영상", s06labelEn: "06 — Video",
+  s06label: "07 — 영상", s06labelEn: "07 — Video",
   s06heading: "Video", s06headingEn: "Video",
-  s07label: "07 — 연락처", s07labelEn: "07 — Contact",
+  s07label: "08 — 연락처", s07labelEn: "08 — Contact",
   s07heading: "작품 문의 및\n협업 제안", s07headingEn: "Inquiries &\nCollaboration",
   s07desc: "전시, 아트페어, 기관 협업, 작품 구입에 관한 문의는 아래 연락처를 통해 주시기 바랍니다.",
   s07descEn: "For exhibition, art fair, institutional collaboration, and artwork purchase inquiries, please use the contacts below.",
+  s08label: "05 — 보도자료", s08labelEn: "05 — Press",
+  s08heading: "Press", s08headingEn: "Press",
   footerCopyright: "© 2024 전연미. All rights reserved.",
   footerCopyrightEn: "© 2024 Jeon Yeon-mi. All rights reserved.",
   footerLocation: "서울특별시 종로구",
@@ -94,6 +97,9 @@ export const UI = {
     statNone: "작가노트가 없습니다", statDeleteSlide: "이 슬라이드 삭제",
     statUpload: "이미지 교체", statUploading: "업로드 중…",
     exAdd: "항목 추가", exAll: "전체", exExhibition: "전시", exAward: "수상", exFair: "아트페어", exNoLink: "연결 없음",
+    pressAdd: "보도자료 추가", pressUrlPh: "기사 URL 입력", pressFetch: "가져오기", pressFetching: "가져오는 중…",
+    pressFetchError: "미리보기를 가져오지 못했습니다. 직접 입력해주세요.", pressNoUrl: "URL을 먼저 입력하세요",
+    pressArticle: "기사", pressInterview: "인터뷰", pressBroadcast: "방송",
     activityAdd: "사진 추가", activityUpload: "사진 업로드", activityUploading: "업로드 중…", activityViewOriginal: "원본 보기",
     videoAdd: "영상 추가", videoUrlPh: "YouTube URL 입력",
     contactHide: "숨기기", contactShow: "보이기", contactPick: "연락 방법 선택",
@@ -122,6 +128,9 @@ export const UI = {
     statNone: "No statements yet", statDeleteSlide: "Delete this slide",
     statUpload: "Replace Image", statUploading: "Uploading…",
     exAdd: "Add Item", exAll: "All", exExhibition: "Exhibition", exAward: "Award", exFair: "ArtFair", exNoLink: "No link",
+    pressAdd: "Add Press Item", pressUrlPh: "Enter article URL", pressFetch: "Fetch", pressFetching: "Fetching…",
+    pressFetchError: "Couldn't fetch a preview. Please fill it in manually.", pressNoUrl: "Enter a URL first",
+    pressArticle: "Article", pressInterview: "Interview", pressBroadcast: "Broadcast",
     activityAdd: "Add Photo", activityUpload: "Upload Photo", activityUploading: "Uploading…", activityViewOriginal: "View Original",
     videoAdd: "Add Video", videoUrlPh: "Enter YouTube URL",
     contactHide: "Hide", contactShow: "Show", contactPick: "Choose a contact method",
@@ -189,6 +198,7 @@ export const initContacts: ContactItem[] = [
   { id: "instagram", type: "instagram", labelKo: "인스타그램", labelEn: "Instagram", display: "@jeonyeonmi_art", href: "https://instagram.com/jeonyeonmi_art", visible: true },
   { id: "blog", type: "blog", labelKo: "네이버 블로그", labelEn: "Naver Blog", display: "blog.naver.com/jeonyeonmi", href: "https://blog.naver.com/jeonyeonmi", visible: true },
 ];
+export const initPress: PressEntry[] = [];
 
 /* ─── global CSS ─────────────────────────────────────── */
 export const GLOBAL_CSS = `
