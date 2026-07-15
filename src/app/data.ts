@@ -249,12 +249,15 @@ export const GLOBAL_CSS = `
 }
 /* CV / portfolio-deck print views: rendered in a portal outside .app-root so
    they're the only thing left on the page when the browser's print/"save as
-   PDF" runs. Deck pages default to a 16:9 presentation-slide page size. */
+   PDF" runs — uses the browser's default (portrait) page size. */
 @media print {
   .app-root { display: none !important; }
   .no-print { display: none !important; }
-  @page deck { size: 13.333in 7.5in; margin: 0; }
-  .portfolio-deck-print { page: deck; }
+}
+/* Hides non-content UI (nav controls, filter tabs, etc.) while the hidden
+   capture iframe renders the page for the portfolio-deck screenshot. */
+.capture-mode .capture-hide {
+  display: none !important;
 }
 `;
 

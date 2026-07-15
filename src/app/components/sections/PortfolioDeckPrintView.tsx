@@ -56,8 +56,8 @@ export function PortfolioDeckPrintView({ slices, loading, error, onClose, lang, 
       {error && <p className="no-print" style={{ padding: "80px 24px", textAlign: "center", fontSize: 13, color: "#f77" }}>{error}</p>}
 
       {slices?.map((s, i) => (
-        <div key={i} style={{ width: "100%", aspectRatio: `${s.width} / ${s.height}`, breakAfter: i < slices.length - 1 ? "page" : "auto", breakInside: "avoid" }}>
-          <img src={s.dataUrl} alt="" style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+        <div key={i} style={{ width: "100%", breakAfter: i < slices.length - 1 ? "page" : "auto", breakInside: "avoid" }}>
+          <img src={s.dataUrl} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
         </div>
       ))}
     </div>,

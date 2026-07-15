@@ -28,8 +28,8 @@ export function Contact({ contactItems, setContactItems, editingContactId, setEd
         <div>
           <div className="text-xs tracking-[0.25em] text-accent mb-4 uppercase" style={MONO}><C field="s07label" /></div>
           <h2 className={`font-light text-foreground leading-snug mb-6 sm:mb-8 whitespace-pre-line ${hSize("text-3xl sm:text-4xl lg:text-5xl", "text-4xl sm:text-5xl lg:text-6xl", lang)}`} style={SERIF}><C field="s07heading" /></h2>
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-light" style={SANS}>
-            {editMode ? <textarea value={lang === "ko" ? content.s07desc : content.s07descEn} onChange={(e) => updateContent(lang === "ko" ? "s07desc" : "s07descEn", e.target.value)} rows={4} className="bg-transparent border-b border-dashed border-accent/60 outline-none resize-none w-full text-sm text-muted-foreground leading-relaxed" style={SANS} /> : c("s07desc")}
+          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-light" style={SANS}>
+            {editMode ? <textarea value={lang === "ko" ? content.s07desc : content.s07descEn} onChange={(e) => updateContent(lang === "ko" ? "s07desc" : "s07descEn", e.target.value)} rows={4} className="bg-transparent border-b border-dashed border-accent/60 outline-none resize-none w-full text-base text-muted-foreground leading-relaxed" style={SANS} /> : c("s07desc")}
           </p>
         </div>
         <div className="space-y-2">

@@ -28,6 +28,9 @@ import { generatePortfolioDeck, type DeckSlice } from "./generatePortfolioDeck";
 
 export default function App() {
   useGoogleAnalytics();
+  // Hidden offscreen render used by generatePortfolioDeck() to screenshot the
+  // site — hides non-content chrome (nav controls, filter tabs) via .capture-hide.
+  const isCaptureMode = new URLSearchParams(window.location.search).get("capture") === "1";
   const [lang, setLang] = useState<Lang>(() => {
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone === "Asia/Seoul" ? "ko" : "en";
@@ -582,7 +585,7 @@ export default function App() {
 
   return (
     <PortfolioContext.Provider value={contextValue}>
-      <div className="app-root min-h-screen bg-background text-foreground" style={SANS}>
+      <div className={`app-root min-h-screen bg-background text-foreground${isCaptureMode ? " capture-mode" : ""}`} style={SANS}>
         <style>{GLOBAL_CSS}</style>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
@@ -673,8 +676,8 @@ export default function App() {
             </button>
             <div className="hidden lg:flex items-center gap-7">
               {navItems.map(([id, label]) => <button key={id} onClick={() => scrollTo(id)} className="text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}>{label}</button>)}
-              <button onClick={() => setShowCvPrint(true)} className="flex items-center gap-1.5 text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}><Download size={13} />{u.cvDownload}</button>
-              <button onClick={handleDownloadDeck} disabled={deckLoading} className="flex items-center gap-1.5 text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase disabled:opacity-40" style={MONO}><Download size={13} />{u.deckDownload}</button>
+              <button onClick={() => setShowCvPrint(true)} className="capture-hide flex items-center gap-1.5 text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}><Download size={13} />{u.cvDownload}</button>
+              <button onClick={handleDownloadDeck} disabled={deckLoading} className="capture-hide flex items-center gap-1.5 text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase disabled:opacity-40" style={MONO}><Download size={13} />{u.deckDownload}</button>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               {isSupabaseReady && (
@@ -683,19 +686,19 @@ export default function App() {
                 </span>
               )}
               {editMode && (
-                <button onClick={translateAll} disabled={isTranslating} title="전체 번역" className="flex items-center gap-1.5 text-xs tracking-widest border border-accent text-accent px-2.5 py-1.5 hover:bg-accent/10 transition-colors disabled:opacity-50" style={MONO}>
+                <button onClick={translateAll} disabled={isTranslating} title="전체 번역" className="capture-hide flex items-center gap-1.5 text-xs tracking-widest border border-accent text-accent px-2.5 py-1.5 hover:bg-accent/10 transition-colors disabled:opacity-50" style={MONO}>
                   <Languages size={13} /><span className="hidden sm:inline">{isTranslating ? "번역 중…" : "전체 번역"}</span>
                 </button>
               )}
-              <button onClick={handleLangClick} className={`text-xs tracking-widest border px-2.5 py-1.5 transition-all ${editMode ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"}`} style={MONO}>{u.langLabel}</button>
-              <button className="lg:hidden text-foreground p-1" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
+              <button onClick={handleLangClick} className={`capture-hide text-xs tracking-widest border px-2.5 py-1.5 transition-all ${editMode ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"}`} style={MONO}>{u.langLabel}</button>
+              <button className="capture-hide lg:hidden text-foreground p-1" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
             </div>
           </div>
           {menuOpen && (
             <div className="lg:hidden bg-background/98 border-t border-border px-6 py-6 flex flex-col gap-5">
               {navItems.map(([id, label]) => <button key={id} onClick={() => scrollTo(id)} className="text-left text-foreground text-sm tracking-widest uppercase" style={MONO}>{label}</button>)}
-              <button onClick={() => { setMenuOpen(false); setShowCvPrint(true); }} className="flex items-center gap-2 text-left text-foreground text-sm tracking-widest uppercase" style={MONO}><Download size={14} />{u.cvDownload}</button>
-              <button onClick={() => { setMenuOpen(false); handleDownloadDeck(); }} disabled={deckLoading} className="flex items-center gap-2 text-left text-foreground text-sm tracking-widest uppercase disabled:opacity-40" style={MONO}><Download size={14} />{u.deckDownload}</button>
+              <button onClick={() => { setMenuOpen(false); setShowCvPrint(true); }} className="capture-hide flex items-center gap-2 text-left text-foreground text-sm tracking-widest uppercase" style={MONO}><Download size={14} />{u.cvDownload}</button>
+              <button onClick={() => { setMenuOpen(false); handleDownloadDeck(); }} disabled={deckLoading} className="capture-hide flex items-center gap-2 text-left text-foreground text-sm tracking-widest uppercase disabled:opacity-40" style={MONO}><Download size={14} />{u.deckDownload}</button>
             </div>
           )}
         </nav>
