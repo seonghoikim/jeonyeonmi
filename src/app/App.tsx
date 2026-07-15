@@ -187,11 +187,6 @@ const GLOBAL_CSS = `
 .hide-sb { scrollbar-width: none; -ms-overflow-style: none; }
 .hide-sb::-webkit-scrollbar { display: none; }
 
-/* copy protection */
-.app-root { user-select: none; -webkit-user-select: none; -moz-user-select: none; }
-.app-root input, .app-root textarea { user-select: text; -webkit-user-select: text; }
-.app-root img { -webkit-user-drag: none; user-drag: none; }
-
 /* landscape mobile: side-by-side hero and slides */
 @media (orientation: landscape) and (max-width: 1023px) {
   .hero-section { flex-direction: row !important; }
@@ -349,32 +344,6 @@ export default function App() {
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [lightboxSrc, lbScale]);
-
-  /* copy protection */
-  useEffect(() => {
-    const preventContext = (e: MouseEvent) => e.preventDefault();
-    const preventDrag = (e: DragEvent) => {
-      if ((e.target as HTMLElement).closest('[draggable="true"]')) return;
-      e.preventDefault();
-    };
-    const preventKeys = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase() ?? "";
-      const isEditable = tag === "input" || tag === "textarea" || (e.target as HTMLElement)?.isContentEditable;
-      if (!isEditable) {
-        if ((e.ctrlKey || e.metaKey) && ["c", "a", "s", "u", "p"].includes(e.key.toLowerCase())) e.preventDefault();
-      }
-      if (e.key === "F12") e.preventDefault();
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && ["i", "j", "c"].includes(e.key.toLowerCase())) e.preventDefault();
-    };
-    document.addEventListener("contextmenu", preventContext);
-    document.addEventListener("dragstart", preventDrag);
-    document.addEventListener("keydown", preventKeys);
-    return () => {
-      document.removeEventListener("contextmenu", preventContext);
-      document.removeEventListener("dragstart", preventDrag);
-      document.removeEventListener("keydown", preventKeys);
-    };
-  }, []);
 
   /* ── DB: initial load ── */
   useEffect(() => {
@@ -657,8 +626,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-root min-h-screen bg-background text-foreground" style={SANS}
-      onCopy={(e) => e.preventDefault()}>
+    <div className="app-root min-h-screen bg-background text-foreground" style={SANS}>
       <style>{GLOBAL_CSS}</style>
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
@@ -694,8 +662,7 @@ export default function App() {
 
       {/* ── Lightbox ── */}
       {lightboxSrc && (
-        <div className="fixed inset-0 z-[300] bg-black/97 flex flex-col select-none"
-          onContextMenu={(e) => e.preventDefault()}>
+        <div className="fixed inset-0 z-[300] bg-black/97 flex flex-col">
           {/* toolbar */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 shrink-0">
             <div className="flex items-center gap-1">
@@ -734,7 +701,7 @@ export default function App() {
             onDoubleClick={() => lbScale === 1 ? setLbScale(2) : lbReset()}>
             <img src={lightboxSrc} alt=""
               draggable={false}
-              className={`pointer-events-none select-none lb-img ${lbDragging ? "dragging" : ""}`}
+              className={`pointer-events-none lb-img ${lbDragging ? "dragging" : ""}`}
               style={{
                 transform: `translate(${lbOffset.x}px, ${lbOffset.y}px) scale(${lbScale})`,
                 transformOrigin: "center center",
