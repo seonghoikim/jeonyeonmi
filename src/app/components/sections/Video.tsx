@@ -32,7 +32,7 @@ export function Video({
           </div>
           {editMode && <button onClick={addVideo} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.videoAdd}</span></button>}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-background">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-background items-start">
           {videoList.map((vid, idx) => {
             const youtubeId = getYoutubeId(vid.youtubeUrl);
             const isEditing = editMode && editingVideoId === vid.id;

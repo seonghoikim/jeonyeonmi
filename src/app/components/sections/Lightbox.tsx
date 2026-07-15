@@ -27,9 +27,9 @@ export function Lightbox({
   onWheel, onMouseDown, onMouseMove, onMouseUp, onTouchStart, onTouchMove, onTouchEnd, onDoubleClick,
 }: LightboxProps) {
   const { u, MONO } = usePortfolioContext();
-  useModalLock(true, onClose);
+  const containerRef = useModalLock<HTMLDivElement>(true, onClose);
   return (
-    <div className="fixed inset-0 z-[300] bg-black/97 flex flex-col">
+    <div ref={containerRef} tabIndex={-1} className="fixed inset-0 z-[300] bg-black/97 flex flex-col outline-none">
       {/* toolbar */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-1">
