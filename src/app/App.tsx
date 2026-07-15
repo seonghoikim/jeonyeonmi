@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { loadPortfolio, savePortfolio, uploadImage, isSupabaseReady } from "../lib/supabase";
+import { loadPortfolio, savePortfolio, uploadImage, loginEditor, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
 import {
   Menu, X, ArrowUpRight, Mail, Instagram, Phone, Upload,
   Edit3, Check, Plus, Trash2, ChevronLeft, ChevronRight,
@@ -27,7 +27,6 @@ const sansOf = (lang: Lang) =>
     : { fontFamily: "'Inter', sans-serif", fontWeight: 300 };
 const hSize = (ko: string, en: string, lang: Lang) => (lang === "ko" ? ko : en);
 
-const EDIT_PASSWORD = "mcpf0212K@";
 const getYoutubeId = (url: string) =>
   url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s?]+)/)?.[1] ?? null;
 
@@ -278,9 +277,11 @@ export default function App() {
   const [isAuth, setIsAuth] = useState(false);
   const [showPwModal, setShowPwModal] = useState(false);
   const [pwInput, setPwInput] = useState("");
-  const [pwError, setPwError] = useState(false);
+  const [pwErrorMsg, setPwErrorMsg] = useState("");
+  const [pwSubmitting, setPwSubmitting] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const editTokenRef = useRef<string | null>(null); // in-memory only — never persisted
 
   /* lightbox */
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -396,6 +397,7 @@ export default function App() {
         const heroUrl = row.image_urls.hero;
         if (heroUrl) { const i = new window.Image(); i.onload = () => setHeroAspectRatio(i.naturalWidth / i.naturalHeight); i.src = heroUrl; }
       }
+      if (row.updated_at) lastUpdatedAtRef.current = row.updated_at;
       setIsLoading(false);
     });
   }, []);
@@ -408,6 +410,7 @@ export default function App() {
   const isSavingRef = useRef(false);   // lock: prevent concurrent saves
   const saveAgainRef = useRef(false);  // flag: state changed while saving
   const saveDataRef = useRef<Parameters<typeof savePortfolio>[0]>({}); // always latest
+  const lastUpdatedAtRef = useRef<string | undefined>(undefined); // last known DB updated_at, for conflict checks
   const img = useCallback((key: string) => imageUrls[key] ?? null, [imageUrls]);
 
   /* other state */
@@ -461,9 +464,30 @@ export default function App() {
     settings: { heroCaption, heroCaptionEn }, image_urls: imageUrls,
   };
 
-  /* ── DB: debounced auto-save (4 s after last change) ── */
+  /* ── DB: apply a row fetched remotely (initial 409-conflict reload or Realtime push) ── */
+  const applyRemoteRow = useCallback((row: Partial<PortfolioRow>) => {
+    if (row.content && Object.keys(row.content).length > 0) setContent((p) => ({ ...p, ...row.content }));
+    if ((row.current_exhibitions as CurrentExhibition[])?.length) setCurrentExList(row.current_exhibitions as CurrentExhibition[]);
+    if ((row.artworks as Artwork[])?.length) setArtworkList(row.artworks as Artwork[]);
+    if ((row.series_list as Series[])?.length) setSeriesList(row.series_list as Series[]);
+    if ((row.slides as Slide[])?.length) setSlides(row.slides as Slide[]);
+    if ((row.exhibitions as ExhibitionEntry[])?.length) setExhibitionList(row.exhibitions as ExhibitionEntry[]);
+    if ((row.activity_photos as ActivityPhoto[])?.length) setActivityPhotos(row.activity_photos as ActivityPhoto[]);
+    if ((row.videos as VideoEntry[])?.length) setVideoList(row.videos as VideoEntry[]);
+    if ((row.contacts as ContactItem[])?.length) setContactItems(row.contacts as ContactItem[]);
+    if (row.settings?.heroCaption) setHeroCaption(row.settings.heroCaption);
+    if (row.settings?.heroCaptionEn) setHeroCaptionEn(row.settings.heroCaptionEn);
+    if (row.image_urls && Object.keys(row.image_urls).length > 0) {
+      setImageUrls(row.image_urls);
+      const heroUrl = row.image_urls.hero;
+      if (heroUrl) { const i = new window.Image(); i.onload = () => setHeroAspectRatio(i.naturalWidth / i.naturalHeight); i.src = heroUrl; }
+    }
+    if (row.updated_at) lastUpdatedAtRef.current = row.updated_at;
+  }, []);
+
+  /* ── DB: debounced auto-save (4 s after last change) — only while an editor session is active ── */
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !editTokenRef.current) return;
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       // If a save is already running, mark dirty and let it re-save on completion
@@ -471,9 +495,20 @@ export default function App() {
       // Loop: re-save if state changed while the previous save was in flight
       do {
         saveAgainRef.current = false;
+        const token = editTokenRef.current;
+        if (!token) break;
         isSavingRef.current = true;
         setIsSaving(true);
-        await savePortfolio(saveDataRef.current); // always uses latest data
+        const result = await savePortfolio(saveDataRef.current, token, lastUpdatedAtRef.current); // always uses latest data
+        if (result.ok) {
+          lastUpdatedAtRef.current = result.row.updated_at;
+        } else if (result.conflict) {
+          // Someone else saved a newer version first — reload it instead of overwriting.
+          applyRemoteRow(result.latest);
+          alert("다른 곳에서 방금 저장한 최신 내용을 불러왔습니다. 변경사항을 다시 입력해주세요.");
+        } else {
+          console.error("[DB] save error:", result.error);
+        }
         isSavingRef.current = false;
       } while (saveAgainRef.current);
       setIsSaving(false);
@@ -481,6 +516,17 @@ export default function App() {
     return () => clearTimeout(saveTimerRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content, currentExList, artworkList, seriesList, slides, exhibitionList, activityPhotos, videoList, contactItems, heroCaption, heroCaptionEn, imageUrls, isLoading]);
+
+  /* ── Realtime: keep other open tabs/devices in sync ── */
+  useEffect(() => {
+    if (!isSupabaseReady) return;
+    const unsubscribe = subscribePortfolio((row) => {
+      if (isSavingRef.current) return; // don't clobber a save in flight
+      if (row.updated_at && row.updated_at === lastUpdatedAtRef.current) return; // echo of our own save
+      applyRemoteRow(row);
+    });
+    return unsubscribe;
+  }, [applyRemoteRow]);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 60);
@@ -509,9 +555,17 @@ export default function App() {
       else { setShowPwModal(true); }
     }
   };
-  const handlePwSubmit = () => {
-    if (pwInput === EDIT_PASSWORD) { setIsAuth(true); setEditMode(true); setShowPwModal(false); setPwInput(""); setPwError(false); }
-    else setPwError(true);
+  const handlePwSubmit = async () => {
+    if (pwSubmitting) return;
+    setPwSubmitting(true);
+    setPwErrorMsg("");
+    try {
+      editTokenRef.current = await loginEditor(pwInput);
+      setIsAuth(true); setEditMode(true); setShowPwModal(false); setPwInput("");
+    } catch (err) {
+      setPwErrorMsg(err instanceof Error ? err.message : u.pwError);
+    }
+    setPwSubmitting(false);
   };
   const changeExFilter = (f: "전체" | "전시" | "수상" | "아트페어") => {
     if (f === exFilter) return;
@@ -544,9 +598,11 @@ export default function App() {
     const file = e.target.files?.[0]; if (!file) return;
     const target = pendingTarget.current; if (!target) return;
     e.target.value = "";
+    const token = editTokenRef.current;
+    if (!token) { alert("편집 권한이 필요합니다. 다시 로그인해주세요."); return; }
     setUploadingTarget(target);
     try {
-      const url = await uploadImage(target, file);
+      const url = await uploadImage(target, file, token);
       applyImageUrl(target, url);
     } catch (err) {
       console.error("[Upload] failed:", err);
@@ -693,13 +749,13 @@ export default function App() {
           <div className="bg-card border border-border p-8 w-full max-w-sm">
             <div className="flex items-center gap-2 mb-6"><Lock size={14} className="text-accent" /><h3 className="text-sm font-light" style={SERIF}>{u.pwTitle}</h3></div>
             <div className="relative mb-3">
-              <input type={showPw ? "text" : "password"} value={pwInput} onChange={(e) => { setPwInput(e.target.value); setPwError(false); }} onKeyDown={(e) => e.key === "Enter" && handlePwSubmit()} placeholder={u.pwPlaceholder} className="w-full bg-secondary border border-border text-foreground text-sm px-4 py-3 pr-10 outline-none focus:border-accent transition-colors" style={MONO} autoFocus />
+              <input type={showPw ? "text" : "password"} value={pwInput} onChange={(e) => { setPwInput(e.target.value); setPwErrorMsg(""); }} onKeyDown={(e) => e.key === "Enter" && handlePwSubmit()} placeholder={u.pwPlaceholder} className="w-full bg-secondary border border-border text-foreground text-sm px-4 py-3 pr-10 outline-none focus:border-accent transition-colors" style={MONO} autoFocus />
               <button onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">{showPw ? <EyeOff size={14} /> : <Eye size={14} />}</button>
             </div>
-            {pwError && <p className="text-xs text-red-400 mb-3" style={MONO}>{u.pwError}</p>}
+            {pwErrorMsg && <p className="text-xs text-red-400 mb-3" style={MONO}>{pwErrorMsg}</p>}
             <div className="flex gap-3 mt-6">
-              <button onClick={handlePwSubmit} className="flex-1 bg-accent text-accent-foreground text-xs tracking-widest py-2.5 hover:bg-accent/90 transition-colors" style={MONO}>{u.pwConfirm}</button>
-              <button onClick={() => { setShowPwModal(false); setPwInput(""); setPwError(false); }} className="flex-1 border border-border text-muted-foreground text-xs tracking-widest py-2.5 hover:border-foreground/30 hover:text-foreground transition-colors" style={MONO}>{u.pwCancel}</button>
+              <button onClick={handlePwSubmit} disabled={pwSubmitting} className="flex-1 bg-accent text-accent-foreground text-xs tracking-widest py-2.5 hover:bg-accent/90 transition-colors disabled:opacity-50" style={MONO}>{u.pwConfirm}</button>
+              <button onClick={() => { setShowPwModal(false); setPwInput(""); setPwErrorMsg(""); }} className="flex-1 border border-border text-muted-foreground text-xs tracking-widest py-2.5 hover:border-foreground/30 hover:text-foreground transition-colors" style={MONO}>{u.pwCancel}</button>
             </div>
           </div>
         </div>
