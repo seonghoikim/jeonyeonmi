@@ -3,6 +3,9 @@ import { GA_ID } from "./data";
 
 export function useGoogleAnalytics() {
   useEffect(() => {
+    // Skip analytics inside the hidden iframe used to render the portfolio-deck
+    // capture — it's not a real visit, just an offscreen render for screenshotting.
+    if (new URLSearchParams(window.location.search).get("capture") === "1") return;
     if (document.getElementById("ga-script")) return;
     const s = document.createElement("script");
     s.id = "ga-script";

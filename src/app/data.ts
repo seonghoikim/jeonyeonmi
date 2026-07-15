@@ -106,6 +106,8 @@ export const UI = {
     contactEditDisplay: "표시 텍스트", contactEditHref: "링크 URL",
     cvDownload: "CV 다운로드", cvPrint: "인쇄 / PDF 저장", cvTitle: "이력서",
     cvContact: "연락처", cvCurrent: "현재 · 예정 전시", cvHistory: "전시 및 수상 이력", cvGenerated: "생성일",
+    deckDownload: "포트폴리오 다운로드", deckGenerating: "포트폴리오를 생성하는 중입니다… (페이지 길이에 따라 시간이 걸릴 수 있어요)",
+    deckError: "포트폴리오를 생성하지 못했습니다. 다시 시도해주세요.",
     editLabel: "편집", editDone: "완료", editBanner: "편집 모드 — 항목을 클릭해 수정하세요",
     pwTitle: "편집 모드 잠금 해제", pwPlaceholder: "비밀번호 입력",
     pwConfirm: "확인", pwError: "비밀번호가 올바르지 않습니다", pwCancel: "취소",
@@ -137,6 +139,8 @@ export const UI = {
     contactEditDisplay: "Display text", contactEditHref: "Link URL",
     cvDownload: "Download CV", cvPrint: "Print / Save PDF", cvTitle: "Curriculum Vitae",
     cvContact: "Contact", cvCurrent: "Current & Upcoming Exhibitions", cvHistory: "Exhibition & Award History", cvGenerated: "Generated on",
+    deckDownload: "Download Portfolio", deckGenerating: "Generating your portfolio… (may take a moment on a long page)",
+    deckError: "Couldn't generate the portfolio. Please try again.",
     editLabel: "Edit", editDone: "Done", editBanner: "Edit Mode — click items to edit",
     pwTitle: "Unlock Edit Mode", pwPlaceholder: "Enter password",
     pwConfirm: "Confirm", pwError: "Incorrect password", pwCancel: "Cancel",
@@ -243,11 +247,14 @@ export const GLOBAL_CSS = `
   background-size: 200% 100%;
   animation: img-shimmer 1.8s ease-in-out infinite;
 }
-/* CV print view: rendered in a portal outside .app-root so it's the only
-   thing left on the page when the browser's print/"save as PDF" runs. */
+/* CV / portfolio-deck print views: rendered in a portal outside .app-root so
+   they're the only thing left on the page when the browser's print/"save as
+   PDF" runs. Deck pages default to a 16:9 presentation-slide page size. */
 @media print {
   .app-root { display: none !important; }
   .no-print { display: none !important; }
+  @page deck { size: 13.333in 7.5in; margin: 0; }
+  .portfolio-deck-print { page: deck; }
 }
 `;
 
