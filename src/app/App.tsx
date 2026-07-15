@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { loadPortfolio, savePortfolio, uploadImage, loginEditor, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
-import { Menu, X, Edit3, Check } from "lucide-react";
+import { loadPortfolio, savePortfolio, uploadImage, loginEditor, translateTexts, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
+import { Menu, X, Edit3, Check, Languages } from "lucide-react";
 import {
   MONO, serifOf, sansOf, hSize, GLOBAL_CSS,
   initContent, UI, initCurrentEx, initSeries, initArtworks, initSlides, initExhibitions, initActivityPhotos, initVideos, initContacts,
@@ -195,6 +195,7 @@ export default function App() {
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
 
   const [uploadingTarget, setUploadingTarget] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -389,6 +390,65 @@ export default function App() {
   const updateContact = (id: string, patch: Partial<ContactItem>) => setContactItems((p) => p.map((c) => c.id === id ? { ...c, ...patch } : c));
   const toggleContactVisibility = (id: string) => setContactItems((p) => p.map((c) => c.id === id ? { ...c, visible: !c.visible } : c));
 
+  /* ── Translate all empty EN fields from their KO counterpart, in one batched call ── */
+  const translateAll = async () => {
+    const token = editTokenRef.current;
+    if (!token) { alert("편집 권한이 필요합니다. 다시 로그인해주세요."); return; }
+    if (isTranslating) return;
+
+    const jobs: { ko: string; apply: (en: string) => void }[] = [];
+    const addJob = (ko: string | undefined, en: string | undefined, apply: (en: string) => void) => {
+      if (ko && ko.trim() && !(en && en.trim())) jobs.push({ ko, apply });
+    };
+
+    const contentRec = content as Record<string, string>;
+    for (const key of Object.keys(contentRec)) {
+      if (key.endsWith("En")) continue;
+      const enKey = key + "En";
+      if (!(enKey in contentRec)) continue;
+      addJob(contentRec[key], contentRec[enKey], (en) => updateContent(enKey as ContentKey, en));
+    }
+    currentExList.forEach((ex) => {
+      addJob(ex.title, ex.titleEn, (en) => updateCurrentEx(ex.id, "titleEn", en));
+      addJob(ex.venue, ex.venueEn, (en) => updateCurrentEx(ex.id, "venueEn", en));
+      addJob(ex.location, ex.locationEn, (en) => updateCurrentEx(ex.id, "locationEn", en));
+    });
+    artworkList.forEach((w) => {
+      addJob(w.title, w.titleEn, (en) => updateWork(w.id, "titleEn", en));
+      addJob(w.medium, w.mediumEn, (en) => updateWork(w.id, "mediumEn", en));
+      addJob(w.category, w.categoryEn, (en) => updateWork(w.id, "categoryEn", en));
+    });
+    seriesList.forEach((s) => {
+      addJob(s.name, s.nameEn, (en) => updateSeries(s.id, "nameEn", en));
+    });
+    slides.forEach((sl) => {
+      addJob(sl.heading, sl.headingEn, (en) => updateSlide(sl.id, "headingEn", en));
+      addJob(sl.body, sl.bodyEn, (en) => updateSlide(sl.id, "bodyEn", en));
+    });
+    exhibitionList.forEach((ex) => {
+      addJob(ex.title, ex.titleEn, (en) => updateEx(ex.id, "titleEn", en));
+      addJob(ex.venue, ex.venueEn, (en) => updateEx(ex.id, "venueEn", en));
+    });
+    activityPhotos.forEach((p) => {
+      addJob(p.caption, p.captionEn, (en) => updateActivityPhoto(p.id, "captionEn", en));
+    });
+    videoList.forEach((v) => {
+      addJob(v.title, v.titleEn, (en) => updateVideoField(v.id, "titleEn", en));
+      addJob(v.description, v.descriptionEn, (en) => updateVideoField(v.id, "descriptionEn", en));
+    });
+
+    if (jobs.length === 0) { alert("번역할 내용이 없습니다 — 비어있는 영문 항목이 없어요."); return; }
+
+    setIsTranslating(true);
+    try {
+      const translations = await translateTexts(jobs.map((j) => j.ko), token);
+      jobs.forEach((job, i) => { if (translations[i]) job.apply(translations[i]); });
+    } catch (err) {
+      alert(`번역 실패: ${err instanceof Error ? err.message : "알 수 없는 오류"}`);
+    }
+    setIsTranslating(false);
+  };
+
   const filteredWorks = selectedSeries === "전체" ? artworkList : artworkList.filter((a) => { const s = seriesList.find((s) => s.name === selectedSeries); return s ? a.series === s.name : false; });
   const filteredEx = exFilter === "전체" ? exhibitionList : exhibitionList.filter((e) => e.tag === exFilter);
 
@@ -480,6 +540,7 @@ export default function App() {
         {editMode && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-accent text-accent-foreground px-5 py-2.5 shadow-lg" style={MONO}>
             <Edit3 size={13} /><span className="text-xs tracking-widest hidden sm:inline">{u.editBanner}</span>
+            <button onClick={translateAll} disabled={isTranslating} className="flex items-center gap-1.5 text-xs bg-accent-foreground/15 hover:bg-accent-foreground/25 px-3 py-1 transition-colors disabled:opacity-50"><Languages size={11} />{isTranslating ? "번역 중…" : "전체 번역"}</button>
             <button onClick={() => setEditMode(false)} className="ml-2 sm:ml-4 flex items-center gap-1.5 text-xs bg-accent-foreground/15 hover:bg-accent-foreground/25 px-3 py-1 transition-colors"><Check size={11} />{u.editDone}</button>
           </div>
         )}

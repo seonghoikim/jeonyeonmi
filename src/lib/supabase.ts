@@ -88,6 +88,20 @@ export async function uploadImage(key: string, file: File, token: string): Promi
   return body.url as string;
 }
 
+/* ── Batch KO→EN translation via the Edge Function (Claude) ──
+   Returns translations in the same order as the input texts. */
+export async function translateTexts(texts: string[], token: string): Promise<string[]> {
+  if (texts.length === 0) return [];
+  const res = await fetch(`${FUNCTIONS_URL}/portfolio/translate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...gatewayHeaders(), "X-Edit-Token": token },
+    body: JSON.stringify({ texts }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error ?? `번역 실패 (${res.status})`);
+  return body.translations as string[];
+}
+
 /* ── DB operations ── */
 export type PortfolioRow = {
   id: number;
