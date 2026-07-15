@@ -2,11 +2,10 @@ import { createClient } from "@supabase/supabase-js";
 import { projectId, publicAnonKey } from "../../utils/supabase/info";
 
 const SUPABASE_URL = `https://${projectId}.supabase.co`;
-// Supabase forwards "/functions/v1/<function-name>/<rest>" to the function's own router
-// with the function-name segment still in the path, and this project's deployed function
-// is named "make-server-9c6a1cce" (see supabase/functions/server, whose Hono routes are
-// themselves prefixed with the same string) — hence the segment appearing twice below.
-const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1/make-server-9c6a1cce/make-server-9c6a1cce`;
+// Supabase strips only "/functions/v1" and forwards "/<function-name>/<rest>" to the
+// function's own router, so the Hono app's routes are themselves prefixed with the
+// deployed function's name ("make-server-9c6a1cce" — see supabase/functions/server).
+const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1/make-server-9c6a1cce`;
 
 // Singleton — prevent multiple GoTrueClient instances in the same browser context
 const key = "__portfolio_supabase__";
