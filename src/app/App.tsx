@@ -23,6 +23,8 @@ import { Footer } from "./components/sections/Footer";
 import { Lightbox } from "./components/sections/Lightbox";
 import { PasswordModal } from "./components/sections/PasswordModal";
 import { CvPrintView } from "./components/sections/CvPrintView";
+import { PortfolioDeckPrintView } from "./components/sections/PortfolioDeckPrintView";
+import { generatePortfolioDeck, type DeckSlice } from "./generatePortfolioDeck";
 
 export default function App() {
   useGoogleAnalytics();
@@ -239,6 +241,24 @@ export default function App() {
   const [fullscreenVideoYtId, setFullscreenVideoYtId] = useState<string | null>(null);
   const videoOverlayRef = useModalLock<HTMLDivElement>(!!fullscreenVideoYtId, () => setFullscreenVideoYtId(null));
   const [showCvPrint, setShowCvPrint] = useState(false);
+  const [deckSlices, setDeckSlices] = useState<DeckSlice[] | null>(null);
+  const [deckLoading, setDeckLoading] = useState(false);
+  const [deckError, setDeckError] = useState<string | null>(null);
+  const handleDownloadDeck = async () => {
+    if (deckLoading) return;
+    setDeckError(null);
+    setDeckSlices(null);
+    setDeckLoading(true);
+    try {
+      const slices = await generatePortfolioDeck();
+      setDeckSlices(slices);
+    } catch (err) {
+      console.error("[PortfolioDeck] failed:", err);
+      setDeckError(u.deckError);
+    }
+    setDeckLoading(false);
+  };
+  const closeDeckView = () => { setDeckSlices(null); setDeckError(null); setDeckLoading(false); };
   const [contactItems, setContactItems] = useState(initContacts);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const [pressList, setPressList] = useState(initPress);
@@ -654,6 +674,7 @@ export default function App() {
             <div className="hidden lg:flex items-center gap-7">
               {navItems.map(([id, label]) => <button key={id} onClick={() => scrollTo(id)} className="text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}>{label}</button>)}
               <button onClick={() => setShowCvPrint(true)} className="flex items-center gap-1.5 text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}><Download size={13} />{u.cvDownload}</button>
+              <button onClick={handleDownloadDeck} disabled={deckLoading} className="flex items-center gap-1.5 text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase disabled:opacity-40" style={MONO}><Download size={13} />{u.deckDownload}</button>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               {isSupabaseReady && (
@@ -674,6 +695,7 @@ export default function App() {
             <div className="lg:hidden bg-background/98 border-t border-border px-6 py-6 flex flex-col gap-5">
               {navItems.map(([id, label]) => <button key={id} onClick={() => scrollTo(id)} className="text-left text-foreground text-sm tracking-widest uppercase" style={MONO}>{label}</button>)}
               <button onClick={() => { setMenuOpen(false); setShowCvPrint(true); }} className="flex items-center gap-2 text-left text-foreground text-sm tracking-widest uppercase" style={MONO}><Download size={14} />{u.cvDownload}</button>
+              <button onClick={() => { setMenuOpen(false); handleDownloadDeck(); }} disabled={deckLoading} className="flex items-center gap-2 text-left text-foreground text-sm tracking-widest uppercase disabled:opacity-40" style={MONO}><Download size={14} />{u.deckDownload}</button>
             </div>
           )}
         </nav>
@@ -768,6 +790,15 @@ export default function App() {
           contacts={contactItems.filter((item) => item.visible)}
           current={currentExList.filter((ex) => ex.status !== "지난전시" && ex.visible)}
           history={exhibitionList}
+        />
+
+        <PortfolioDeckPrintView
+          slices={deckSlices}
+          loading={deckLoading}
+          error={deckError}
+          onClose={closeDeckView}
+          lang={lang}
+          u={u}
         />
 
         <Activities
