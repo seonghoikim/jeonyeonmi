@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { loadPortfolio, savePortfolio, uploadImage, loginEditor, translateTexts, unfurlPress, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
-import { Menu, X, Edit3, Check, Languages, Download } from "lucide-react";
+import { Menu, X, Edit3, Check, Languages } from "lucide-react";
 import {
   MONO, serifOf, sansOf, hSize, GLOBAL_CSS,
   initContent, UI, initCurrentEx, initSeries, initArtworks, initSlides, initExhibitions, initActivityPhotos, initVideos, initContacts, initPress,
@@ -22,15 +22,9 @@ import { Contact } from "./components/sections/Contact";
 import { Footer } from "./components/sections/Footer";
 import { Lightbox } from "./components/sections/Lightbox";
 import { PasswordModal } from "./components/sections/PasswordModal";
-import { CvPrintView } from "./components/sections/CvPrintView";
-import { PortfolioDeckPrintView } from "./components/sections/PortfolioDeckPrintView";
-import { generatePortfolioDeck, type DeckSlice } from "./generatePortfolioDeck";
 
 export default function App() {
   useGoogleAnalytics();
-  // Hidden offscreen render used by generatePortfolioDeck() to screenshot the
-  // site — hides non-content chrome (nav controls, filter tabs) via .capture-hide.
-  const isCaptureMode = new URLSearchParams(window.location.search).get("capture") === "1";
   const [lang, setLang] = useState<Lang>(() => {
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone === "Asia/Seoul" ? "ko" : "en";
@@ -243,25 +237,6 @@ export default function App() {
   const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
   const [fullscreenVideoYtId, setFullscreenVideoYtId] = useState<string | null>(null);
   const videoOverlayRef = useModalLock<HTMLDivElement>(!!fullscreenVideoYtId, () => setFullscreenVideoYtId(null));
-  const [showCvPrint, setShowCvPrint] = useState(false);
-  const [deckSlices, setDeckSlices] = useState<DeckSlice[] | null>(null);
-  const [deckLoading, setDeckLoading] = useState(false);
-  const [deckError, setDeckError] = useState<string | null>(null);
-  const handleDownloadDeck = async () => {
-    if (deckLoading) return;
-    setDeckError(null);
-    setDeckSlices(null);
-    setDeckLoading(true);
-    try {
-      const slices = await generatePortfolioDeck();
-      setDeckSlices(slices);
-    } catch (err) {
-      console.error("[PortfolioDeck] failed:", err);
-      setDeckError(u.deckError);
-    }
-    setDeckLoading(false);
-  };
-  const closeDeckView = () => { setDeckSlices(null); setDeckError(null); setDeckLoading(false); };
   const [contactItems, setContactItems] = useState(initContacts);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const [pressList, setPressList] = useState(initPress);
@@ -572,7 +547,7 @@ export default function App() {
   const filteredWorks = selectedSeries === "전체" ? artworkList : artworkList.filter((a) => { const s = seriesList.find((s) => s.name === selectedSeries); return s ? a.series === s.name : false; });
   const filteredEx = exFilter === "전체" ? exhibitionList : exhibitionList.filter((e) => e.tag === exFilter);
 
-  const navItems: [string, string][] = [["current-exhibitions", u.navCurrent], ["works", u.navWorks], ["statement", u.navStatement], ["exhibitions", u.navExhibitions], ["contact", u.navContact]];
+  const navItems: [string, string][] = [["current-exhibitions", u.navCurrent], ["statement", u.navStatement], ["works", u.navWorks], ["exhibitions", u.navExhibitions], ["contact", u.navContact]];
 
   const contextValue: PortfolioContextValue = {
     lang, u, MONO, SERIF, SANS, hSize,
@@ -585,7 +560,7 @@ export default function App() {
 
   return (
     <PortfolioContext.Provider value={contextValue}>
-      <div className={`app-root min-h-screen bg-background text-foreground${isCaptureMode ? " capture-mode" : ""}`} style={SANS}>
+      <div className="app-root min-h-screen bg-background text-foreground" style={SANS}>
         <style>{GLOBAL_CSS}</style>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
@@ -676,8 +651,6 @@ export default function App() {
             </button>
             <div className="hidden lg:flex items-center gap-7">
               {navItems.map(([id, label]) => <button key={id} onClick={() => scrollTo(id)} className="text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}>{label}</button>)}
-              <button onClick={() => setShowCvPrint(true)} className="capture-hide flex items-center gap-1.5 text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}><Download size={13} />{u.cvDownload}</button>
-              <button onClick={handleDownloadDeck} disabled={deckLoading} className="capture-hide flex items-center gap-1.5 text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase disabled:opacity-40" style={MONO}><Download size={13} />{u.deckDownload}</button>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               {isSupabaseReady && (
@@ -686,19 +659,17 @@ export default function App() {
                 </span>
               )}
               {editMode && (
-                <button onClick={translateAll} disabled={isTranslating} title="전체 번역" className="capture-hide flex items-center gap-1.5 text-xs tracking-widest border border-accent text-accent px-2.5 py-1.5 hover:bg-accent/10 transition-colors disabled:opacity-50" style={MONO}>
+                <button onClick={translateAll} disabled={isTranslating} title="전체 번역" className="flex items-center gap-1.5 text-xs tracking-widest border border-accent text-accent px-2.5 py-1.5 hover:bg-accent/10 transition-colors disabled:opacity-50" style={MONO}>
                   <Languages size={13} /><span className="hidden sm:inline">{isTranslating ? "번역 중…" : "전체 번역"}</span>
                 </button>
               )}
-              <button onClick={handleLangClick} className={`capture-hide text-xs tracking-widest border px-2.5 py-1.5 transition-all ${editMode ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"}`} style={MONO}>{u.langLabel}</button>
-              <button className="capture-hide lg:hidden text-foreground p-1" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
+              <button onClick={handleLangClick} className={`text-xs tracking-widest border px-2.5 py-1.5 transition-all ${editMode ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"}`} style={MONO}>{u.langLabel}</button>
+              <button className="lg:hidden text-foreground p-1" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
             </div>
           </div>
           {menuOpen && (
             <div className="lg:hidden bg-background/98 border-t border-border px-6 py-6 flex flex-col gap-5">
               {navItems.map(([id, label]) => <button key={id} onClick={() => scrollTo(id)} className="text-left text-foreground text-sm tracking-widest uppercase" style={MONO}>{label}</button>)}
-              <button onClick={() => { setMenuOpen(false); setShowCvPrint(true); }} className="capture-hide flex items-center gap-2 text-left text-foreground text-sm tracking-widest uppercase" style={MONO}><Download size={14} />{u.cvDownload}</button>
-              <button onClick={() => { setMenuOpen(false); handleDownloadDeck(); }} disabled={deckLoading} className="capture-hide flex items-center gap-2 text-left text-foreground text-sm tracking-widest uppercase disabled:opacity-40" style={MONO}><Download size={14} />{u.deckDownload}</button>
             </div>
           )}
         </nav>
@@ -726,6 +697,17 @@ export default function App() {
           deleteCurrentEx={deleteCurrentEx}
         />
 
+        <ArtistStatement
+          slides={slides}
+          currentSlide={currentSlide}
+          setCurrentSlide={setCurrentSlide}
+          isSliding={isSliding}
+          addSlide={addSlide}
+          deleteSlide={deleteSlide}
+          updateSlide={updateSlide}
+          goSlide={goSlide}
+        />
+
         <Works
           artworkList={artworkList}
           setArtworkList={setArtworkList}
@@ -744,17 +726,6 @@ export default function App() {
           addSeries={addSeries}
           updateSeries={updateSeries}
           deleteSeries={deleteSeries}
-        />
-
-        <ArtistStatement
-          slides={slides}
-          currentSlide={currentSlide}
-          setCurrentSlide={setCurrentSlide}
-          isSliding={isSliding}
-          addSlide={addSlide}
-          deleteSlide={deleteSlide}
-          updateSlide={updateSlide}
-          goSlide={goSlide}
         />
 
         <Exhibitions
@@ -782,26 +753,6 @@ export default function App() {
           updatePress={updatePress}
           deletePress={deletePress}
           fetchPressPreview={fetchPressPreview}
-        />
-
-        <CvPrintView
-          show={showCvPrint}
-          onClose={() => setShowCvPrint(false)}
-          lang={lang}
-          u={u}
-          name={lang === "ko" ? content.heroName : content.heroNameEn}
-          contacts={contactItems.filter((item) => item.visible)}
-          current={currentExList.filter((ex) => ex.status !== "지난전시" && ex.visible)}
-          history={exhibitionList}
-        />
-
-        <PortfolioDeckPrintView
-          slices={deckSlices}
-          loading={deckLoading}
-          error={deckError}
-          onClose={closeDeckView}
-          lang={lang}
-          u={u}
         />
 
         <Activities

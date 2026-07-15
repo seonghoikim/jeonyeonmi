@@ -41,6 +41,7 @@ export function CurrentExhibitions({
         </div>
 
         {/* active / upcoming cards */}
+        {(activeList.length > 0 || editMode) && (
         <div className="flex gap-px overflow-x-auto hide-sb pl-4 sm:pl-6 lg:pl-12 pr-4 sm:pr-6 lg:pr-12 pb-2" style={{ scrollSnapType: "x mandatory" }}>
           {activeList.map((ex, idx) => {
             const isEditing = editMode && editingCurrentId === ex.id;
@@ -125,8 +126,8 @@ export function CurrentExhibitions({
                   )}
                   <div className="flex items-center justify-between mt-auto pt-2 border-t border-border">
                     {!isEditing && (ex.url
-                      ? <a href={ex.url} target="_blank" rel="noopener noreferrer" className="capture-hide flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}>{u.viewMore} <ArrowUpRight size={11} /></a>
-                      : <button onClick={() => scrollTo("works")} className="capture-hide flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}>{u.viewMore} <ArrowUpRight size={11} /></button>
+                      ? <a href={ex.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}>{u.viewMore} <ArrowUpRight size={11} /></a>
+                      : <button onClick={() => scrollTo("works")} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}>{u.viewMore} <ArrowUpRight size={11} /></button>
                     )}
                     {editMode && (
                       <div className="flex gap-1 ml-auto">
@@ -144,11 +145,12 @@ export function CurrentExhibitions({
           })}
           {editMode && <button onClick={addCurrentEx} className="shrink-0 border border-dashed border-border hover:border-accent transition-colors flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-accent" style={{ width: "clamp(240px, 72vw, 300px)", height: "520px", scrollSnapAlign: "start" }}><Plus size={24} /><span className="text-xs tracking-widest" style={MONO}>{u.currentAdd}</span></button>}
         </div>
+        )}
 
         {/* past exhibitions */}
         {(pastList.length > 0 || editMode) && (
           <div className="px-4 sm:px-6 lg:px-12 mt-8">
-            <button onClick={() => setShowPastEx((p) => !p)} className="capture-hide flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-0" style={MONO}>
+            <button onClick={() => setShowPastEx((p) => !p)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-0" style={MONO}>
               <span className="w-4 h-px bg-muted-foreground/40" />
               {showPastEx ? u.hidePastEx : u.showPastEx}
               <span className="text-muted-foreground/40">({pastList.length})</span>
