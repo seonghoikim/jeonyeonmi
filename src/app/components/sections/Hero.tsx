@@ -39,7 +39,7 @@ export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCapti
         </p>
         <div className="flex items-center gap-3">
           <button onClick={() => scrollTo("statement")} className="flex items-center gap-2 text-xs tracking-widest text-foreground border border-border px-5 py-3 hover:border-accent hover:text-accent transition-all w-fit" style={MONO}>
-            {u.navStatement}
+            {u.navStatement} <ArrowUpRight size={14} />
           </button>
           <button onClick={() => scrollTo("works")} className="flex items-center gap-2 text-xs tracking-widest text-foreground border border-border px-5 py-3 hover:border-accent hover:text-accent transition-all w-fit" style={MONO}>
             {c("heroCta")} <ArrowUpRight size={14} />
