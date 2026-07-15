@@ -1,4 +1,4 @@
-import { Plus, GripVertical, Link2, Edit3, Check, Trash2, Download } from "lucide-react";
+import { Plus, GripVertical, Link2, Edit3, Check, Trash2 } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, moveInFiltered, hSize, type ExhibitionEntry, type ActivityPhoto } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
@@ -18,12 +18,11 @@ type ExhibitionsProps = {
   addExhibition: () => void;
   updateEx: (id: number, f: keyof ExhibitionEntry, v: string | number | undefined) => void;
   deleteEx: (id: number) => void;
-  onDownloadCv: () => void;
 };
 
 export function Exhibitions({
   exhibitionList, setExhibitionList, filteredEx, exFilter, exVisible, editingExId, setEditingExId,
-  activityPhotos, changeExFilter, addExhibition, updateEx, deleteEx, onDownloadCv,
+  activityPhotos, changeExFilter, addExhibition, updateEx, deleteEx,
 }: ExhibitionsProps) {
   const { lang, u, MONO, SERIF, editMode, img, dragSrc, dragOverKey, setDragOverKey, scrollToActivity, C } = usePortfolioContext();
 
@@ -40,7 +39,6 @@ export function Exhibitions({
               <button key={f} onClick={() => changeExFilter(f as ExFilter)} className={`text-xs tracking-wider px-3 sm:px-4 py-2 border transition-all ${exFilter === f ? "border-accent text-accent" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>{label}</button>
             ))}
             {editMode && <button onClick={addExhibition} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.exAdd}</span></button>}
-            <button onClick={onDownloadCv} className="flex items-center gap-1.5 text-xs border border-border text-muted-foreground px-3 sm:px-4 py-2 hover:border-accent hover:text-accent transition-colors" style={MONO}><Download size={13} /><span className="hidden sm:inline">{u.cvDownload}</span></button>
           </div>
         </div>
         <div className="transition-opacity duration-200" style={{ opacity: exVisible ? 1 : 0 }}>
@@ -123,10 +121,14 @@ export function Exhibitions({
                     )}
                     {/* thumbnail */}
                     <div className={`${editMode ? "col-span-1" : "col-span-2 sm:col-span-1"} flex items-center justify-center`}>
-                      {exThumb && (
+                      {exThumb ? (
                         <button onClick={() => linkedPhoto && scrollToActivity(linkedPhoto.id)} className="shrink-0 overflow-hidden bg-secondary" style={{ width: 40, height: 40 }}>
                           <img src={exThumb} alt={lang === "ko" ? ex.title : ex.titleEn} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
                         </button>
+                      ) : (
+                        <div className="shrink-0 overflow-hidden bg-secondary flex items-center justify-center" style={{ width: 40, height: 40 }}>
+                          <span className="text-muted-foreground/20 text-xs">✦</span>
+                        </div>
                       )}
                     </div>
                     <div className={editMode ? "col-span-4 lg:col-span-4" : "col-span-5 lg:col-span-4"}>
