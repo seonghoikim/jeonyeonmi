@@ -34,7 +34,7 @@ export function Exhibitions({
             <div className="text-xs tracking-[0.25em] text-accent mb-4 uppercase" style={MONO}><C field="s04label" /></div>
             <h2 className={`font-light text-foreground ${hSize("text-3xl sm:text-4xl", "text-4xl sm:text-5xl", lang)}`} style={SERIF}><C field="s04heading" /></h2>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="capture-hide flex items-center gap-2 flex-wrap">
             {([["전체", u.exAll], ["전시", u.exExhibition], ["아트페어", u.exFair], ["수상", u.exAward]] as const).map(([f, label]) => (
               <button key={f} onClick={() => changeExFilter(f as ExFilter)} className={`text-xs tracking-wider px-3 sm:px-4 py-2 border transition-all ${exFilter === f ? "border-accent text-accent" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>{label}</button>
             ))}
