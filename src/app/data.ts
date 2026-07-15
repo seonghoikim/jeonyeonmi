@@ -96,8 +96,10 @@ export const UI = {
     exAdd: "항목 추가", exAll: "전체", exExhibition: "전시", exAward: "수상", exFair: "아트페어", exNoLink: "연결 없음",
     activityAdd: "사진 추가", activityUpload: "사진 업로드", activityUploading: "업로드 중…", activityViewOriginal: "원본 보기",
     videoAdd: "영상 추가", videoUrlPh: "YouTube URL 입력",
-    contactHide: "숨기기", contactShow: "보이기",
+    contactHide: "숨기기", contactShow: "보이기", contactPick: "연락 방법 선택",
     contactEditDisplay: "표시 텍스트", contactEditHref: "링크 URL",
+    cvDownload: "CV 다운로드", cvPrint: "인쇄 / PDF 저장", cvTitle: "이력서",
+    cvContact: "연락처", cvCurrent: "현재 · 예정 전시", cvHistory: "전시 및 수상 이력", cvGenerated: "생성일",
     editLabel: "편집", editDone: "완료", editBanner: "편집 모드 — 항목을 클릭해 수정하세요",
     pwTitle: "편집 모드 잠금 해제", pwPlaceholder: "비밀번호 입력",
     pwConfirm: "확인", pwError: "비밀번호가 올바르지 않습니다", pwCancel: "취소",
@@ -122,8 +124,10 @@ export const UI = {
     exAdd: "Add Item", exAll: "All", exExhibition: "Exhibition", exAward: "Award", exFair: "ArtFair", exNoLink: "No link",
     activityAdd: "Add Photo", activityUpload: "Upload Photo", activityUploading: "Uploading…", activityViewOriginal: "View Original",
     videoAdd: "Add Video", videoUrlPh: "Enter YouTube URL",
-    contactHide: "Hide", contactShow: "Show",
+    contactHide: "Hide", contactShow: "Show", contactPick: "Choose a contact method",
     contactEditDisplay: "Display text", contactEditHref: "Link URL",
+    cvDownload: "Download CV", cvPrint: "Print / Save PDF", cvTitle: "Curriculum Vitae",
+    cvContact: "Contact", cvCurrent: "Current & Upcoming Exhibitions", cvHistory: "Exhibition & Award History", cvGenerated: "Generated on",
     editLabel: "Edit", editDone: "Done", editBanner: "Edit Mode — click items to edit",
     pwTitle: "Unlock Edit Mode", pwPlaceholder: "Enter password",
     pwConfirm: "Confirm", pwError: "Incorrect password", pwCancel: "Cancel",
@@ -228,6 +232,12 @@ export const GLOBAL_CSS = `
     var(--secondary) 75%);
   background-size: 200% 100%;
   animation: img-shimmer 1.8s ease-in-out infinite;
+}
+/* CV print view: rendered in a portal outside .app-root so it's the only
+   thing left on the page when the browser's print/"save as PDF" runs. */
+@media print {
+  .app-root { display: none !important; }
+  .no-print { display: none !important; }
 }
 `;
 

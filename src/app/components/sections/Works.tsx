@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Plus, GripVertical, ArrowUpRight, Trash2, Edit3, Check, Upload, Maximize2, X } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, moveInFiltered, hSize, type Artwork, type Series } from "../../data";
 import { useModalLock } from "../../useModalLock";
 import { ReorderButtons } from "../ReorderButtons";
+import { contactIcon } from "./Contact";
 
 type WorksProps = {
   artworkList: Artwork[];
@@ -29,9 +31,12 @@ export function Works({
   selectedSeries, setSelectedSeries, editingSeriesId, setEditingSeriesId, filteredWorks,
   addArtwork, deleteWork, updateWork, addSeries, updateSeries, deleteSeries,
 }: WorksProps) {
-  const { lang, u, MONO, SERIF, editMode, img, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, triggerUpload, openLightbox, scrollTo, C } = usePortfolioContext();
+  const { lang, u, MONO, SERIF, editMode, img, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, triggerUpload, openLightbox, contactItems, C } = usePortfolioContext();
   const selectedWork = artworkList.find((w) => w.id === selectedWorkId) ?? null;
   const modalRef = useModalLock<HTMLDivElement>(!!selectedWork, () => setSelectedWorkId(null));
+  const [showInquiry, setShowInquiry] = useState(false);
+  const inquiryRef = useModalLock<HTMLDivElement>(showInquiry, () => setShowInquiry(false));
+  const visibleContacts = contactItems.filter((item) => item.visible);
 
   return (
     <>
@@ -228,9 +233,35 @@ export function Works({
                 </div>
               </div>
               <div className="mt-6 sm:mt-8 flex items-center justify-between flex-wrap gap-3">
-                <button onClick={() => { setSelectedWorkId(null); scrollTo("contact"); }} className="text-xs tracking-widest text-muted-foreground hover:text-accent border border-border px-4 py-2 hover:border-accent transition-all" style={MONO}>{u.worksInquiry}</button>
+                <button onClick={() => setShowInquiry(true)} className="text-xs tracking-widest text-muted-foreground hover:text-accent border border-border px-4 py-2 hover:border-accent transition-all" style={MONO}>{u.worksInquiry}</button>
                 {editMode && <button onClick={() => deleteWork(selectedWork.id)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-red-400 transition-colors" style={MONO}><Trash2 size={12} />{u.worksDelete}</button>}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── INQUIRY CONTACT PICKER ── */}
+      {showInquiry && (
+        <div ref={inquiryRef} tabIndex={-1} className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 outline-none" onClick={() => setShowInquiry(false)}>
+          <div className="w-full max-w-xs bg-card border border-border" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <span className="text-xs tracking-widest text-muted-foreground" style={MONO}>{u.contactPick}</span>
+              <button onClick={() => setShowInquiry(false)} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
+            </div>
+            <div className="p-1">
+              {visibleContacts.map((item) => (
+                <a key={item.id} href={item.href} target={item.type === "email" || item.type === "phone" ? "_self" : "_blank"} rel="noopener noreferrer"
+                  onClick={() => setShowInquiry(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-secondary/40 transition-colors">
+                  <span className="text-muted-foreground shrink-0">{contactIcon(item.type)}</span>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground" style={MONO}>{lang === "ko" ? item.labelKo : item.labelEn}</p>
+                    <p className="text-sm text-foreground font-light truncate">{item.display}</p>
+                  </div>
+                </a>
+              ))}
+              {visibleContacts.length === 0 && <p className="px-3 py-4 text-xs text-muted-foreground text-center" style={MONO}>—</p>}
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactElement } from "react";
 import { UI } from "./data";
-import type { Lang, ContentKey } from "./data";
+import type { Lang, ContentKey, ContactItem } from "./data";
 
 export type PortfolioContextValue = {
   lang: Lang;
@@ -23,6 +23,7 @@ export type PortfolioContextValue = {
   scrollToActivity: (activityId: number) => void;
   triggerUpload: (target: string, label?: string) => void;
   openLightbox: (src: string, showZoom?: boolean) => void;
+  contactItems: ContactItem[];
 };
 
 export const PortfolioContext = createContext<PortfolioContextValue | null>(null);

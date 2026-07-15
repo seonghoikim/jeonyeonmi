@@ -12,7 +12,7 @@ type ContactProps = {
   toggleContactVisibility: (id: string) => void;
 };
 
-function contactIcon(type: ContactItem["type"]) {
+export function contactIcon(type: ContactItem["type"]) {
   if (type === "email") return <Mail size={16} />;
   if (type === "phone") return <Phone size={16} />;
   if (type === "instagram") return <Instagram size={16} />;

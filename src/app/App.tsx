@@ -21,6 +21,7 @@ import { Contact } from "./components/sections/Contact";
 import { Footer } from "./components/sections/Footer";
 import { Lightbox } from "./components/sections/Lightbox";
 import { PasswordModal } from "./components/sections/PasswordModal";
+import { CvPrintView } from "./components/sections/CvPrintView";
 
 export default function App() {
   useGoogleAnalytics();
@@ -196,6 +197,7 @@ export default function App() {
   const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
   const [fullscreenVideoYtId, setFullscreenVideoYtId] = useState<string | null>(null);
   const videoOverlayRef = useModalLock<HTMLDivElement>(!!fullscreenVideoYtId, () => setFullscreenVideoYtId(null));
+  const [showCvPrint, setShowCvPrint] = useState(false);
   const [contactItems, setContactItems] = useState(initContacts);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -472,6 +474,7 @@ export default function App() {
     editMode, img, uploadingTarget,
     dragSrc, dragOverKey, setDragOverKey,
     scrollTo, scrollToActivity, triggerUpload, openLightbox,
+    contactItems,
   };
 
   return (
@@ -655,6 +658,18 @@ export default function App() {
           addExhibition={addExhibition}
           updateEx={updateEx}
           deleteEx={deleteEx}
+          onDownloadCv={() => setShowCvPrint(true)}
+        />
+
+        <CvPrintView
+          show={showCvPrint}
+          onClose={() => setShowCvPrint(false)}
+          lang={lang}
+          u={u}
+          name={lang === "ko" ? content.heroName : content.heroNameEn}
+          contacts={contactItems.filter((item) => item.visible)}
+          current={currentExList.filter((ex) => ex.status !== "지난전시" && ex.visible)}
+          history={exhibitionList}
         />
 
         <Activities
