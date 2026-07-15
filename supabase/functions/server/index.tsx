@@ -140,36 +140,12 @@ app.post(`${PREFIX}/portfolio/upload`, requireAuth, async (c) => {
   return c.json({ url: data.publicUrl });
 });
 
-/* ── translate: authenticated batch KO→EN translation via MyMemory (free, no API key) ──
-   MyMemory has no batch endpoint, so each text is a separate request; run with limited
-   concurrency to stay well under its anonymous rate limit (5000 chars/day per IP — add
-   an email via `de=` below to raise that to 50000/day, see https://mymemory.translated.net/doc/spec.php). */
+/* ── translate: authenticated batch KO→EN translation via Gemini ──
+   One request for the whole batch (Gemini, unlike MyMemory, has no per-string limit
+   that forces per-field calls), asked to respond as JSON directly. */
 const MAX_TRANSLATE_ITEMS = 200;
 const MAX_TRANSLATE_CHARS = 20000;
-const TRANSLATE_CONCURRENCY = 5;
-
-async function translateOne(text: string): Promise<string> {
-  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ko|en`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`MyMemory API error: ${res.status}`);
-  const data = await res.json();
-  const translated = data?.responseData?.translatedText;
-  if (typeof translated !== "string") throw new Error("번역 응답 형식이 올바르지 않습니다");
-  return translated;
-}
-
-async function translateAllWithConcurrency(texts: string[], limit: number): Promise<string[]> {
-  const results: string[] = new Array(texts.length);
-  let next = 0;
-  async function worker() {
-    while (next < texts.length) {
-      const i = next++;
-      results[i] = await translateOne(texts[i]);
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, texts.length) }, worker));
-  return results;
-}
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 app.post(`${PREFIX}/portfolio/translate`, requireAuth, async (c) => {
   const body = await c.req.json().catch(() => null);
@@ -185,8 +161,46 @@ app.post(`${PREFIX}/portfolio/translate`, requireAuth, async (c) => {
     return c.json({ error: "번역할 텍스트가 너무 깁니다" }, 400);
   }
 
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) {
+    console.error("[translate] GEMINI_API_KEY env var not set");
+    return c.json({ error: "번역 기능이 설정되지 않았습니다" }, 500);
+  }
+
+  const numbered = texts.map((t: string, i: number) => `${i}: ${JSON.stringify(t)}`).join("\n");
+  const prompt = `다음은 한국 현대미술 작가의 포트폴리오 웹사이트에 들어가는 한국어 문장들입니다. 각 문장을 자연스러운 영어로 번역하세요. 예술적/문학적 어조를 살리고, 줄바꿈(\\n)은 그대로 유지하세요.
+
+각 줄은 "인덱스: JSON 문자열" 형식입니다:
+${numbered}
+
+아래 JSON 형식으로만 응답하세요:
+{"translations": ["...", "...", ...]}
+번역 배열의 길이와 순서는 입력과 정확히 같아야 합니다 (총 ${texts.length}개).`;
+
   try {
-    const translations = await translateAllWithConcurrency(texts, TRANSLATE_CONCURRENCY);
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json" },
+        }),
+      }
+    );
+    if (!res.ok) {
+      console.error("[translate] Gemini API error:", res.status, await res.text().catch(() => ""));
+      return c.json({ error: "번역 요청이 실패했습니다" }, 502);
+    }
+    const data = await res.json();
+    const textOut: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const parsed = JSON.parse(textOut);
+    const translations = parsed?.translations;
+    if (!Array.isArray(translations) || translations.length !== texts.length) {
+      console.error("[translate] unexpected translation response shape:", textOut);
+      return c.json({ error: "번역 응답 형식이 올바르지 않습니다" }, 502);
+    }
     return c.json({ translations });
   } catch (err) {
     console.error("[translate] error:", err);
