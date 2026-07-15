@@ -1,6 +1,7 @@
 import { Mail, Phone, Instagram, Globe, GripVertical, Check, Eye, EyeOff, Edit3, ArrowUpRight } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, type ContactItem } from "../../data";
+import { ReorderButtons } from "../ReorderButtons";
 
 type ContactProps = {
   contactItems: ContactItem[];
@@ -59,7 +60,17 @@ export function Contact({ contactItems, setContactItems, editingContactId, setEd
                   </div>
                 ) : (
                   <div className="flex items-center justify-between group/ci">
-                    {editMode && <div className="pl-3 sm:pl-4 text-accent/40 cursor-grab shrink-0"><GripVertical size={13} /></div>}
+                    {editMode && (
+                      <div className="pl-3 sm:pl-4 flex items-center gap-0.5 text-accent/40 cursor-grab shrink-0">
+                        <GripVertical size={13} />
+                        <ReorderButtons
+                          onMoveUp={() => setContactItems((prev) => moveItem(prev, idx, idx - 1))}
+                          onMoveDown={() => setContactItems((prev) => moveItem(prev, idx, idx + 1))}
+                          disableUp={idx === 0}
+                          disableDown={idx === contactItems.length - 1}
+                        />
+                      </div>
+                    )}
                     <a href={item.visible ? item.href : "#"} target={item.type === "email" || item.type === "phone" ? "_self" : "_blank"} rel="noopener noreferrer" className={`flex items-center gap-3 sm:gap-4 p-4 sm:p-5 flex-1 transition-all ${!item.visible || editMode ? "pointer-events-none" : ""}`}>
                       <span className="text-muted-foreground group-hover/ci:text-accent transition-colors w-4 flex items-center justify-center shrink-0">{contactIcon(item.type)}</span>
                       <div><p className="text-xs text-muted-foreground mb-0.5" style={MONO}>{lang === "ko" ? item.labelKo : item.labelEn}</p><p className={`font-light text-foreground ${hSize("text-sm", "text-base", lang)}`}>{item.display}</p></div>

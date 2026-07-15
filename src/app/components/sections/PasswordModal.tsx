@@ -1,5 +1,6 @@
 import { Lock, Eye, EyeOff } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
+import { useModalLock } from "../../useModalLock";
 
 type PasswordModalProps = {
   pwInput: string;
@@ -15,6 +16,7 @@ type PasswordModalProps = {
 
 export function PasswordModal({ pwInput, setPwInput, pwErrorMsg, setPwErrorMsg, showPw, setShowPw, pwSubmitting, onSubmit, onCancel }: PasswordModalProps) {
   const { u, MONO, SERIF } = usePortfolioContext();
+  useModalLock(true, onCancel);
   return (
     <div className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-sm flex items-center justify-center p-6">
       <div className="bg-card border border-border p-8 w-full max-w-sm">

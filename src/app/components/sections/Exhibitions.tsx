@@ -1,6 +1,7 @@
 import { Plus, GripVertical, Link2, Edit3, Check, Trash2 } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
-import { moveItem, hSize, type ExhibitionEntry, type ActivityPhoto } from "../../data";
+import { moveItem, moveInFiltered, hSize, type ExhibitionEntry, type ActivityPhoto } from "../../data";
+import { ReorderButtons } from "../ReorderButtons";
 
 type ExFilter = "전체" | "전시" | "수상" | "아트페어";
 
@@ -67,7 +68,17 @@ export function Exhibitions({
                 onDragEnd={() => { dragSrc.current = null; setDragOverKey(null); }}
                 className="group grid grid-cols-12 gap-1 sm:gap-2 py-3 sm:py-4 border-b border-border hover:bg-secondary/30 transition-colors px-2 -mx-2 items-center"
                 style={{ outline: dragOverKey === "ex-" + idx ? "2px solid var(--accent)" : "none" }}>
-                {editMode && <div className="col-span-1 flex items-center justify-center text-accent/40 cursor-grab"><GripVertical size={13} /></div>}
+                {editMode && (
+                  <div className="col-span-1 flex items-center justify-center gap-0.5 text-accent/40 cursor-grab">
+                    <GripVertical size={13} />
+                    <ReorderButtons
+                      onMoveUp={() => setExhibitionList((prev) => moveInFiltered(prev, filteredEx, idx, -1))}
+                      onMoveDown={() => setExhibitionList((prev) => moveInFiltered(prev, filteredEx, idx, 1))}
+                      disableUp={idx === 0}
+                      disableDown={idx === filteredEx.length - 1}
+                    />
+                  </div>
+                )}
                 {/* thumbnail */}
                 <div className={`${editMode ? "col-span-1" : "col-span-2 sm:col-span-1"} flex items-center justify-center`}>
                   {exThumb ? (

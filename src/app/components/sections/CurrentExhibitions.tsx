@@ -1,6 +1,7 @@
 import { Plus, Upload, GripVertical, Eye, EyeOff, Edit3, Check, Trash2, ArrowUpRight, ChevronRight } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
-import { moveItem, hSize, type CurrentExhibition } from "../../data";
+import { moveItem, moveInFiltered, hSize, type CurrentExhibition } from "../../data";
+import { ReorderButtons } from "../ReorderButtons";
 
 type CurrentExhibitionsProps = {
   currentExList: CurrentExhibition[];
@@ -79,6 +80,15 @@ export function CurrentExhibitions({
                   )}
                   {editMode && <div className="absolute inset-0 flex items-center justify-center bg-background/50 hover:bg-background/65 transition-colors"><div className="flex flex-col items-center gap-2 text-foreground"><Upload size={20} /><span className="text-xs" style={MONO}>{uploadingTarget === `current-${ex.id}` ? u.currentUploading : u.currentUpload}</span></div></div>}
                   {editMode && <div className="absolute top-1.5 left-1.5 z-10 text-accent/60 cursor-grab"><GripVertical size={14} /></div>}
+                  {editMode && (
+                    <ReorderButtons
+                      className="absolute top-1.5 right-1.5 z-10 bg-background/70"
+                      onMoveUp={() => setCurrentExList((prev) => moveInFiltered(prev, activeList, idx, -1))}
+                      onMoveDown={() => setCurrentExList((prev) => moveInFiltered(prev, activeList, idx, 1))}
+                      disableUp={idx === 0}
+                      disableDown={idx === activeList.length - 1}
+                    />
+                  )}
                 </div>
                 <div className="p-5 flex flex-col gap-3 flex-1">
                   {isEditing ? (
@@ -172,6 +182,15 @@ export function CurrentExhibitions({
                       className={`group flex items-center gap-3 sm:gap-5 py-3 border-b border-border/30 hover:bg-secondary/20 transition-colors px-2 -mx-2 ${ex.visible ? "" : "opacity-40"}`}
                       style={{ outline: dragOverKey === "past-" + pidx ? "2px solid var(--accent)" : "none" }}>
                       {editMode && <div className="text-accent/40 cursor-grab shrink-0"><GripVertical size={13} /></div>}
+                      {editMode && (
+                        <ReorderButtons
+                          className="shrink-0"
+                          onMoveUp={() => setCurrentExList((prev) => moveInFiltered(prev, pastList, pidx, -1))}
+                          onMoveDown={() => setCurrentExList((prev) => moveInFiltered(prev, pastList, pidx, 1))}
+                          disableUp={pidx === 0}
+                          disableDown={pidx === pastList.length - 1}
+                        />
+                      )}
                       <span className="text-xs text-muted-foreground/50 w-16 shrink-0" style={MONO}>{ex.startDate.slice(0, 7)}</span>
                       {/* thumbnail */}
                       <div className="shrink-0 overflow-hidden bg-secondary" style={{ width: 52, height: 68 }}>

@@ -1,6 +1,7 @@
 import { Plus, GripVertical, Upload, Trash2, Edit3, Maximize2 } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, type ActivityPhoto } from "../../data";
+import { ReorderButtons } from "../ReorderButtons";
 
 type ActivitiesProps = {
   activityPhotos: ActivityPhoto[];
@@ -50,6 +51,15 @@ export function Activities({
                 className="group bg-background relative overflow-hidden transition-all duration-500"
                 style={{ outline: isHighlighted || dragOverKey === "act-" + idx ? "2px solid var(--accent)" : "none" }}>
                 {editMode && <div className="absolute top-1.5 left-1.5 z-10 text-accent/60 cursor-grab"><GripVertical size={14} /></div>}
+                {editMode && (
+                  <ReorderButtons
+                    className="absolute top-1.5 right-1.5 z-10 bg-background/70"
+                    onMoveUp={() => setActivityPhotos((prev) => moveItem(prev, idx, idx - 1))}
+                    onMoveDown={() => setActivityPhotos((prev) => moveItem(prev, idx, idx + 1))}
+                    disableUp={idx === 0}
+                    disableDown={idx === activityPhotos.length - 1}
+                  />
+                )}
                 <div
                   className={`relative aspect-square overflow-hidden bg-background ${editMode ? "cursor-pointer" : "cursor-zoom-in"}`}
                   onClick={() => {
