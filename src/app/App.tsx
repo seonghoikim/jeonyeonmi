@@ -24,7 +24,13 @@ import { PasswordModal } from "./components/sections/PasswordModal";
 
 export default function App() {
   useGoogleAnalytics();
-  const [lang, setLang] = useState<Lang>("ko");
+  const [lang, setLang] = useState<Lang>(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone === "Asia/Seoul" ? "ko" : "en";
+    } catch {
+      return "ko";
+    }
+  });
   const u = UI[lang];
   const SERIF = serifOf(lang);
   const SANS = sansOf(lang);
@@ -164,7 +170,7 @@ export default function App() {
   /* other state */
   const [currentExList, setCurrentExList] = useState(initCurrentEx);
   const [editingCurrentId, setEditingCurrentId] = useState<number | null>(null);
-  const [showPastEx, setShowPastEx] = useState(false);
+  const [showPastEx, setShowPastEx] = useState(true);
 
   const [artworkList, setArtworkList] = useState(initArtworks);
   const [selectedWorkId, setSelectedWorkId] = useState<number | null>(null);
