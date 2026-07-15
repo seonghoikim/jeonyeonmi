@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { projectId, publicAnonKey } from "../../utils/supabase/info";
 
 const SUPABASE_URL = `https://${projectId}.supabase.co`;
+const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1/server/make-server-9c6a1cce`;
 
 // Singleton — prevent multiple GoTrueClient instances in the same browser context
 const key = "__portfolio_supabase__";
@@ -36,10 +37,22 @@ export async function toWebP(file: File, quality = 0.85, maxPx = 2000): Promise<
   });
 }
 
-/* ── Upload image → Supabase Storage as WebP, return public URL ── */
-export async function uploadImage(key: string, file: File): Promise<string> {
-  if (!supabase) throw new Error("Supabase not configured");
+/* ── Editor login: password is verified server-side, never shipped to the client ── */
+export async function loginEditor(password: string): Promise<string> {
+  const res = await fetch(`${FUNCTIONS_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error ?? `로그인 실패 (${res.status})`);
+  return body.token as string;
+}
 
+/* ── Upload image → Supabase Storage as WebP, return public URL ──
+   Goes through the Edge Function (service role) since the storage bucket
+   blocks anon INSERT/UPDATE — requires a valid editor session token. */
+export async function uploadImage(key: string, file: File, token: string): Promise<string> {
   // Convert to WebP with resize. If the first attempt fails (e.g. very large HEIC),
   // retry at half the max size before giving up.
   let webp: File;
@@ -53,12 +66,17 @@ export async function uploadImage(key: string, file: File): Promise<string> {
     }
   }
 
-  const path = `${key}/${Date.now()}.webp`;
-  const { error } = await supabase.storage
-    .from("portfolio")
-    .upload(path, webp, { upsert: true, contentType: "image/webp" });
-  if (error) throw new Error(`Storage upload failed: ${error.message}`);
-  return supabase.storage.from("portfolio").getPublicUrl(path).data.publicUrl;
+  const form = new FormData();
+  form.append("file", webp);
+  form.append("key", key);
+  const res = await fetch(`${FUNCTIONS_URL}/portfolio/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error ?? `Storage upload failed (${res.status})`);
+  return body.url as string;
 }
 
 /* ── DB operations ── */
@@ -89,33 +107,43 @@ export async function loadPortfolio(): Promise<Partial<PortfolioRow>> {
   return data ?? {};
 }
 
+export type SaveResult =
+  | { ok: true; row: PortfolioRow }
+  | { ok: false; conflict: true; latest: PortfolioRow }
+  | { ok: false; conflict?: false; error: string };
+
+// Strip base64 data URLs — too large for DB, cause timeouts. Merging against the
+// current DB row happens server-side now (see supabase/functions/server/index.tsx).
 export async function savePortfolio(
-  patch: Omit<Partial<PortfolioRow>, "id" | "updated_at">
-): Promise<void> {
-  if (!supabase) return;
-
-  // Strip base64 data URLs — too large for DB, cause timeouts.
+  patch: Omit<Partial<PortfolioRow>, "id" | "updated_at">,
+  token: string,
+  expectedUpdatedAt?: string
+): Promise<SaveResult> {
   const safeImageUrls = patch.image_urls
-    ? Object.fromEntries(
-        Object.entries(patch.image_urls).filter(([, v]) => v.startsWith("http"))
-      )
-    : {};
+    ? Object.fromEntries(Object.entries(patch.image_urls).filter(([, v]) => v.startsWith("http")))
+    : undefined;
 
-  // Merge image_urls with whatever is currently in DB so concurrent sessions
-  // (e.g. Figma desktop + mobile web) don't overwrite each other's uploads.
-  let mergedImageUrls = safeImageUrls;
-  const { data: current } = await supabase
-    .from("portfolio_state")
-    .select("image_urls")
-    .eq("id", 1)
-    .maybeSingle();
-  if (current?.image_urls && typeof current.image_urls === "object") {
-    // DB values are the base; local values win for keys this session owns
-    mergedImageUrls = { ...current.image_urls as Record<string, string>, ...safeImageUrls };
-  }
+  const res = await fetch(`${FUNCTIONS_URL}/portfolio/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ patch: { ...patch, image_urls: safeImageUrls }, expectedUpdatedAt }),
+  });
+  const body = await res.json().catch(() => ({}));
 
-  const { error } = await supabase
-    .from("portfolio_state")
-    .upsert({ ...patch, image_urls: mergedImageUrls, id: 1, updated_at: new Date().toISOString() });
-  if (error) console.error("[DB] save error:", error.message);
+  if (res.status === 409 && body?.conflict) return { ok: false, conflict: true, latest: body.latest };
+  if (!res.ok) { console.error("[DB] save error:", body?.error); return { ok: false, error: body?.error ?? `save failed (${res.status})` }; }
+  return { ok: true, row: body.data };
+}
+
+/* ── Realtime: notify other open tabs/devices when the shared row changes ── */
+export function subscribePortfolio(onChange: (row: PortfolioRow) => void): () => void {
+  const channel = supabase
+    .channel("portfolio_state_changes")
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "portfolio_state", filter: "id=eq.1" },
+      (payload) => onChange(payload.new as PortfolioRow)
+    )
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
 }
