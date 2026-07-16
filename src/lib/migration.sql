@@ -1,3 +1,7 @@
+-- Press 섹션 추가 시 신설된 컬럼 — 실서비스 테이블에 반영 안 돼 있으면
+-- 저장 시마다 "Could not find the 'press' column" 에러로 모든 저장이 실패한다.
+ALTER TABLE portfolio_state ADD COLUMN IF NOT EXISTS press jsonb DEFAULT '[]'::jsonb;
+
 -- portfolio_state: 공개 읽기만 허용, INSERT/UPDATE/DELETE 정책 없음 → anon 전부 차단
 ALTER TABLE portfolio_state ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "public_read"  ON portfolio_state;
