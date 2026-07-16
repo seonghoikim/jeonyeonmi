@@ -567,7 +567,12 @@ export default function App() {
   const filteredWorks = selectedSeries === "전체" ? artworkList : artworkList.filter((a) => { const s = seriesList.find((s) => s.name === selectedSeries); return s ? a.series === s.name : false; });
   const filteredEx = exFilter === "전체" ? exhibitionList : exhibitionList.filter((e) => e.tag === exFilter);
 
-  const navItems: [string, string][] = [["current-exhibitions", u.navCurrent], ["statement", u.navStatement], ["works", u.navWorks], ["exhibitions", u.navExhibitions], ["contact", u.navContact]];
+  const navItems: [string, string][] = [
+    ["current-exhibitions", u.navCurrent], ["statement", u.navStatement], ["works", u.navWorks], ["exhibitions", u.navExhibitions],
+    // Press hides itself entirely with no items outside edit mode (see Press.tsx) — skip its nav link too, or it'd point nowhere.
+    ...(pressList.length > 0 || editMode ? [["press", u.navPress] as [string, string]] : []),
+    ["activities", u.navActivities], ["videos", u.navVideo], ["contact", u.navContact],
+  ];
 
   const contextValue: PortfolioContextValue = {
     lang, u, MONO, SERIF, SANS, hSize,
