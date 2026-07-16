@@ -22,7 +22,10 @@ export function ArtistStatement({ slides, currentSlide, setCurrentSlide, isSlidi
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const handleWheel = (e: React.WheelEvent) => {
     if (slides.length < 2) return;
-    if (Math.abs(e.deltaX) < 12 || Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+    // Lower activation threshold + allow some vertical wobble (deltaX only needs to be
+    // 60% of deltaY, not exceed it) — a strict "deltaX must dominate" read was rejecting
+    // real trackpad swipes that aren't perfectly horizontal.
+    if (Math.abs(e.deltaX) < 7 || Math.abs(e.deltaX) < Math.abs(e.deltaY) * 0.6) return;
     // Note: not calling preventDefault() here — React registers wheel listeners
     // as passive, so it would throw rather than actually suppress the scroll.
     if (wheelLockRef.current) return;
