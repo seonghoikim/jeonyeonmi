@@ -286,33 +286,40 @@ export default function App() {
     if (row.updated_at) lastUpdatedAtRef.current = row.updated_at;
   }, []);
 
+  /* ── DB: perform (or join) a save right now, using whatever token is still valid.
+     Shared by the debounce timer below and by the "exit edit mode" flush, so that
+     leaving edit mode right after a keystroke can't drop the pending change (the
+     token is nulled out the instant editMode flips false — see exitEditMode). ── */
+  const flushSave = useCallback(async (token: string) => {
+    clearTimeout(saveTimerRef.current);
+    // If a save is already running, mark dirty and let it re-save on completion
+    if (isSavingRef.current) { saveAgainRef.current = true; return; }
+    // Loop: re-save if state changed while the previous save was in flight
+    do {
+      saveAgainRef.current = false;
+      isSavingRef.current = true;
+      setIsSaving(true);
+      const result = await savePortfolio(saveDataRef.current, token, lastUpdatedAtRef.current); // always uses latest data
+      if (result.ok) {
+        lastUpdatedAtRef.current = result.row.updated_at;
+      } else if (result.conflict) {
+        // Someone else saved a newer version first — reload it instead of overwriting.
+        applyRemoteRow(result.latest);
+        alert("다른 곳에서 방금 저장한 최신 내용을 불러왔습니다. 변경사항을 다시 입력해주세요.");
+      } else {
+        console.error("[DB] save error:", result.error);
+      }
+      isSavingRef.current = false;
+    } while (saveAgainRef.current);
+    setIsSaving(false);
+  }, [applyRemoteRow]);
+
   /* ── DB: debounced auto-save (4 s after last change) — only while an editor session is active ── */
   useEffect(() => {
     if (isLoading || !editTokenRef.current) return;
     clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      // If a save is already running, mark dirty and let it re-save on completion
-      if (isSavingRef.current) { saveAgainRef.current = true; return; }
-      // Loop: re-save if state changed while the previous save was in flight
-      do {
-        saveAgainRef.current = false;
-        const token = editTokenRef.current;
-        if (!token) break;
-        isSavingRef.current = true;
-        setIsSaving(true);
-        const result = await savePortfolio(saveDataRef.current, token, lastUpdatedAtRef.current); // always uses latest data
-        if (result.ok) {
-          lastUpdatedAtRef.current = result.row.updated_at;
-        } else if (result.conflict) {
-          // Someone else saved a newer version first — reload it instead of overwriting.
-          applyRemoteRow(result.latest);
-          alert("다른 곳에서 방금 저장한 최신 내용을 불러왔습니다. 변경사항을 다시 입력해주세요.");
-        } else {
-          console.error("[DB] save error:", result.error);
-        }
-        isSavingRef.current = false;
-      } while (saveAgainRef.current);
-      setIsSaving(false);
+    saveTimerRef.current = setTimeout(() => {
+      if (editTokenRef.current) flushSave(editTokenRef.current);
     }, 4000);
     return () => clearTimeout(saveTimerRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -330,7 +337,9 @@ export default function App() {
   }, [applyRemoteRow]);
 
   /* ── Leaving edit mode fully ends the editor session: drop the token so no
-     further save can fire from this tab, and require the password again to resume. ── */
+     further save can fire from this tab, and require the password again to resume.
+     exitEditMode() below flushes any pending debounced save *before* this runs,
+     since the token it needs is nulled out here as soon as editMode flips false. ── */
   useEffect(() => {
     if (!editMode) { editTokenRef.current = null; setIsAuth(false); }
   }, [editMode]);
@@ -362,8 +371,14 @@ export default function App() {
     if (highlightedPhotoId != null) { const t = setTimeout(() => setHighlightedPhotoId(null), 2000); return () => clearTimeout(t); }
   }, [highlightedPhotoId]);
 
+  // Flushes any pending debounced save (using the still-live token) before
+  // actually exiting edit mode, so a change made in the last 4s isn't dropped.
+  const exitEditMode = () => {
+    if (editTokenRef.current) flushSave(editTokenRef.current);
+    setEditMode(false);
+  };
   const handleEditToggle = () => {
-    if (editMode) { setEditMode(false); return; }
+    if (editMode) { exitEditMode(); return; }
     if (isAuth) { setEditMode(true); return; }
     setShowPwModal(true);
   };
@@ -373,7 +388,7 @@ export default function App() {
     langClickTs.current = [...langClickTs.current.filter((t) => now - t < 5000), now];
     if (langClickTs.current.length >= 5) {
       langClickTs.current = [];
-      if (editMode) { setEditMode(false); }
+      if (editMode) { exitEditMode(); }
       else if (isAuth) { setEditMode(true); }
       else { setShowPwModal(true); }
     }
@@ -638,7 +653,7 @@ export default function App() {
         {editMode && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-accent text-accent-foreground px-5 py-2.5 shadow-lg" style={MONO}>
             <Edit3 size={13} /><span className="text-xs tracking-widest hidden sm:inline">{u.editBanner}</span>
-            <button onClick={() => setEditMode(false)} className="ml-2 sm:ml-4 flex items-center gap-1.5 text-xs bg-accent-foreground/15 hover:bg-accent-foreground/25 px-3 py-1 transition-colors"><Check size={11} />{u.editDone}</button>
+            <button onClick={exitEditMode} className="ml-2 sm:ml-4 flex items-center gap-1.5 text-xs bg-accent-foreground/15 hover:bg-accent-foreground/25 px-3 py-1 transition-colors"><Check size={11} />{u.editDone}</button>
           </div>
         )}
 
