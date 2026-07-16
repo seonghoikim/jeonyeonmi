@@ -527,6 +527,7 @@ export default function App() {
       addJob(w.title, w.titleEn, (en) => updateWork(w.id, "titleEn", en));
       addJob(w.medium, w.mediumEn, (en) => updateWork(w.id, "mediumEn", en));
       addJob(w.category, w.categoryEn, (en) => updateWork(w.id, "categoryEn", en));
+      addJob(w.description, w.descriptionEn, (en) => updateWork(w.id, "descriptionEn", en));
     });
     seriesList.forEach((s) => {
       addJob(s.name, s.nameEn, (en) => updateSeries(s.id, "nameEn", en));
