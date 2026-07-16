@@ -7,5 +7,17 @@
        <lastmod>2026-07-13T04:50:57+00:00</lastmod>
        <changefreq>daily</changefreq>
        <priority>1.0000</priority>
+       <xhtml:link rel="alternate" hreflang="ko" href="https://jeonyeonmi.com/" />
+       <xhtml:link rel="alternate" hreflang="en" href="https://jeonyeonmi.com/en" />
+       <xhtml:link rel="alternate" hreflang="x-default" href="https://jeonyeonmi.com/" />
+  </url>
+  <url>
+       <loc>https://jeonyeonmi.com/en</loc>
+       <lastmod>2026-07-13T04:50:57+00:00</lastmod>
+       <changefreq>daily</changefreq>
+       <priority>0.9000</priority>
+       <xhtml:link rel="alternate" hreflang="ko" href="https://jeonyeonmi.com/" />
+       <xhtml:link rel="alternate" hreflang="en" href="https://jeonyeonmi.com/en" />
+       <xhtml:link rel="alternate" hreflang="x-default" href="https://jeonyeonmi.com/" />
   </url>
 </urlset>

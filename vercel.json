@@ -6,5 +6,9 @@
       "destination": "https://jeonyeonmi.com/$1",
       "permanent": true
     }
+  ],
+  "rewrites": [
+    { "source": "/en", "destination": "/index.html" },
+    { "source": "/en/(.*)", "destination": "/index.html" }
   ]
 }

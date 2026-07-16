@@ -26,7 +26,11 @@ import { PasswordModal } from "./components/sections/PasswordModal";
 
 export default function App() {
   useGoogleAnalytics();
+  // /en is a real, crawlable, bookmarkable/shareable URL for the English version (with its
+  // own hreflang entry) — it always wins over locale/timezone guessing. Anywhere else, keep
+  // guessing from the visitor's timezone as before.
   const [lang, setLang] = useState<Lang>(() => {
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/en")) return "en";
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone === "Asia/Seoul" ? "ko" : "en";
     } catch {
@@ -207,7 +211,7 @@ export default function App() {
   const saveDataRef = useRef<Parameters<typeof savePortfolio>[0]>({}); // always latest
   const lastUpdatedAtRef = useRef<string | undefined>(undefined); // last known DB updated_at, for conflict checks
   const img = useCallback((key: string) => imageUrls[key] ?? null, [imageUrls]);
-  useSeoMeta({ name: c("heroName"), description: c("heroDesc"), imageUrl: img("hero") });
+  useSeoMeta({ name: c("heroName"), description: c("heroDesc"), imageUrl: img("hero"), lang });
 
   /* other state */
   const [currentExList, setCurrentExList] = useState(initCurrentEx);
@@ -351,6 +355,13 @@ export default function App() {
     window.addEventListener("scroll", h); return () => window.removeEventListener("scroll", h);
   }, []);
 
+  // Keep language in sync with browser back/forward navigation between / and /en.
+  useEffect(() => {
+    const onPopState = () => setLang(window.location.pathname.startsWith("/en") ? "en" : "ko");
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
   /* mobile nav menu: close on outside click or on scroll */
   const navRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -385,7 +396,15 @@ export default function App() {
     setShowPwModal(true);
   };
   const handleLangClick = () => {
-    setLang((l) => l === "ko" ? "en" : "ko");
+    setLang((l) => {
+      const next = l === "ko" ? "en" : "ko";
+      // Keep the URL in sync with the displayed language (/ = ko, /en = en) so the
+      // language toggle is also a real, shareable, bookmarkable navigation — not just
+      // a client-side flag search engines and link-shares never see.
+      const path = next === "en" ? "/en" : "/";
+      window.history.pushState({}, "", path + window.location.search + window.location.hash);
+      return next;
+    });
     const now = Date.now();
     langClickTs.current = [...langClickTs.current.filter((t) => now - t < 5000), now];
     if (langClickTs.current.length >= 5) {
