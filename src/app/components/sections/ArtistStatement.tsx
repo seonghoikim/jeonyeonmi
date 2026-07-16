@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState, useLayoutEffect } from "react";
 import { Plus, ChevronLeft, ChevronRight, Upload, Trash2 } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { hSize, type Slide } from "../../data";
@@ -16,6 +16,21 @@ type ArtistStatementProps = {
 
 export function ArtistStatement({ slides, currentSlide, setCurrentSlide, isSliding, addSlide, deleteSlide, updateSlide, goSlide }: ArtistStatementProps) {
   const { lang, u, MONO, SERIF, SANS, editMode, img, uploadingTarget, triggerUpload, openLightbox, C } = usePortfolioContext();
+
+  // The track lays every slide out side-by-side (only shifted via translateX), so its
+  // rendered height defaults to the tallest slide — shorter slides then show empty
+  // space inside their own border. Measure the *current* slide's own height and size
+  // the outer viewport to match, so each slide only ever takes up the room it needs.
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [trackHeight, setTrackHeight] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const current = trackRef.current?.children[currentSlide] as HTMLElement | undefined;
+    if (!current) return;
+    setTrackHeight(current.offsetHeight);
+    const ro = new ResizeObserver(() => setTrackHeight(current.offsetHeight));
+    ro.observe(current);
+    return () => ro.disconnect();
+  }, [currentSlide, slides]);
 
   // Horizontal wheel/swipe navigates between slides, like a carousel.
   const wheelLockRef = useRef(false);
@@ -66,8 +81,8 @@ export function ArtistStatement({ slides, currentSlide, setCurrentSlide, isSlidi
             {editMode ? <button onClick={addSlide} className="flex flex-col items-center gap-3 hover:text-foreground transition-colors"><Plus size={28} /><span className="text-xs tracking-widest" style={MONO}>{u.statFirstSlide}</span></button> : <span className="text-xs" style={MONO}>{u.statNone}</span>}
           </div>
         ) : (
-          <div className="overflow-hidden" onWheel={handleWheel} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-            <div className="flex" style={{ transform: `translateX(-${currentSlide * 100}%)`, transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)" }}>
+          <div className="overflow-hidden" style={{ height: trackHeight ? `${trackHeight}px` : undefined, transition: "height 0.55s cubic-bezier(0.4, 0, 0.2, 1)" }} onWheel={handleWheel} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+            <div ref={trackRef} className="flex items-start" style={{ transform: `translateX(-${currentSlide * 100}%)`, transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)" }}>
               {slides.map((sl) => {
                 const imgSrc = img(`slide-${sl.id}`);
                 return (
@@ -76,7 +91,7 @@ export function ArtistStatement({ slides, currentSlide, setCurrentSlide, isSlidi
                       {imgSrc ? <img src={imgSrc} alt={sl.heading} className="w-full h-full object-contain" style={{ maxHeight: "520px" }} loading="lazy" decoding="async" /> : <div className="absolute inset-0 img-placeholder" />}
                       {editMode && <div className="absolute inset-0 flex items-center justify-center bg-background/50 hover:bg-background/65 transition-colors"><div className="flex flex-col items-center gap-2 text-foreground"><Upload size={22} /><span className="text-xs tracking-widest" style={MONO}>{uploadingTarget === `slide-${sl.id}` ? u.statUploading : u.statUpload}</span></div></div>}
                     </div>
-                    <div className="slide-text-area flex-1 hide-sb overflow-y-auto" style={{ maxHeight: "520px" }}>
+                    <div className="slide-text-area flex-1">
                       <div className="flex flex-col justify-center min-h-full p-8 sm:p-10 lg:p-16">
                         {editMode ? (
                           <>
