@@ -155,7 +155,10 @@ app.post(`${PREFIX}/portfolio/upload`, requireAuth, async (c) => {
    that forces per-field calls), asked to respond as JSON directly. */
 const MAX_TRANSLATE_ITEMS = 200;
 const MAX_TRANSLATE_CHARS = 20000;
-const GEMINI_MODEL = "gemini-2.5-flash";
+// Use the "-latest" alias, not a pinned version — Google periodically retires
+// versioned model names (e.g. gemini-2.5-flash) for new API keys/projects,
+// which broke this exact endpoint with a 404 once already.
+const GEMINI_MODEL = "gemini-flash-latest";
 
 app.post(`${PREFIX}/portfolio/translate`, requireAuth, async (c) => {
   const body = await c.req.json().catch(() => null);
