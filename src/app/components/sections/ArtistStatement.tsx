@@ -87,7 +87,7 @@ export function ArtistStatement({ slides, currentSlide, setCurrentSlide, isSlidi
                           <>
                             <h3 className={`font-light text-foreground leading-snug mb-3 whitespace-pre-line ${hSize("text-xl sm:text-2xl lg:text-3xl", "text-2xl sm:text-3xl lg:text-4xl", lang)}`} style={SERIF}>{lang === "ko" ? sl.heading : sl.headingEn}</h3>
                             <p className="text-xs text-accent mb-6 sm:mb-8" style={MONO}>{lang === "ko" ? sl.headingEn : sl.heading}</p>
-                            <p className="text-base sm:text-lg text-muted-foreground leading-[2] font-light whitespace-pre-wrap" style={SANS}>{lang === "ko" ? sl.body : sl.bodyEn}</p>
+                            <p className="text-sm sm:text-base text-muted-foreground leading-[2] font-light whitespace-pre-wrap" style={SANS}>{lang === "ko" ? sl.body : sl.bodyEn}</p>
                           </>
                         )}
                       </div>

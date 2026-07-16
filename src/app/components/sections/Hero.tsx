@@ -32,9 +32,9 @@ export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCapti
             ? <input value={lang === "ko" ? content.heroName : content.heroNameEn} onChange={(e) => updateContent(lang === "ko" ? "heroName" : "heroNameEn", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 outline-none w-full" style={{ ...SERIF, letterSpacing: lang === "en" ? "0.01em" : "-0.02em" }} />
             : c("heroName")}
         </h1>
-        <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xs font-light mb-10" style={SANS}>
+        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xs font-light mb-10" style={SANS}>
           {editMode
-            ? <textarea value={lang === "ko" ? content.heroDesc : content.heroDescEn} onChange={(e) => updateContent(lang === "ko" ? "heroDesc" : "heroDescEn", e.target.value)} rows={3} className="bg-transparent border-b border-dashed border-accent/60 outline-none resize-none w-full text-base text-muted-foreground leading-relaxed" style={SANS} />
+            ? <textarea value={lang === "ko" ? content.heroDesc : content.heroDescEn} onChange={(e) => updateContent(lang === "ko" ? "heroDesc" : "heroDescEn", e.target.value)} rows={3} className="bg-transparent border-b border-dashed border-accent/60 outline-none resize-none w-full text-sm text-muted-foreground leading-relaxed" style={SANS} />
             : c("heroDesc")}
         </p>
         <div className="flex items-center gap-3">
