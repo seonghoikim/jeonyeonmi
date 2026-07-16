@@ -8,6 +8,7 @@ import {
 } from "./data";
 import { useGoogleAnalytics } from "./useGoogleAnalytics";
 import { useSeoMeta } from "./useSeoMeta";
+import { useStructuredData } from "./useStructuredData";
 import { useModalLock } from "./useModalLock";
 import { PortfolioContext, type PortfolioContextValue } from "./PortfolioContext";
 import { Hero } from "./components/sections/Hero";
@@ -242,6 +243,7 @@ export default function App() {
   const [pressList, setPressList] = useState(initPress);
   const [editingPressId, setEditingPressId] = useState<number | null>(null);
   const [fetchingPressId, setFetchingPressId] = useState<number | null>(null);
+  useStructuredData({ lang, artistName: content.heroName, artistNameEn: content.heroNameEn, artworkList, currentExList, exhibitionList });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingTarget = useRef<string | null>(null);
   const pendingLabel = useRef<string | undefined>(undefined);
