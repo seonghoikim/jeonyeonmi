@@ -229,7 +229,7 @@ export function CurrentExhibitions({
                         )}
                       </div>
                       {editMode && (
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <div className="flex gap-1 shrink-0">
                           <button onClick={() => toggleCurrentExVisible(ex.id)} className={`p-1.5 transition-colors ${ex.visible ? "text-muted-foreground hover:text-foreground" : "text-accent"}`}>{ex.visible ? <Eye size={12} /> : <EyeOff size={12} />}</button>
                           <button onClick={() => setEditingCurrentId(isEditing ? null : ex.id)} className={`p-1.5 transition-colors ${isEditing ? "text-accent" : "text-muted-foreground hover:text-foreground"}`}>{isEditing ? <Check size={12} /> : <Edit3 size={12} />}</button>
                           <button onClick={() => deleteCurrentEx(ex.id)} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button>

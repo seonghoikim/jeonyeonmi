@@ -68,7 +68,7 @@ export function Activities({
                   }}>
                   {actImg ? <img src={actImg} alt={photo.caption} className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${isHighlighted ? "opacity-100" : "opacity-80"}`} loading="lazy" decoding="async" /> : <div className="absolute inset-0 img-placeholder" />}
                   {editMode && <div className="absolute inset-0 flex items-center justify-center bg-background/50 hover:bg-background/65 transition-colors"><div className="flex flex-col items-center gap-2 text-foreground"><Upload size={18} /><span className="text-xs" style={MONO}>{uploadingTarget === `activity-${photo.id}` ? u.activityUploading : u.activityUpload}</span></div></div>}
-                  {editMode && <button onClick={(e) => { e.stopPropagation(); deleteActivityPhoto(photo.id); }} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-background/80 hover:bg-background text-foreground p-1 transition-all"><Trash2 size={12} /></button>}
+                  {editMode && <button onClick={(e) => { e.stopPropagation(); deleteActivityPhoto(photo.id); }} className="absolute top-2 right-2 bg-background/80 hover:bg-background text-foreground p-1 transition-all"><Trash2 size={12} /></button>}
                   {/* hover overlay hint — desktop only */}
                   {!editMode && actImg && (
                     <div className="absolute inset-0 flex items-center justify-center bg-background/0 group-hover:bg-background/30 transition-colors pointer-events-none">

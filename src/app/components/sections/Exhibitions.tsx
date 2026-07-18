@@ -142,7 +142,7 @@ export function Exhibitions({
                       <span className={`text-xs px-1.5 py-0.5 border ${ex.tag === "수상" ? "border-yellow-600/60 text-yellow-500" : ex.tag === "아트페어" ? "border-blue-500/40 text-blue-400" : "border-border text-muted-foreground"}`} style={MONO}>{ex.tag === "전시" ? u.exExhibition : ex.tag === "아트페어" ? u.exFair : u.exAward}</span>
                     </div>
                     <div className="col-span-1 flex justify-end">{linkedPhoto && !exThumb && <button onClick={() => scrollToActivity(linkedPhoto.id)} className="text-muted-foreground hover:text-accent transition-colors p-1" title={lang === "ko" ? linkedPhoto.caption : linkedPhoto.captionEn}><Link2 size={14} /></button>}</div>
-                    <div className="col-span-1 flex justify-end">{editMode && <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => setEditingExId(ex.id)} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><Edit3 size={12} /></button><button onClick={() => deleteEx(ex.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button></div>}</div>
+                    <div className="col-span-1 flex justify-end">{editMode && <div className="flex gap-1"><button onClick={() => setEditingExId(ex.id)} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><Edit3 size={12} /></button><button onClick={() => deleteEx(ex.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button></div>}</div>
                   </>
                 )}
               </div>
