@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Plus, GripVertical, ArrowUpRight, Trash2, Edit3, Check, Upload, Maximize2, X, AlignLeft } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, moveInFiltered, hSize, type Artwork, type Series } from "../../data";
@@ -37,6 +37,28 @@ export function Works({
   const [showInquiry, setShowInquiry] = useState(false);
   const inquiryRef = useModalLock<HTMLDivElement>(showInquiry, () => setShowInquiry(false));
   const visibleContacts = contactItems.filter((item) => item.visible);
+
+  // Mobile: swipe left/right inside the artwork modal to jump straight to the
+  // next/previous work's popup, within whatever series filter is currently active.
+  const modalTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const handleModalTouchStart = (e: React.TouchEvent) => {
+    modalTouchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const handleModalTouchEnd = (e: React.TouchEvent) => {
+    const start = modalTouchStartRef.current;
+    modalTouchStartRef.current = null;
+    // Disabled in edit mode — a horizontal drag there is more likely selecting text
+    // inside a field than a navigation gesture.
+    if (!start || editMode) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    const dy = e.changedTouches[0].clientY - start.y;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const idx = filteredWorks.findIndex((w) => w.id === selectedWorkId);
+    if (idx === -1) return;
+    const nextIdx = idx + (dx < 0 ? 1 : -1);
+    if (nextIdx < 0 || nextIdx >= filteredWorks.length) return;
+    setSelectedWorkId(filteredWorks[nextIdx].id);
+  };
 
   return (
     <>
@@ -160,7 +182,7 @@ export function Works({
 
       {/* ── ARTWORK MODAL ── */}
       {selectedWork && (
-        <div ref={modalRef} tabIndex={-1} className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-8 outline-none" onClick={() => setSelectedWorkId(null)}>
+        <div ref={modalRef} tabIndex={-1} className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-8 outline-none" onClick={() => setSelectedWorkId(null)} onTouchStart={handleModalTouchStart} onTouchEnd={handleModalTouchEnd}>
           <div className="relative max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 bg-card max-h-[95dvh] overflow-y-auto hide-sb" onClick={(e) => e.stopPropagation()}>
             <button className="absolute top-3 right-3 z-10 bg-card/80 text-muted-foreground hover:text-foreground p-1.5 transition-colors" onClick={() => setSelectedWorkId(null)}><X size={18} /></button>
             {/* image panel */}
