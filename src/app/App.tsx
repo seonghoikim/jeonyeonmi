@@ -516,7 +516,11 @@ export default function App() {
       } : item));
     } catch (err) {
       console.error("[Press] unfurl failed:", err);
-      alert(u.pressFetchError);
+      // Surface the server's actual reason (e.g. a specific HTTP status, or the site
+      // blocking non-browser fetches) instead of always showing the same canned text —
+      // otherwise every failure looks identical and there's no way to tell what happened.
+      const detail = err instanceof Error && err.message ? err.message : null;
+      alert(detail ? `${u.pressFetchError}\n(${detail})` : u.pressFetchError);
     }
     setFetchingPressId(null);
   };
