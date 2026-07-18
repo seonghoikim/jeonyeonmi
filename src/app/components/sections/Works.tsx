@@ -158,7 +158,7 @@ export function Works({
                 {img(`artwork-${work.id}`) ? <img src={img(`artwork-${work.id}`)!} alt={work.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" decoding="async" /> : <div className="w-full h-full img-placeholder" />}
                 <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-all duration-500" />
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"><ArrowUpRight size={16} className="text-foreground" /></div>
-                {editMode && <button onClick={(e) => { e.stopPropagation(); deleteWork(work.id); }} className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 bg-background/80 hover:bg-background text-foreground p-1.5 transition-all"><Trash2 size={13} /></button>}
+                {editMode && <button onClick={(e) => { e.stopPropagation(); deleteWork(work.id); }} className="absolute top-3 left-3 bg-background/80 hover:bg-background text-foreground p-1.5 transition-all"><Trash2 size={13} /></button>}
                 <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
                   {work.series && (() => { const s = seriesList.find((s) => s.name === work.series); const label = lang === "ko" ? work.series : (s?.nameEn ?? work.series); return <span className="text-xs px-2 py-0.5 bg-background/70 text-muted-foreground" style={MONO}>{label}</span>; })()}
                   {work.collected && <span className="text-xs px-2 py-0.5 bg-accent/90 text-accent-foreground ml-auto" style={MONO}>{u.worksCollected}</span>}

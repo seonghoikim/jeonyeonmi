@@ -107,7 +107,7 @@ export function Press({
                   </div>
                   <span className="text-xs px-1.5 py-0.5 border border-border text-muted-foreground shrink-0" style={MONO}>{typeLabel(item.type)}</span>
                   {editMode && (
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <div className="flex gap-1 shrink-0">
                       <button onClick={() => setEditingPressId(item.id)} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><Edit3 size={12} /></button>
                       <button onClick={() => deletePress(item.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button>
                     </div>

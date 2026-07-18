@@ -88,7 +88,7 @@ export function Video({
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-background"><span className="text-xs text-muted-foreground" style={MONO}>{u.videoUrlPh}</span></div>
                   )}
-                  {editMode && <button onClick={() => deleteVideo(vid.id)} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 bg-background/80 hover:bg-background text-foreground p-1.5 transition-all z-10"><Trash2 size={13} /></button>}
+                  {editMode && <button onClick={() => deleteVideo(vid.id)} className="absolute top-3 right-3 bg-background/80 hover:bg-background text-foreground p-1.5 transition-all z-10"><Trash2 size={13} /></button>}
                 </div>
                 <div className="p-4 sm:p-5 flex flex-col gap-2 flex-1">
                   {isEditing ? (
