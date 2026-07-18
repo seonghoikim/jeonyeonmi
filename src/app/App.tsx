@@ -235,8 +235,10 @@ export default function App() {
   const [exVisible, setExVisible] = useState(true);
   const [editingExId, setEditingExId] = useState<number | null>(null);
   const [activityPhotos, setActivityPhotos] = useState(initActivityPhotos);
-  const [editingActivityCaption, setEditingActivityCaption] = useState<number | null>(null);
   const [highlightedPhotoId, setHighlightedPhotoId] = useState<number | null>(null);
+  const [uploadingExtraFor, setUploadingExtraFor] = useState<number | null>(null);
+  const multiFileInputRef = useRef<HTMLInputElement>(null);
+  const pendingMultiTarget = useRef<number | null>(null);
   const [videoList, setVideoList] = useState(initVideos);
   const [editingVideoId, setEditingVideoId] = useState<number | null>(null);
   const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
@@ -473,6 +475,36 @@ export default function App() {
     setUploadingTarget(null);
   };
 
+  const triggerMultiUpload = (photoId: number) => { pendingMultiTarget.current = photoId; multiFileInputRef.current?.click(); };
+
+  const handleMultiFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    const photoId = pendingMultiTarget.current;
+    e.target.value = "";
+    if (!files || files.length === 0 || photoId === null) return;
+    const token = editTokenRef.current;
+    if (!token) { alert("편집 권한이 필요합니다. 다시 로그인해주세요."); return; }
+    const photo = activityPhotos.find((p) => p.id === photoId);
+    let nextSubId = Math.max(0, ...(photo?.extraPhotoIds ?? [])) + 1;
+    setUploadingExtraFor(photoId);
+    const addedIds: number[] = [];
+    for (const file of Array.from(files)) {
+      const subId = nextSubId++;
+      try {
+        const url = await uploadImage(`activity-${photoId}-${subId}`, file, token, photo?.captionEn);
+        applyImageUrl(`activity-${photoId}-${subId}`, url);
+        addedIds.push(subId);
+      } catch (err) {
+        console.error("[Upload] extra activity photo failed:", err);
+        alert(`이미지 업로드 실패: ${err instanceof Error ? err.message : "알 수 없는 오류"}`);
+      }
+    }
+    if (addedIds.length) {
+      setActivityPhotos((p) => p.map((ph) => ph.id === photoId ? { ...ph, extraPhotoIds: [...(ph.extraPhotoIds ?? []), ...addedIds] } : ph));
+    }
+    setUploadingExtraFor(null);
+  };
+
   /* CRUD */
   const updateWork = (id: number, f: keyof Artwork, v: string | boolean) => setArtworkList((p) => p.map((w) => w.id === id ? { ...w, [f]: v } : w));
   const addArtwork = () => { const newId = Math.max(0, ...artworkList.map((w) => w.id)) + 1; setArtworkList((p) => [...p, { id: newId, title: "새 작품", titleEn: "New Work", year: String(new Date().getFullYear()), medium: "재료", mediumEn: "Medium", size: "크기", image: "", category: "회화", categoryEn: "Painting", series: "", collected: false }]); setSelectedWorkId(newId); };
@@ -493,6 +525,25 @@ export default function App() {
   const addActivityPhoto = () => { const newId = Math.max(0, ...activityPhotos.map((p) => p.id)) + 1; setActivityPhotos((p) => [...p, { id: newId, caption: "새 사진", captionEn: "New Photo" }]); };
   const deleteActivityPhoto = (id: number) => { if (!window.confirm("이 사진을 삭제하시겠습니까?")) return; setActivityPhotos((p) => p.filter((ph) => ph.id !== id)); };
   const updateActivityPhoto = (id: number, f: keyof ActivityPhoto, v: string) => setActivityPhotos((p) => p.map((ph) => ph.id === id ? { ...ph, [f]: v } : ph));
+  // Swaps just the two underlying image URLs so no re-upload is needed — the
+  // "cover" slot is always physically stored at the `activity-{id}` key.
+  const setPhotoAsCover = (photoId: number, subId: number) => {
+    const coverKey = `activity-${photoId}`;
+    const extraKey = `activity-${photoId}-${subId}`;
+    setImageUrls((prev) => {
+      const next = { ...prev };
+      const coverUrl = next[coverKey];
+      const extraUrl = next[extraKey];
+      if (extraUrl) next[coverKey] = extraUrl; else delete next[coverKey];
+      if (coverUrl) next[extraKey] = coverUrl; else delete next[extraKey];
+      return next;
+    });
+  };
+  const deleteExtraPhoto = (photoId: number, subId: number) => {
+    if (!window.confirm("이 사진을 삭제하시겠습니까?")) return;
+    setActivityPhotos((p) => p.map((ph) => ph.id === photoId ? { ...ph, extraPhotoIds: (ph.extraPhotoIds ?? []).filter((id) => id !== subId) } : ph));
+  };
+  const reorderExtraPhotos = (photoId: number, newIds: number[]) => setActivityPhotos((p) => p.map((ph) => ph.id === photoId ? { ...ph, extraPhotoIds: newIds } : ph));
   const addVideo = () => { const newId = Math.max(0, ...videoList.map((v) => v.id)) + 1; setVideoList((p) => [...p, { id: newId, youtubeUrl: "", title: "새 영상", titleEn: "New Video", description: "설명", descriptionEn: "Description" }]); setEditingVideoId(newId); };
   const updateVideoField = (id: number, f: keyof VideoEntry, v: string) => setVideoList((p) => p.map((vid) => vid.id === id ? { ...vid, [f]: v } : vid));
   const deleteVideo = (id: number) => { if (!window.confirm("이 영상을 삭제하시겠습니까?")) return; setVideoList((p) => p.filter((v) => v.id !== id)); if (editingVideoId === id) setEditingVideoId(null); };
@@ -613,6 +664,7 @@ export default function App() {
       <div className="app-root min-h-screen bg-background text-foreground" style={SANS}>
         <style>{GLOBAL_CSS}</style>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        <input ref={multiFileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleMultiFileChange} />
 
         {/* ── Video fullscreen overlay ── */}
         {fullscreenVideoYtId && (
@@ -808,12 +860,15 @@ export default function App() {
         <Activities
           activityPhotos={activityPhotos}
           setActivityPhotos={setActivityPhotos}
-          editingActivityCaption={editingActivityCaption}
-          setEditingActivityCaption={setEditingActivityCaption}
           highlightedPhotoId={highlightedPhotoId}
           addActivityPhoto={addActivityPhoto}
           deleteActivityPhoto={deleteActivityPhoto}
           updateActivityPhoto={updateActivityPhoto}
+          triggerMultiUpload={triggerMultiUpload}
+          uploadingExtraFor={uploadingExtraFor}
+          setPhotoAsCover={setPhotoAsCover}
+          deleteExtraPhoto={deleteExtraPhoto}
+          reorderExtraPhotos={reorderExtraPhotos}
         />
 
         <Video
