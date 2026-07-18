@@ -23,7 +23,9 @@ export function Press({
 
   if (pressList.length === 0 && !editMode) return null;
 
-  const typeLabel = (t: PressEntry["type"]) => t === "인터뷰" ? u.pressInterview : t === "방송" ? u.pressBroadcast : u.pressArticle;
+  const typeLabel = (t: PressEntry["type"]) => t === "인터뷰" ? u.pressInterview : t === "방송" ? u.pressBroadcast : t === "스크랩" ? u.pressScrap : u.pressArticle;
+  const nextType = (t: PressEntry["type"]): PressEntry["type"] =>
+    t === "기사" ? "인터뷰" : t === "인터뷰" ? "방송" : t === "방송" ? "스크랩" : "기사";
 
   return (
     <section id="press" className="py-16 sm:py-24 border-t border-border">
@@ -70,7 +72,7 @@ export function Press({
                         />
                       </div>
                     )}
-                    <button onClick={() => updatePress(item.id, "type", item.type === "기사" ? "인터뷰" : item.type === "인터뷰" ? "방송" : "기사")} className="text-xs px-1.5 py-0.5 border border-accent text-accent shrink-0" style={MONO}>{typeLabel(item.type)} ⇄</button>
+                    <button onClick={() => updatePress(item.id, "type", nextType(item.type))} className="text-xs px-1.5 py-0.5 border border-accent text-accent shrink-0" style={MONO}>{typeLabel(item.type)} ⇄</button>
                     <div className="flex items-center gap-1 ml-auto shrink-0">
                       <button onClick={() => setEditingPressId(null)} className="p-1 text-accent transition-colors"><Check size={13} /></button>
                       <button onClick={() => deletePress(item.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
