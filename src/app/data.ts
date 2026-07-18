@@ -43,7 +43,7 @@ export type Artwork = { id: number; title: string; titleEn: string; year: string
 export type Series = { id: number; name: string; nameEn: string; };
 export type Slide = { id: number; heading: string; headingEn: string; body: string; bodyEn: string; };
 export type ExhibitionEntry = { id: number; year: string; title: string; titleEn: string; venue: string; venueEn: string; location: string; tag: "전시" | "수상" | "아트페어"; activityId?: number; };
-export type ActivityPhoto = { id: number; caption: string; captionEn: string; };
+export type ActivityPhoto = { id: number; caption: string; captionEn: string; extraPhotoIds?: number[]; };
 export type VideoEntry = { id: number; youtubeUrl: string; title: string; titleEn: string; description: string; descriptionEn: string; };
 export type ContactItem = { id: string; type: "email" | "phone" | "instagram" | "blog"; labelKo: string; labelEn: string; display: string; href: string; visible: boolean; };
 export type PressEntry = { id: number; url: string; outlet: string; outletEn: string; title: string; titleEn: string; date: string; image: string; type: "기사" | "인터뷰" | "방송" | "스크랩"; };
@@ -102,6 +102,7 @@ export const UI = {
     pressFetchError: "미리보기를 가져오지 못했습니다. 직접 입력해주세요.", pressNoUrl: "URL을 먼저 입력하세요",
     pressArticle: "기사", pressInterview: "인터뷰", pressBroadcast: "방송", pressScrap: "스크랩",
     activityAdd: "사진 추가", activityUpload: "사진 업로드", activityUploading: "업로드 중…", activityViewOriginal: "원본 보기",
+    activityManage: "사진 관리", activityAddMore: "사진 추가 (여러 장 선택 가능)", activityCover: "대표", activitySetCover: "대표로 지정",
     videoAdd: "영상 추가", videoUrlPh: "YouTube URL 입력",
     contactHide: "숨기기", contactShow: "보이기", contactPick: "연락 방법 선택",
     contactEditDisplay: "표시 텍스트", contactEditHref: "링크 URL",
@@ -132,6 +133,7 @@ export const UI = {
     pressFetchError: "Couldn't fetch a preview. Please fill it in manually.", pressNoUrl: "Enter a URL first",
     pressArticle: "Article", pressInterview: "Interview", pressBroadcast: "Broadcast", pressScrap: "Scrap",
     activityAdd: "Add Photo", activityUpload: "Upload Photo", activityUploading: "Uploading…", activityViewOriginal: "View Original",
+    activityManage: "Manage Photos", activityAddMore: "Add Photos (multiple)", activityCover: "Cover", activitySetCover: "Set as Cover",
     videoAdd: "Add Video", videoUrlPh: "Enter YouTube URL",
     contactHide: "Hide", contactShow: "Show", contactPick: "Choose a contact method",
     contactEditDisplay: "Display text", contactEditHref: "Link URL",
