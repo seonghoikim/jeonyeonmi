@@ -46,7 +46,7 @@ export type ExhibitionEntry = { id: number; year: string; title: string; titleEn
 export type ActivityPhoto = { id: number; caption: string; captionEn: string; };
 export type VideoEntry = { id: number; youtubeUrl: string; title: string; titleEn: string; description: string; descriptionEn: string; };
 export type ContactItem = { id: string; type: "email" | "phone" | "instagram" | "blog"; labelKo: string; labelEn: string; display: string; href: string; visible: boolean; };
-export type PressEntry = { id: number; url: string; outlet: string; outletEn: string; title: string; titleEn: string; date: string; image: string; type: "기사" | "인터뷰" | "방송"; };
+export type PressEntry = { id: number; url: string; outlet: string; outletEn: string; title: string; titleEn: string; date: string; image: string; type: "기사" | "인터뷰" | "방송" | "스크랩"; };
 
 /* ─── page content ───────────────────────────────────── */
 export const initContent = {
@@ -100,7 +100,7 @@ export const UI = {
     exAdd: "항목 추가", exAll: "전체", exExhibition: "전시", exAward: "수상", exFair: "아트페어", exNoLink: "연결 없음",
     pressAdd: "보도자료 추가", pressUrlPh: "기사 URL 입력", pressFetch: "가져오기", pressFetching: "가져오는 중…",
     pressFetchError: "미리보기를 가져오지 못했습니다. 직접 입력해주세요.", pressNoUrl: "URL을 먼저 입력하세요",
-    pressArticle: "기사", pressInterview: "인터뷰", pressBroadcast: "방송",
+    pressArticle: "기사", pressInterview: "인터뷰", pressBroadcast: "방송", pressScrap: "스크랩",
     activityAdd: "사진 추가", activityUpload: "사진 업로드", activityUploading: "업로드 중…", activityViewOriginal: "원본 보기",
     videoAdd: "영상 추가", videoUrlPh: "YouTube URL 입력",
     contactHide: "숨기기", contactShow: "보이기", contactPick: "연락 방법 선택",
@@ -130,7 +130,7 @@ export const UI = {
     exAdd: "Add Item", exAll: "All", exExhibition: "Exhibition", exAward: "Award", exFair: "ArtFair", exNoLink: "No link",
     pressAdd: "Add Press Item", pressUrlPh: "Enter article URL", pressFetch: "Fetch", pressFetching: "Fetching…",
     pressFetchError: "Couldn't fetch a preview. Please fill it in manually.", pressNoUrl: "Enter a URL first",
-    pressArticle: "Article", pressInterview: "Interview", pressBroadcast: "Broadcast",
+    pressArticle: "Article", pressInterview: "Interview", pressBroadcast: "Broadcast", pressScrap: "Scrap",
     activityAdd: "Add Photo", activityUpload: "Upload Photo", activityUploading: "Uploading…", activityViewOriginal: "View Original",
     videoAdd: "Add Video", videoUrlPh: "Enter YouTube URL",
     contactHide: "Hide", contactShow: "Show", contactPick: "Choose a contact method",
