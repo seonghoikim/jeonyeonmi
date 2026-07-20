@@ -10,7 +10,7 @@ import { useGoogleAnalytics } from "./useGoogleAnalytics";
 import { useSeoMeta } from "./useSeoMeta";
 import { useStructuredData } from "./useStructuredData";
 import { useModalLock } from "./useModalLock";
-import { PortfolioContext, type PortfolioContextValue } from "./PortfolioContext";
+import { PortfolioContext, usePortfolioContext, type PortfolioContextValue } from "./PortfolioContext";
 import { Hero } from "./components/sections/Hero";
 import { CurrentExhibitions } from "./components/sections/CurrentExhibitions";
 import { Works } from "./components/sections/Works";
@@ -23,6 +23,21 @@ import { Contact } from "./components/sections/Contact";
 import { Footer } from "./components/sections/Footer";
 import { Lightbox } from "./components/sections/Lightbox";
 import { PasswordModal } from "./components/sections/PasswordModal";
+
+// Module-scope (not defined inside App's render) so its identity is stable across
+// re-renders. It used to be a closure defined inline in App() and handed out via
+// context as `C` — since App re-renders on every keystroke, that recreated a brand
+// new component function each time, which made React unmount/remount the underlying
+// <input>/<textarea> on every keystroke and drop focus/cursor position.
+function InlineField({ field, multi = false, rows = 3, className = "" }: { field: ContentKey; multi?: boolean; rows?: number; className?: string; }) {
+  const { content, lang, editMode, updateContent, SANS } = usePortfolioContext();
+  const enKey = (field + "En") as ContentKey;
+  const af: ContentKey = lang === "en" && enKey in content ? enKey : field;
+  const val = content[af] ?? "";
+  if (!editMode) return <>{val}</>;
+  if (multi) return <textarea value={val} rows={rows} onChange={(e) => updateContent(af, e.target.value)} className={`bg-transparent border-b border-dashed border-accent/60 outline-none resize-none w-full ${className}`} style={SANS} />;
+  return <input value={val} onChange={(e) => updateContent(af, e.target.value)} className={`bg-transparent border-b border-dashed border-accent/60 outline-none w-full ${className}`} />;
+}
 
 export default function App() {
   useGoogleAnalytics();
@@ -48,14 +63,6 @@ export default function App() {
     const enKey = (field + "En") as ContentKey;
     if (lang === "en" && enKey in content) return (content as Record<string, string>)[enKey] ?? "";
     return (content as Record<string, string>)[field] ?? "";
-  };
-  const C = ({ field, multi = false, rows = 3, className = "" }: { field: ContentKey; multi?: boolean; rows?: number; className?: string; }) => {
-    const enKey = (field + "En") as ContentKey;
-    const af: ContentKey = lang === "en" && enKey in content ? enKey : field;
-    const val = (content as Record<string, string>)[af] ?? "";
-    if (!editMode) return <>{val}</>;
-    if (multi) return <textarea value={val} rows={rows} onChange={(e) => updateContent(af, e.target.value)} className={`bg-transparent border-b border-dashed border-accent/60 outline-none resize-none w-full ${className}`} style={SANS} />;
-    return <input value={val} onChange={(e) => updateContent(af, e.target.value)} className={`bg-transparent border-b border-dashed border-accent/60 outline-none w-full ${className}`} />;
   };
 
   /* auth */
@@ -652,7 +659,7 @@ export default function App() {
 
   const contextValue: PortfolioContextValue = {
     lang, u, MONO, SERIF, SANS, hSize,
-    content, updateContent, c, C,
+    content, updateContent, c, C: InlineField,
     editMode, img, uploadingTarget,
     dragSrc, dragOverKey, setDragOverKey,
     scrollTo, scrollToActivity, triggerUpload, openLightbox,
