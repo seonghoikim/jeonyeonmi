@@ -219,7 +219,7 @@ export function Works({
                     };
                     return (
                     <div key={field} className="flex gap-4 sm:gap-6 items-start">
-                      <span className="text-xs w-12 sm:w-14 text-muted-foreground shrink-0 pt-0.5" style={MONO}>{label}</span>
+                      <span className="text-xs w-20 sm:w-24 text-muted-foreground shrink-0 pt-0.5" style={MONO}>{label}</span>
                       {editMode ? (
                         (field === "medium" || field === "category")
                           ? <div className="flex-1 flex gap-2">
@@ -231,7 +231,7 @@ export function Works({
                     </div>
                   );})}
                   <div className="flex gap-4 sm:gap-6 items-start">
-                    <span className="text-xs w-12 sm:w-14 text-muted-foreground shrink-0 pt-0.5" style={MONO}>{u.fieldSeries}</span>
+                    <span className="text-xs w-20 sm:w-24 text-muted-foreground shrink-0 pt-0.5" style={MONO}>{u.fieldSeries}</span>
                     {editMode ? (
                       <div className="flex flex-wrap gap-2 flex-1">
                         <button onClick={() => updateWork(selectedWork.id, "series", "")} className={`text-xs px-2 py-0.5 border transition-colors ${!selectedWork.series ? "border-accent text-accent" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>—</button>
@@ -241,7 +241,7 @@ export function Works({
                   </div>
                   {/* collected row */}
                   <div className="flex gap-4 sm:gap-6 items-center pt-3 border-t border-border mt-1">
-                    <span className="text-xs w-12 sm:w-14 text-muted-foreground shrink-0" style={MONO}>{u.fieldCollected}</span>
+                    <span className="text-xs w-20 sm:w-24 text-muted-foreground shrink-0" style={MONO}>{u.fieldCollected}</span>
                     {editMode ? (
                       <button onClick={() => updateWork(selectedWork.id, "collected", !selectedWork.collected)}
                         className={`flex items-center gap-2 text-xs px-3 py-1.5 border transition-all ${selectedWork.collected ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>
