@@ -190,7 +190,11 @@ export default function App() {
       if ((row.current_exhibitions as CurrentExhibition[])?.length) setCurrentExList(row.current_exhibitions as CurrentExhibition[]);
       if ((row.artworks as Artwork[])?.length) setArtworkList(row.artworks as Artwork[]);
       if ((row.series_list as Series[])?.length) setSeriesList(row.series_list as Series[]);
-      if ((row.slides as Slide[])?.length) setSlides(row.slides as Slide[]);
+      if ((row.slides as Slide[])?.length) {
+        const loadedSlides = row.slides as Slide[];
+        setSlides(loadedSlides);
+        setCurrentSlide(Math.floor(Math.random() * loadedSlides.length));
+      }
       if ((row.exhibitions as ExhibitionEntry[])?.length) setExhibitionList(row.exhibitions as ExhibitionEntry[]);
       if ((row.activity_photos as ActivityPhoto[])?.length) setActivityPhotos(row.activity_photos as ActivityPhoto[]);
       if ((row.videos as VideoEntry[])?.length) setVideoList(row.videos as VideoEntry[]);
@@ -235,7 +239,10 @@ export default function App() {
   const [heroCaptionEn, setHeroCaptionEn] = useState("Floating Memory I, 2024");
   const [editingCaption, setEditingCaption] = useState(false);
   const [slides, setSlides] = useState(initSlides);
-  const [currentSlide, setCurrentSlide] = useState(0);
+  // Random rather than always slide 0 — otherwise a visitor who never manually
+  // navigates would only ever see the first artist statement, and the rest
+  // would go unread.
+  const [currentSlide, setCurrentSlide] = useState(() => Math.floor(Math.random() * initSlides.length));
   const [isSliding, setIsSliding] = useState(false);
   const [exhibitionList, setExhibitionList] = useState(initExhibitions);
   const [exFilter, setExFilter] = useState<"전체" | "전시" | "수상" | "아트페어">("전체");
