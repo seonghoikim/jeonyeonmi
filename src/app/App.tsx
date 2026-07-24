@@ -447,9 +447,8 @@ export default function App() {
     setExVisible(false); setTimeout(() => { setExFilter(f); setExVisible(true); }, 220);
   };
   const goSlide = (dir: 1 | -1) => {
-    if (isSliding) return;
-    const next = currentSlide + dir;
-    if (next < 0 || next >= slides.length) return;
+    if (isSliding || slides.length === 0) return;
+    const next = (currentSlide + dir + slides.length) % slides.length;
     setIsSliding(true); setCurrentSlide(next); setTimeout(() => setIsSliding(false), 600);
   };
   const scrollTo = (id: string) => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); setMenuOpen(false); };
