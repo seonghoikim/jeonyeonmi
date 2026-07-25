@@ -74,7 +74,7 @@ export function CurrentExhibitions({
                 <div className={`current-ex-img relative overflow-hidden bg-card ${editMode ? "cursor-pointer" : ""}`} style={{ height: "340px" }} onClick={() => editMode && triggerUpload(`current-${ex.id}`, ex.titleEn)}>
                   {exImg
                     ? <img src={exImg} alt={ex.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                    : <img src="/poster-placeholder.svg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />}
+                    : <img src="/poster-placeholder-v2.svg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />}
                   {!isEditing && (
                     <div className="absolute top-3 left-3 flex gap-1.5">
                       <span className={`text-xs px-2.5 py-1 tracking-widest font-medium ${statusCls}`} style={MONO}>{statusLabel}</span>
