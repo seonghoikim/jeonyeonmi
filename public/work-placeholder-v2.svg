@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="800" viewBox="0 0 640 800">
   <rect width="640" height="800" fill="#1a1714"/>
-  <rect x="40" y="40" width="560" height="720" fill="none" stroke="#b87355" stroke-width="1" stroke-opacity="0.35"/>
   <text x="320" y="420" text-anchor="middle" font-family="Georgia, 'Liberation Serif', 'DejaVu Serif', serif" font-size="220" font-weight="300" fill="#b87355">Y</text>
   <line x1="290" y1="560" x2="350" y2="560" stroke="#b87355" stroke-width="1" stroke-opacity="0.6"/>
   <text x="320" y="595" text-anchor="middle" font-family="'DejaVu Sans Mono', 'Liberation Mono', monospace" font-size="13" letter-spacing="3" fill="#a89c8c">이미지 예정</text>
