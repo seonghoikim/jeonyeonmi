@@ -1,4 +1,4 @@
-import { Plus, GripVertical, Link2, ArrowUpRight, Edit3, Check, Trash2, RefreshCw } from "lucide-react";
+import { Plus, GripVertical, ArrowUpRight, Edit3, Check, Trash2, RefreshCw } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, type PressEntry } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
@@ -95,7 +95,9 @@ export function Press({
               ) : (
                 <>
                   <div className="shrink-0 overflow-hidden bg-secondary flex items-center justify-center" style={{ width: 56, height: 56 }}>
-                    {item.image ? <img src={item.image} alt={lang === "ko" ? item.title : item.titleEn} className="w-full h-full object-cover" loading="lazy" /> : <Link2 size={16} className="text-muted-foreground/40" />}
+                    {item.image
+                      ? <img src={item.image} alt={lang === "ko" ? item.title : item.titleEn} className="w-full h-full object-cover" loading="lazy" />
+                      : <img src="/favicon.svg" alt="" className="w-full h-full object-cover" loading="lazy" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground/70 mb-0.5" style={MONO}>{lang === "ko" ? item.outlet : (item.outletEn || item.outlet)}{item.date && <span> · {item.date}</span>}</p>
