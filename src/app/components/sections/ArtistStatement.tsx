@@ -91,7 +91,7 @@ export function ArtistStatement({ slides, currentSlide, setCurrentSlide, isSlidi
                     <div className={`slide-img-area md:w-2/5 shrink-0 flex items-center justify-center bg-card relative ${editMode ? "cursor-pointer" : imgSrc ? "cursor-zoom-in" : ""}`} style={{ minHeight: "280px" }} onClick={() => { if (editMode) { triggerUpload(`slide-${sl.id}`, sl.headingEn); } else if (imgSrc) { openLightbox(imgSrc, false); } }}>
                       {imgSrc
                         ? <img src={imgSrc} alt={sl.heading} className="w-full h-full object-contain" style={{ maxHeight: "520px" }} loading="lazy" decoding="async" />
-                        : <img src="/statement-placeholder.svg" alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />}
+                        : <img src="/statement-placeholder-v2.svg" alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />}
                       {editMode && <div className="absolute inset-0 flex items-center justify-center bg-background/50 hover:bg-background/65 transition-colors"><div className="flex flex-col items-center gap-2 text-foreground"><Upload size={22} /><span className="text-xs tracking-widest" style={MONO}>{uploadingTarget === `slide-${sl.id}` ? u.statUploading : u.statUpload}</span></div></div>}
                     </div>
                     <div className="slide-text-area flex-1">
