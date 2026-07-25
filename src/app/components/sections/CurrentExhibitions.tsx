@@ -200,7 +200,7 @@ export function CurrentExhibitions({
                       <div className="shrink-0 overflow-hidden bg-secondary" style={{ width: 52, height: 68 }}>
                         {pastThumb
                           ? <img src={pastThumb} alt={lang === "ko" ? ex.title : ex.titleEn} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
-                          : <div className="w-full h-full flex items-center justify-center"><span className="text-muted-foreground/20 text-xs">✦</span></div>
+                          : <img src="/favicon.svg" alt="" className="w-full h-full object-cover" loading="lazy" />
                         }
                       </div>
                       <div className="flex-1 min-w-0">

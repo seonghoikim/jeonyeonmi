@@ -126,8 +126,8 @@ export function Exhibitions({
                           <img src={exThumb} alt={lang === "ko" ? ex.title : ex.titleEn} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
                         </button>
                       ) : (
-                        <div className="shrink-0 overflow-hidden bg-secondary flex items-center justify-center" style={{ width: 40, height: 40 }}>
-                          <span className="text-muted-foreground/20 text-xs">✦</span>
+                        <div className="shrink-0 overflow-hidden bg-secondary" style={{ width: 40, height: 40 }}>
+                          <img src="/favicon.svg" alt="" className="w-full h-full object-cover" loading="lazy" />
                         </div>
                       )}
                     </div>
