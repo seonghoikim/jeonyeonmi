@@ -72,6 +72,7 @@ export function ArtistStatement({ slides, currentSlide, setCurrentSlide, isSlidi
           <div className="flex items-center gap-2 sm:gap-3">
             {slides.length > 0 && <div className="hidden sm:flex items-center gap-2 mr-1">{slides.map((s, i) => <button key={s.id} onClick={() => !isSliding && setCurrentSlide(i)} className={`rounded-full transition-all ${i === currentSlide ? "bg-foreground w-5 h-1.5" : "bg-muted-foreground/40 w-1.5 h-1.5 hover:bg-muted-foreground"}`} />)}</div>}
             <button onClick={() => !isSliding && goSlide(-1)} disabled={!slides.length} className="p-1.5 sm:p-2 border border-border hover:border-foreground/40 text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronLeft size={16} /></button>
+            {slides.length > 0 && <span className="text-xs text-muted-foreground w-10 text-center" style={MONO}>{currentSlide + 1} / {slides.length}</span>}
             <button onClick={() => !isSliding && goSlide(1)} disabled={!slides.length} className="p-1.5 sm:p-2 border border-border hover:border-foreground/40 text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronRight size={16} /></button>
             {editMode && <button onClick={addSlide} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors ml-1" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.statAddSlide}</span></button>}
           </div>
@@ -116,7 +117,6 @@ export function ArtistStatement({ slides, currentSlide, setCurrentSlide, isSlidi
             </div>
           </div>
         )}
-        {slides.length > 0 && <div className="mt-4 flex justify-end"><span className="text-xs text-muted-foreground" style={MONO}>{currentSlide + 1} / {slides.length}</span></div>}
       </div>
     </section>
   );
