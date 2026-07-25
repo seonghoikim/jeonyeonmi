@@ -155,7 +155,9 @@ export function Works({
                     disableDown={idx === filteredWorks.length - 1}
                   />
                 )}
-                {img(`artwork-${work.id}`) ? <img src={img(`artwork-${work.id}`)!} alt={work.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" decoding="async" /> : <div className="w-full h-full img-placeholder" />}
+                {img(`artwork-${work.id}`)
+                  ? <img src={img(`artwork-${work.id}`)!} alt={work.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" decoding="async" />
+                  : <img src="/work-placeholder.svg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />}
                 <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-all duration-500" />
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"><ArrowUpRight size={16} className="text-foreground" /></div>
                 {editMode && <button onClick={(e) => { e.stopPropagation(); deleteWork(work.id); }} className="absolute top-3 left-3 bg-background/80 hover:bg-background text-foreground p-1.5 transition-all"><Trash2 size={13} /></button>}
@@ -189,7 +191,7 @@ export function Works({
             <div className={`relative bg-background overflow-hidden flex items-center justify-center ${editMode ? "cursor-pointer" : ""}`} style={{ minHeight: "260px", maxHeight: "min(60vh, 560px)" }} onClick={() => editMode && triggerUpload(`artwork-${selectedWork.id}`, selectedWork.titleEn)}>
               {img(`artwork-${selectedWork.id}`) || selectedWork.image
                 ? <img src={img(`artwork-${selectedWork.id}`)!} alt={selectedWork.title} className="w-full h-full object-contain" style={{ maxHeight: "min(60vh, 560px)" }} decoding="async" />
-                : <div className="w-full img-placeholder" style={{ minHeight: "260px" }} />}
+                : <img src="/work-placeholder.svg" alt="" className="w-full h-full object-cover" style={{ minHeight: "260px" }} decoding="async" />}
               {editMode && <div className="absolute inset-0 flex items-center justify-center bg-background/50 hover:bg-background/65 transition-colors"><div className="flex flex-col items-center gap-2 text-foreground"><Upload size={22} /><span className="text-xs tracking-widest" style={MONO}>{uploadingTarget === `artwork-${selectedWork.id}` ? u.worksUploading : u.worksUpload}</span></div></div>}
               {!editMode && (img(`artwork-${selectedWork.id}`) || selectedWork.image) && (
                 <button
