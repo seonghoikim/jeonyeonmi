@@ -1,6 +1,6 @@
 import { Plus, Upload, GripVertical, Eye, EyeOff, Edit3, Check, Trash2, ArrowUpRight, ChevronRight } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
-import { moveItem, moveInFiltered, hSize, type CurrentExhibition } from "../../data";
+import { moveItem, moveInFiltered, hSize, EX_TAG_ORDER, EX_TAG_STYLE, type CurrentExhibition } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
 
 type CurrentExhibitionsProps = {
@@ -78,6 +78,7 @@ export function CurrentExhibitions({
                   {!isEditing && (
                     <div className="absolute top-3 left-3 flex gap-1.5">
                       <span className={`text-xs px-2.5 py-1 tracking-widest font-medium ${statusCls}`} style={MONO}>{statusLabel}</span>
+                      <span className={`text-xs px-2.5 py-1 tracking-widest font-medium bg-background/90 border ${EX_TAG_STYLE[ex.tag]}`} style={MONO}>{ex.tag === "개인전" ? u.exSolo : ex.tag === "단체전" ? u.exGroup : ex.tag === "아트페어" ? u.exFair : u.exCompetition}</span>
                       {!ex.visible && editMode && <span className="text-xs px-2 py-1 bg-background/80 border border-dashed border-border text-muted-foreground" style={MONO}>숨김</span>}
                     </div>
                   )}
@@ -97,10 +98,16 @@ export function CurrentExhibitions({
                   {isEditing ? (
                     <div className="space-y-2 flex-1">
                       {/* status cycle */}
-                      <button onClick={() => { const cycle = { "진행중": "예정", "예정": "지난전시", "지난전시": "진행중" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }}
-                        className={`text-xs px-2 py-0.5 border mb-2 ${ex.status === "진행중" ? "border-accent text-accent" : ex.status === "예정" ? "border-border text-muted-foreground" : "border-border/40 text-muted-foreground/50"}`} style={MONO}>
-                        {ex.status === "진행중" ? u.statusOngoing : ex.status === "예정" ? u.statusUpcoming : u.statusPast} ⇄
-                      </button>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <button onClick={() => { const cycle = { "진행중": "예정", "예정": "지난전시", "지난전시": "진행중" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }}
+                          className={`text-xs px-2 py-0.5 border ${ex.status === "진행중" ? "border-accent text-accent" : ex.status === "예정" ? "border-border text-muted-foreground" : "border-border/40 text-muted-foreground/50"}`} style={MONO}>
+                          {ex.status === "진행중" ? u.statusOngoing : ex.status === "예정" ? u.statusUpcoming : u.statusPast} ⇄
+                        </button>
+                        <button onClick={() => { const next = EX_TAG_ORDER[(EX_TAG_ORDER.indexOf(ex.tag) + 1) % EX_TAG_ORDER.length]; updateCurrentEx(ex.id, "tag", next); }}
+                          className={`text-xs px-2 py-0.5 border ${EX_TAG_STYLE[ex.tag]}`} style={MONO}>
+                          {ex.tag === "개인전" ? u.exSolo : ex.tag === "단체전" ? u.exGroup : ex.tag === "아트페어" ? u.exFair : u.exCompetition} ⇄
+                        </button>
+                      </div>
                       <input value={ex.title} onChange={(e) => updateCurrentEx(ex.id, "title", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-base font-light text-foreground outline-none" style={SERIF} placeholder="전시명 KO" />
                       <input value={ex.titleEn} onChange={(e) => updateCurrentEx(ex.id, "titleEn", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-accent outline-none" style={MONO} placeholder="Title EN" />
                       <div className="flex gap-2">
@@ -206,7 +213,10 @@ export function CurrentExhibitions({
                       <div className="flex-1 min-w-0">
                         {isEditing ? (
                           <div className="space-y-2">
-                            <button onClick={() => { const cycle = { "진행중": "예정", "예정": "지난전시", "지난전시": "진행중" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }} className="text-xs px-2 py-0.5 border border-border/40 text-muted-foreground/50 mb-1" style={MONO}>{u.statusPast} ⇄</button>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <button onClick={() => { const cycle = { "진행중": "예정", "예정": "지난전시", "지난전시": "진행중" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }} className="text-xs px-2 py-0.5 border border-border/40 text-muted-foreground/50" style={MONO}>{u.statusPast} ⇄</button>
+                              <button onClick={() => { const next = EX_TAG_ORDER[(EX_TAG_ORDER.indexOf(ex.tag) + 1) % EX_TAG_ORDER.length]; updateCurrentEx(ex.id, "tag", next); }} className={`text-xs px-2 py-0.5 border ${EX_TAG_STYLE[ex.tag]}`} style={MONO}>{ex.tag === "개인전" ? u.exSolo : ex.tag === "단체전" ? u.exGroup : ex.tag === "아트페어" ? u.exFair : u.exCompetition} ⇄</button>
+                            </div>
                             <input value={ex.title} onChange={(e) => updateCurrentEx(ex.id, "title", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground font-light outline-none" style={SERIF} />
                             <input value={ex.titleEn} onChange={(e) => updateCurrentEx(ex.id, "titleEn", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-accent outline-none" style={MONO} />
                             <div className="flex gap-2">
@@ -224,7 +234,10 @@ export function CurrentExhibitions({
                           </div>
                         ) : (
                           <>
-                            <p className="text-sm font-light text-foreground/80 leading-snug" style={SERIF}>{lang === "ko" ? ex.title : ex.titleEn}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-light text-foreground/80 leading-snug" style={SERIF}>{lang === "ko" ? ex.title : ex.titleEn}</p>
+                              <span className={`shrink-0 text-xs px-1.5 py-0.5 border ${EX_TAG_STYLE[ex.tag]}`} style={MONO}>{ex.tag === "개인전" ? u.exSolo : ex.tag === "단체전" ? u.exGroup : ex.tag === "아트페어" ? u.exFair : u.exCompetition}</span>
+                            </div>
                             <p className="text-xs text-muted-foreground/50 mt-0.5">{lang === "ko" ? ex.venue : ex.venueEn} · {lang === "ko" ? ex.location : ex.locationEn}</p>
                             <p className="text-xs text-muted-foreground/30 mt-0.5" style={MONO}>{ex.startDate} — {ex.endDate}</p>
                           </>

@@ -38,11 +38,19 @@ export const getYoutubeId = (url: string) =>
 /* ─── types ─────────────────────────────────────────── */
 export type Lang = "ko" | "en";
 export type ContentKey = keyof typeof initContent;
-export type CurrentExhibition = { id: number; title: string; titleEn: string; venue: string; venueEn: string; location: string; locationEn: string; startDate: string; endDate: string; status: "진행중" | "예정" | "지난전시"; visible: boolean; url?: string; };
+export type ExTag = "개인전" | "단체전" | "아트페어" | "공모전";
+export const EX_TAG_ORDER: readonly ExTag[] = ["개인전", "단체전", "아트페어", "공모전"];
+export const EX_TAG_STYLE: Record<ExTag, string> = {
+  개인전: "border-accent text-accent",
+  단체전: "border-purple-500/60 text-purple-400",
+  아트페어: "border-blue-500/60 text-blue-400",
+  공모전: "border-green-600/60 text-green-500",
+};
+export type CurrentExhibition = { id: number; title: string; titleEn: string; venue: string; venueEn: string; location: string; locationEn: string; startDate: string; endDate: string; status: "진행중" | "예정" | "지난전시"; tag: ExTag; visible: boolean; url?: string; };
 export type Artwork = { id: number; title: string; titleEn: string; year: string; medium: string; mediumEn: string; size: string; image: string; category: string; categoryEn: string; series: string; collected: boolean; description?: string; descriptionEn?: string; };
 export type Series = { id: number; name: string; nameEn: string; };
 export type Slide = { id: number; heading: string; headingEn: string; body: string; bodyEn: string; };
-export type ExhibitionEntry = { id: number; year: string; title: string; titleEn: string; venue: string; venueEn: string; location: string; tag: "개인전" | "단체전" | "아트페어" | "공모전"; award?: string; activityId?: number; };
+export type ExhibitionEntry = { id: number; year: string; title: string; titleEn: string; venue: string; venueEn: string; location: string; tag: ExTag; award?: string; activityId?: number; };
 export type ActivityPhoto = { id: number; caption: string; captionEn: string; extraPhotoIds?: number[]; };
 export type VideoEntry = { id: number; youtubeUrl: string; title: string; titleEn: string; description: string; descriptionEn: string; };
 export type ContactItem = { id: string; type: "email" | "phone" | "instagram" | "blog"; labelKo: string; labelEn: string; display: string; href: string; visible: boolean; };
@@ -147,12 +155,12 @@ export const UI = {
 
 /* ─── initial data ───────────────────────────────────── */
 export const initCurrentEx: CurrentExhibition[] = [
-  { id: 1, title: "형태와 기억 사이", titleEn: "Between Form and Memory", venue: "국립현대미술관", venueEn: "MMCA", location: "서울", locationEn: "Seoul", startDate: "2024.11.15", endDate: "2025.03.02", status: "진행중", visible: true },
-  { id: 2, title: "Seoul Art Week 2025", titleEn: "Seoul Art Week 2025", venue: "DDP 동대문디자인플라자", venueEn: "DDP Dongdaemun Design Plaza", location: "서울", locationEn: "Seoul", startDate: "2025.04.10", endDate: "2025.04.20", status: "예정", visible: true },
-  { id: 3, title: "Asia Contemporary Art Show", titleEn: "Asia Contemporary Art Show", venue: "홍콩 컨벤션센터", venueEn: "Hong Kong Convention Centre", location: "홍콩", locationEn: "Hong Kong", startDate: "2025.05.30", endDate: "2025.06.02", status: "예정", visible: true },
-  { id: 4, title: "침묵의 언어", titleEn: "Language of Silence", venue: "아트선재센터", venueEn: "Art Sonje Center", location: "서울", locationEn: "Seoul", startDate: "2023.09.01", endDate: "2023.10.28", status: "지난전시", visible: true },
-  { id: 5, title: "Boundaries Unseen", titleEn: "Boundaries Unseen", venue: "Galerie Templon", venueEn: "Galerie Templon", location: "파리, 프랑스", locationEn: "Paris, France", startDate: "2023.04.06", endDate: "2023.05.20", status: "지난전시", visible: true },
-  { id: 6, title: "Seoul Contemporary", titleEn: "Seoul Contemporary", venue: "KIAF SEOUL", venueEn: "KIAF SEOUL", location: "서울", locationEn: "Seoul", startDate: "2022.09.02", endDate: "2022.09.05", status: "지난전시", visible: true },
+  { id: 1, title: "형태와 기억 사이", titleEn: "Between Form and Memory", venue: "국립현대미술관", venueEn: "MMCA", location: "서울", locationEn: "Seoul", startDate: "2024.11.15", endDate: "2025.03.02", status: "진행중", tag: "개인전", visible: true },
+  { id: 2, title: "Seoul Art Week 2025", titleEn: "Seoul Art Week 2025", venue: "DDP 동대문디자인플라자", venueEn: "DDP Dongdaemun Design Plaza", location: "서울", locationEn: "Seoul", startDate: "2025.04.10", endDate: "2025.04.20", status: "예정", tag: "단체전", visible: true },
+  { id: 3, title: "Asia Contemporary Art Show", titleEn: "Asia Contemporary Art Show", venue: "홍콩 컨벤션센터", venueEn: "Hong Kong Convention Centre", location: "홍콩", locationEn: "Hong Kong", startDate: "2025.05.30", endDate: "2025.06.02", status: "예정", tag: "아트페어", visible: true },
+  { id: 4, title: "침묵의 언어", titleEn: "Language of Silence", venue: "아트선재센터", venueEn: "Art Sonje Center", location: "서울", locationEn: "Seoul", startDate: "2023.09.01", endDate: "2023.10.28", status: "지난전시", tag: "개인전", visible: true },
+  { id: 5, title: "Boundaries Unseen", titleEn: "Boundaries Unseen", venue: "Galerie Templon", venueEn: "Galerie Templon", location: "파리, 프랑스", locationEn: "Paris, France", startDate: "2023.04.06", endDate: "2023.05.20", status: "지난전시", tag: "개인전", visible: true },
+  { id: 6, title: "Seoul Contemporary", titleEn: "Seoul Contemporary", venue: "KIAF SEOUL", venueEn: "KIAF SEOUL", location: "서울", locationEn: "Seoul", startDate: "2022.09.02", endDate: "2022.09.05", status: "지난전시", tag: "아트페어", visible: true },
 ];
 export const initSeries: Series[] = [
   { id: 1, name: "부유하는 기억", nameEn: "Floating Memory" },
