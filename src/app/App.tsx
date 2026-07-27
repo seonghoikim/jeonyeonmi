@@ -2,7 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react
 import { loadPortfolio, savePortfolio, uploadImage, loginEditor, translateTexts, unfurlPress, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
 import { Menu, X, Edit3, Check, Languages } from "lucide-react";
 import {
-  MONO, serifOf, sansOf, hSize, GLOBAL_CSS,
+  MONO, serifOf, sansOf, hSize, GLOBAL_CSS, artworkSlug, artworkIdFromSlug,
   initContent, UI, initCurrentEx, initSeries, initArtworks, initSlides, initExhibitions, initActivityPhotos, initVideos, initContacts, initPress,
   type Lang, type ContentKey, type CurrentExhibition, type Artwork, type Series, type Slide, type ExhibitionEntry, type ActivityPhoto, type VideoEntry, type ContactItem, type PressEntry,
 } from "./data";
@@ -37,6 +37,13 @@ function InlineField({ field, multi = false, rows = 3, className = "" }: { field
   if (!editMode) return <>{val}</>;
   if (multi) return <textarea value={val} rows={rows} onChange={(e) => updateContent(af, e.target.value)} className={`bg-transparent border-b border-dashed border-accent/60 outline-none resize-none w-full ${className}`} style={SANS} />;
   return <input value={val} onChange={(e) => updateContent(af, e.target.value)} className={`bg-transparent border-b border-dashed border-accent/60 outline-none w-full ${className}`} />;
+}
+
+// "/works/:slug" or "/en/works/:slug" -> the artwork id, so a deep link, a page
+// reload, and browser back/forward all resolve the same way.
+function parseWorkIdFromPath(pathname: string): number | null {
+  const m = pathname.match(/^\/(?:en\/)?works\/([^/]+)\/?$/);
+  return m ? artworkIdFromSlug(m[1]) : null;
 }
 
 export default function App() {
@@ -230,7 +237,9 @@ export default function App() {
   const [showPastEx, setShowPastEx] = useState(true);
 
   const [artworkList, setArtworkList] = useState(initArtworks);
-  const [selectedWorkId, setSelectedWorkId] = useState<number | null>(null);
+  const [selectedWorkId, setSelectedWorkId] = useState<number | null>(
+    () => (typeof window === "undefined" ? null : parseWorkIdFromPath(window.location.pathname))
+  );
   const [seriesList, setSeriesList] = useState(initSeries);
   const [selectedSeries, setSelectedSeries] = useState("전체");
   const [editingSeriesId, setEditingSeriesId] = useState<number | null>(null);
@@ -263,7 +272,7 @@ export default function App() {
   const [pressList, setPressList] = useState(initPress);
   const [editingPressId, setEditingPressId] = useState<number | null>(null);
   const [fetchingPressId, setFetchingPressId] = useState<number | null>(null);
-  useStructuredData({ lang, artistName: content.heroName, artistNameEn: content.heroNameEn, artworkList, currentExList, exhibitionList });
+  useStructuredData({ lang, artistName: content.heroName, artistNameEn: content.heroNameEn, artworkList, imageUrls, currentExList, exhibitionList });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingTarget = useRef<string | null>(null);
   const pendingLabel = useRef<string | undefined>(undefined);
@@ -371,12 +380,71 @@ export default function App() {
     window.addEventListener("scroll", h); return () => window.removeEventListener("scroll", h);
   }, []);
 
-  // Keep language in sync with browser back/forward navigation between / and /en.
+  // Keep language and the open artwork (if any) in sync with browser back/forward
+  // navigation between /, /en, and /(en/)works/:slug.
   useEffect(() => {
-    const onPopState = () => setLang(window.location.pathname.startsWith("/en") ? "en" : "ko");
+    const onPopState = () => {
+      const path = window.location.pathname;
+      setLang(path.startsWith("/en") ? "en" : "ko");
+      setSelectedWorkId(parseWorkIdFromPath(path));
+    };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
+
+  // Mirrors the open artwork modal into the URL — /works/:slug (or /en/works/:slug)
+  // while a work is open, back to the base path when closed — so an individual
+  // artwork has a real, shareable, bookmarkable URL instead of just client state.
+  // Guards against fighting the popstate handler above: if the address bar already
+  // matches where this effect wants to go (e.g. because popstate just set it),
+  // it's a no-op.
+  const prevSelectedWorkIdRef = useRef<number | null>(selectedWorkId);
+  useEffect(() => {
+    const prevId = prevSelectedWorkIdRef.current;
+    prevSelectedWorkIdRef.current = selectedWorkId;
+    const rootPath = lang === "en" ? "/en" : "/";
+
+    if (selectedWorkId == null) {
+      if (prevId != null) window.history.pushState(null, "", rootPath + window.location.search);
+      return;
+    }
+    const work = artworkList.find((w) => w.id === selectedWorkId);
+    if (!work) return; // artwork data hasn't loaded yet (e.g. a fresh deep link) — resolves once artworkList updates
+    const targetPath = `${lang === "en" ? "/en" : ""}/works/${artworkSlug(work)}`;
+    if (window.location.pathname === targetPath) return;
+    window.history[prevId == null ? "pushState" : "replaceState"](null, "", targetPath + window.location.search);
+  }, [selectedWorkId, lang, artworkList]);
+
+  // Swap <title>/description/OG/Twitter to the open artwork's own info while its
+  // /works/:slug URL is active, and restore the site-level values (mirroring
+  // useSeoMeta's own output) on close — so a bookmark or share of that URL reflects
+  // the artwork, not just the artist bio.
+  useEffect(() => {
+    const work = selectedWorkId != null ? artworkList.find((w) => w.id === selectedWorkId) : null;
+    if (!work) return;
+    const setMeta = (selector: string, value: string) => document.querySelector(selector)?.setAttribute("content", value);
+    const title = `${lang === "ko" ? work.title : work.titleEn} — ${c("heroName")}`;
+    const description = (lang === "ko" ? work.description : work.descriptionEn) || c("heroDesc");
+    document.title = title;
+    setMeta('meta[name="description"]', description);
+    setMeta('meta[property="og:title"]', title);
+    setMeta('meta[property="og:description"]', description);
+    setMeta('meta[name="twitter:title"]', title);
+    setMeta('meta[name="twitter:description"]', description);
+    const workImg = img(`artwork-${work.id}`);
+    if (workImg) { setMeta('meta[property="og:image"]', workImg); setMeta('meta[name="twitter:image"]', workImg); }
+    return () => {
+      const siteTitle = `${c("heroName")} — ${lang === "en" ? "Artist Portfolio" : "작가 포트폴리오"}`;
+      document.title = siteTitle;
+      setMeta('meta[name="description"]', c("heroDesc"));
+      setMeta('meta[property="og:title"]', siteTitle);
+      setMeta('meta[property="og:description"]', c("heroDesc"));
+      setMeta('meta[name="twitter:title"]', siteTitle);
+      setMeta('meta[name="twitter:description"]', c("heroDesc"));
+      const heroImg = img("hero");
+      if (heroImg) { setMeta('meta[property="og:image"]', heroImg); setMeta('meta[name="twitter:image"]', heroImg); }
+    };
+  }, [selectedWorkId, artworkList, lang]);
 
   /* mobile nav menu: close on outside click or on scroll */
   const navRef = useRef<HTMLElement>(null);

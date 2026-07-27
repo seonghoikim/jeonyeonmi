@@ -1,11 +1,12 @@
 import { useEffect } from "react";
-import type { Artwork, CurrentExhibition, ExhibitionEntry, Lang } from "./data";
+import { artworkSlug, type Artwork, type CurrentExhibition, type ExhibitionEntry, type Lang } from "./data";
 
 type Input = {
   lang: Lang;
   artistName: string;
   artistNameEn: string;
   artworkList: Artwork[];
+  imageUrls: Record<string, string>;
   currentExList: CurrentExhibition[];
   exhibitionList: ExhibitionEntry[];
 };
@@ -20,16 +21,22 @@ function normalizeDate(d: string): string {
 // Adds VisualArtwork + ExhibitionEvent entries (reusing data already entered in edit mode —
 // no extra writing required) alongside the static Person JSON-LD in index.html, so search
 // engines get a structured picture of individual works and exhibitions, not just the artist bio.
-export function useStructuredData({ lang, artistName, artistNameEn, artworkList, currentExList, exhibitionList }: Input) {
+export function useStructuredData({ lang, artistName, artistNameEn, artworkList, imageUrls, currentExList, exhibitionList }: Input) {
   useEffect(() => {
     const creator = { "@type": "Person", name: artistName, alternateName: artistNameEn };
+    const site = lang === "en" ? "https://jeonyeonmi.com/en" : "https://jeonyeonmi.com";
 
+    // Uploaded artwork images live in the imageUrls map (keyed "artwork-<id>"), not on
+    // w.image — that field is never actually written to, so filtering on it here used
+    // to silently drop every real artwork from the structured data.
     const artworks = artworkList
-      .filter((w) => w.image && w.image.startsWith("http"))
-      .map((w) => ({
+      .map((w) => ({ w, image: imageUrls[`artwork-${w.id}`] }))
+      .filter((e): e is { w: Artwork; image: string } => !!e.image)
+      .map(({ w, image }) => ({
         "@type": "VisualArtwork",
         name: lang === "ko" ? w.title : w.titleEn,
-        image: w.image,
+        image,
+        url: `${site}/works/${artworkSlug(w)}`,
         dateCreated: w.year || undefined,
         artMedium: lang === "ko" ? w.medium : w.mediumEn,
         artform: lang === "ko" ? w.category : w.categoryEn,
@@ -65,5 +72,5 @@ export function useStructuredData({ lang, artistName, artistNameEn, artworkList,
       document.head.appendChild(script);
     }
     script.textContent = JSON.stringify({ "@context": "https://schema.org", "@graph": graph });
-  }, [lang, artistName, artistNameEn, artworkList, currentExList, exhibitionList]);
+  }, [lang, artistName, artistNameEn, artworkList, imageUrls, currentExList, exhibitionList]);
 }

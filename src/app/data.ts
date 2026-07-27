@@ -35,6 +35,24 @@ export const hSize = (ko: string, en: string, lang: Lang) => (lang === "ko" ? ko
 export const getYoutubeId = (url: string) =>
   url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s?]+)/)?.[1] ?? null;
 
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+// Text is cosmetic — the trailing id is what actually resolves the work, so an edited
+// title never breaks a link already shared/bookmarked to it.
+export const artworkSlug = (w: Pick<Artwork, "id" | "title" | "titleEn">): string => {
+  const base = slugify(w.titleEn || w.title);
+  return base ? `${base}-${w.id}` : String(w.id);
+};
+export const artworkIdFromSlug = (slug: string): number | null => {
+  const m = slug.match(/(\d+)$/);
+  return m ? Number(m[1]) : null;
+};
+
 /* ─── types ─────────────────────────────────────────── */
 export type Lang = "ko" | "en";
 export type ContentKey = keyof typeof initContent;
