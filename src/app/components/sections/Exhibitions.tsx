@@ -3,7 +3,15 @@ import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, moveInFiltered, hSize, type ExhibitionEntry, type ActivityPhoto } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
 
-type ExFilter = "전체" | "전시" | "수상" | "아트페어";
+type ExFilter = "전체" | "개인전" | "단체전" | "아트페어" | "공모전";
+
+const TAG_ORDER = ["개인전", "단체전", "아트페어", "공모전"] as const;
+const TAG_STYLE: Record<(typeof TAG_ORDER)[number], string> = {
+  개인전: "border-accent text-accent",
+  단체전: "border-purple-500/60 text-purple-400",
+  아트페어: "border-blue-500/60 text-blue-400",
+  공모전: "border-green-600/60 text-green-500",
+};
 
 type ExhibitionsProps = {
   exhibitionList: ExhibitionEntry[];
@@ -35,7 +43,7 @@ export function Exhibitions({
             <h2 className={`font-light text-foreground ${hSize("text-3xl sm:text-4xl", "text-4xl sm:text-5xl", lang)}`} style={SERIF}><C field="s04heading" /></h2>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {([["전체", u.exAll], ["전시", u.exExhibition], ["아트페어", u.exFair], ["수상", u.exAward]] as const).map(([f, label]) => (
+            {([["전체", u.exAll], ["개인전", u.exSolo], ["단체전", u.exGroup], ["아트페어", u.exFair], ["공모전", u.exCompetition]] as const).map(([f, label]) => (
               <button key={f} onClick={() => changeExFilter(f as ExFilter)} className={`text-xs tracking-wider px-3 sm:px-4 py-2 border transition-all ${exFilter === f ? "border-accent text-accent" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>{label}</button>
             ))}
             {editMode && <button onClick={addExhibition} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.exAdd}</span></button>}
@@ -85,7 +93,9 @@ export function Exhibitions({
                         </div>
                       )}
                       <input value={ex.year} onChange={(e) => updateEx(ex.id, "year", e.target.value)} className="w-16 shrink-0 bg-transparent border-b border-dashed border-accent/60 text-xs text-accent outline-none" style={MONO} placeholder="연도" />
-                      <button onClick={() => updateEx(ex.id, "tag", ex.tag === "전시" ? "아트페어" : ex.tag === "아트페어" ? "수상" : "전시")} className={`text-xs px-1.5 py-0.5 border transition-colors shrink-0 ${ex.tag === "수상" ? "border-yellow-600/60 text-yellow-500" : ex.tag === "아트페어" ? "border-blue-500/60 text-blue-400" : "border-accent text-accent"}`} style={MONO}>{ex.tag === "전시" ? u.exExhibition : ex.tag === "아트페어" ? u.exFair : u.exAward} ⇄</button>
+                      <button onClick={() => { const next = TAG_ORDER[(TAG_ORDER.indexOf(ex.tag) + 1) % TAG_ORDER.length]; updateEx(ex.id, "tag", next); }} className={`text-xs px-1.5 py-0.5 border transition-colors shrink-0 ${TAG_STYLE[ex.tag]}`} style={MONO}>
+                        {ex.tag === "개인전" ? u.exSolo : ex.tag === "단체전" ? u.exGroup : ex.tag === "아트페어" ? u.exFair : u.exCompetition} ⇄
+                      </button>
                       <div className="flex items-center gap-1 ml-auto shrink-0">
                         <button onClick={() => setEditingExId(null)} className="p-1 text-accent transition-colors"><Check size={13} /></button>
                         <button onClick={() => deleteEx(ex.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
@@ -98,6 +108,7 @@ export function Exhibitions({
                       <input value={ex.location} onChange={(e) => updateEx(ex.id, "location", e.target.value)} className="w-20 shrink-0 bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" placeholder="지역" />
                     </div>
                     <input value={ex.venueEn ?? ""} onChange={(e) => updateEx(ex.id, "venueEn", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" placeholder="Venue EN" />
+                    <input value={ex.award ?? ""} onChange={(e) => updateEx(ex.id, "award", e.target.value || undefined)} className="w-full bg-transparent border-b border-dashed border-yellow-600/60 text-xs text-yellow-500 outline-none" placeholder={u.exAwardPh} />
                     <div className="flex items-center gap-1">
                       <Link2 size={10} className="text-muted-foreground shrink-0" />
                       <select value={ex.activityId ?? ""} onChange={(e) => updateEx(ex.id, "activityId", e.target.value ? Number(e.target.value) : undefined)} className="bg-transparent text-xs text-muted-foreground outline-none flex-1 cursor-pointer" style={MONO}>
@@ -134,12 +145,13 @@ export function Exhibitions({
                     <div className={editMode ? "col-span-4 lg:col-span-4" : "col-span-5 lg:col-span-4"}>
                       <span className="text-xs text-accent block mb-0.5" style={MONO}>{ex.year}</span>
                       <p className="text-xs sm:text-sm text-foreground font-light leading-snug" style={SERIF}>{lang === "ko" ? ex.title : ex.titleEn}</p>
+                      {ex.award && <p className="text-xs text-yellow-500 mt-0.5">{ex.award}</p>}
                     </div>
                     <div className="hidden lg:block col-span-3">
                       <p className="text-xs text-muted-foreground">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {ex.location}</p>
                     </div>
                     <div className="col-span-2 lg:col-span-1 flex justify-center">
-                      <span className={`text-xs px-1.5 py-0.5 border ${ex.tag === "수상" ? "border-yellow-600/60 text-yellow-500" : ex.tag === "아트페어" ? "border-blue-500/40 text-blue-400" : "border-border text-muted-foreground"}`} style={MONO}>{ex.tag === "전시" ? u.exExhibition : ex.tag === "아트페어" ? u.exFair : u.exAward}</span>
+                      <span className={`text-xs px-1.5 py-0.5 border ${TAG_STYLE[ex.tag]}`} style={MONO}>{ex.tag === "개인전" ? u.exSolo : ex.tag === "단체전" ? u.exGroup : ex.tag === "아트페어" ? u.exFair : u.exCompetition}</span>
                     </div>
                     <div className="col-span-1 flex justify-end">{linkedPhoto && !exThumb && <button onClick={() => scrollToActivity(linkedPhoto.id)} className="text-muted-foreground hover:text-accent transition-colors p-1" title={lang === "ko" ? linkedPhoto.caption : linkedPhoto.captionEn}><Link2 size={14} /></button>}</div>
                     <div className="col-span-1 flex justify-end">{editMode && <div className="flex gap-1"><button onClick={() => setEditingExId(ex.id)} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><Edit3 size={12} /></button><button onClick={() => deleteEx(ex.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button></div>}</div>

@@ -46,16 +46,13 @@ export function useStructuredData({ lang, artistName, artistNameEn, artworkList,
       organizer: creator,
     }));
 
-    // Awards ("수상") aren't venue-based events — skip them here, only exhibitions/art fairs.
-    const history = exhibitionList
-      .filter((ex) => ex.tag !== "수상")
-      .map((ex) => ({
-        "@type": "ExhibitionEvent",
-        name: lang === "ko" ? ex.title : ex.titleEn,
-        startDate: ex.year || undefined,
-        location: { "@type": "Place", name: lang === "ko" ? ex.venue : ex.venueEn, address: ex.location },
-        organizer: creator,
-      }));
+    const history = exhibitionList.map((ex) => ({
+      "@type": "ExhibitionEvent",
+      name: lang === "ko" ? ex.title : ex.titleEn,
+      startDate: ex.year || undefined,
+      location: { "@type": "Place", name: lang === "ko" ? ex.venue : ex.venueEn, address: ex.location },
+      organizer: creator,
+    }));
 
     const graph = [...artworks, ...current, ...history];
     if (graph.length === 0) return;

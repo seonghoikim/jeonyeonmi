@@ -245,7 +245,7 @@ export default function App() {
   const [currentSlide, setCurrentSlide] = useState(() => Math.floor(Math.random() * initSlides.length));
   const [isSliding, setIsSliding] = useState(false);
   const [exhibitionList, setExhibitionList] = useState(initExhibitions);
-  const [exFilter, setExFilter] = useState<"전체" | "전시" | "수상" | "아트페어">("전체");
+  const [exFilter, setExFilter] = useState<"전체" | "개인전" | "단체전" | "아트페어" | "공모전">("전체");
   const [exVisible, setExVisible] = useState(true);
   const [editingExId, setEditingExId] = useState<number | null>(null);
   const [activityPhotos, setActivityPhotos] = useState(initActivityPhotos);
@@ -442,7 +442,7 @@ export default function App() {
     }
     setPwSubmitting(false);
   };
-  const changeExFilter = (f: "전체" | "전시" | "수상" | "아트페어") => {
+  const changeExFilter = (f: "전체" | "개인전" | "단체전" | "아트페어" | "공모전") => {
     if (f === exFilter) return;
     setExVisible(false); setTimeout(() => { setExFilter(f); setExVisible(true); }, 220);
   };
@@ -528,7 +528,7 @@ export default function App() {
   const updateSlide = (id: number, f: keyof Slide, v: string) => setSlides((p) => p.map((s) => s.id === id ? { ...s, [f]: v } : s));
   const addSlide = () => { const newId = Math.max(0, ...slides.map((s) => s.id)) + 1; setSlides((p) => [...p, { id: newId, heading: "새 작가노트", headingEn: "New Statement", body: "내용을 입력하세요.", bodyEn: "Enter content here." }]); setCurrentSlide(slides.length); };
   const deleteSlide = (id: number) => { if (!window.confirm("이 작가노트 슬라이드를 삭제하시겠습니까?")) return; setSlides((p) => p.filter((s) => s.id !== id)); setCurrentSlide((p) => Math.max(0, p - 1)); };
-  const addExhibition = () => { const newId = Math.max(0, ...exhibitionList.map((e) => e.id)) + 1; setExhibitionList((p) => [{ id: newId, year: String(new Date().getFullYear()), title: "새 항목", titleEn: "New Item", venue: "장소", venueEn: "Venue", location: "서울", tag: "전시" }, ...p]); setEditingExId(newId); };
+  const addExhibition = () => { const newId = Math.max(0, ...exhibitionList.map((e) => e.id)) + 1; setExhibitionList((p) => [{ id: newId, year: String(new Date().getFullYear()), title: "새 항목", titleEn: "New Item", venue: "장소", venueEn: "Venue", location: "서울", tag: "개인전" }, ...p]); setEditingExId(newId); };
   const updateEx = (id: number, f: keyof ExhibitionEntry, v: string | number | undefined) => setExhibitionList((p) => p.map((e) => e.id === id ? { ...e, [f]: v } : e));
   const deleteEx = (id: number) => { if (!window.confirm("이 항목을 삭제하시겠습니까?")) return; setExhibitionList((p) => p.filter((e) => e.id !== id)); if (editingExId === id) setEditingExId(null); };
   const addCurrentEx = () => { const newId = Math.max(0, ...currentExList.map((e) => e.id)) + 1; setCurrentExList((p) => [...p, { id: newId, title: "새 전시", titleEn: "New Exhibition", venue: "장소", venueEn: "Venue", location: "서울", locationEn: "Seoul", startDate: "2025.01.01", endDate: "2025.02.01", status: "예정", visible: true }]); setEditingCurrentId(newId); };

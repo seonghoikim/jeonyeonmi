@@ -42,7 +42,7 @@ export type CurrentExhibition = { id: number; title: string; titleEn: string; ve
 export type Artwork = { id: number; title: string; titleEn: string; year: string; medium: string; mediumEn: string; size: string; image: string; category: string; categoryEn: string; series: string; collected: boolean; description?: string; descriptionEn?: string; };
 export type Series = { id: number; name: string; nameEn: string; };
 export type Slide = { id: number; heading: string; headingEn: string; body: string; bodyEn: string; };
-export type ExhibitionEntry = { id: number; year: string; title: string; titleEn: string; venue: string; venueEn: string; location: string; tag: "전시" | "수상" | "아트페어"; activityId?: number; };
+export type ExhibitionEntry = { id: number; year: string; title: string; titleEn: string; venue: string; venueEn: string; location: string; tag: "개인전" | "단체전" | "아트페어" | "공모전"; award?: string; activityId?: number; };
 export type ActivityPhoto = { id: number; caption: string; captionEn: string; extraPhotoIds?: number[]; };
 export type VideoEntry = { id: number; youtubeUrl: string; title: string; titleEn: string; description: string; descriptionEn: string; };
 export type ContactItem = { id: string; type: "email" | "phone" | "instagram" | "blog"; labelKo: string; labelEn: string; display: string; href: string; visible: boolean; };
@@ -97,7 +97,7 @@ export const UI = {
     statAddSlide: "슬라이드 추가", statFirstSlide: "첫 슬라이드 추가",
     statNone: "작가노트가 없습니다", statDeleteSlide: "이 슬라이드 삭제",
     statUpload: "이미지 교체", statUploading: "업로드 중…",
-    exAdd: "항목 추가", exAll: "전체", exExhibition: "전시", exAward: "수상", exFair: "아트페어", exNoLink: "연결 없음",
+    exAdd: "항목 추가", exAll: "전체", exSolo: "개인전", exGroup: "단체전", exFair: "아트페어", exCompetition: "공모전", exNoLink: "연결 없음", exAwardPh: "수상내역 (예: 대상, 특선)",
     pressAdd: "보도자료 추가", pressUrlPh: "기사 URL 입력", pressFetch: "가져오기", pressFetching: "가져오는 중…",
     pressFetchError: "미리보기를 가져오지 못했습니다. 직접 입력해주세요.", pressNoUrl: "URL을 먼저 입력하세요",
     pressArticle: "기사", pressInterview: "인터뷰", pressBroadcast: "방송", pressScrap: "스크랩",
@@ -128,7 +128,7 @@ export const UI = {
     statAddSlide: "Add Slide", statFirstSlide: "Add First Slide",
     statNone: "No statements yet", statDeleteSlide: "Delete this slide",
     statUpload: "Replace Image", statUploading: "Uploading…",
-    exAdd: "Add Item", exAll: "All", exExhibition: "Exhibition", exAward: "Award", exFair: "ArtFair", exNoLink: "No link",
+    exAdd: "Add Item", exAll: "All", exSolo: "Solo", exGroup: "Group", exFair: "ArtFair", exCompetition: "Competition", exNoLink: "No link", exAwardPh: "Award (e.g. Grand Prize)",
     pressAdd: "Add Press Item", pressUrlPh: "Enter article URL", pressFetch: "Fetch", pressFetching: "Fetching…",
     pressFetchError: "Couldn't fetch a preview. Please fill it in manually.", pressNoUrl: "Enter a URL first",
     pressArticle: "Article", pressInterview: "Interview", pressBroadcast: "Broadcast", pressScrap: "Scrap",
@@ -173,14 +173,14 @@ export const initSlides: Slide[] = [
   { id: 3, heading: "보이지 않는 것에\n형태를 부여하며", headingEn: "Giving Form to\nthe Invisible", body: "작업을 통해 나는 보이지 않는 것을 보이게 하고, 말해지지 않은 것들에 형태를 부여하려 한다. 관람자가 작품 앞에 서는 순간, 그 침묵 속에서 자신만의 기억과 감각을 발견하기를 바란다.", bodyEn: "Through my work I seek to make the invisible visible — to give form to what remains unspoken. When a viewer stands before the work, I hope they discover their own memory within that silence." },
 ];
 export const initExhibitions: ExhibitionEntry[] = [
-  { id: 1, year: "2024", title: "형태와 기억 사이", titleEn: "Between Form and Memory", venue: "국립현대미술관", venueEn: "MMCA", location: "서울", tag: "전시", activityId: 1 },
-  { id: 2, year: "2024", title: "한국 현대회화의 지금", titleEn: "Korean Contemporary Painting Now", venue: "부산시립미술관", venueEn: "Busan Museum of Art", location: "부산", tag: "전시", activityId: 4 },
-  { id: 3, year: "2023", title: "Boundaries Unseen", titleEn: "Boundaries Unseen", venue: "Galerie Templon", venueEn: "Galerie Templon", location: "파리, 프랑스", tag: "전시" },
-  { id: 4, year: "2023", title: "제23회 이중섭미술상 수상", titleEn: "23rd Lee Jung-seob Art Award", venue: "조선일보미술관", venueEn: "Chosun Ilbo Art Museum", location: "서울", tag: "수상", activityId: 3 },
-  { id: 5, year: "2023", title: "침묵의 언어", titleEn: "Language of Silence", venue: "아트선재센터", venueEn: "Art Sonje Center", location: "서울", tag: "전시", activityId: 3 },
-  { id: 6, year: "2022", title: "Seoul Contemporary", titleEn: "Seoul Contemporary", venue: "KIAF SEOUL", venueEn: "KIAF SEOUL", location: "서울", tag: "전시" },
-  { id: 7, year: "2021", title: "감각의 지형", titleEn: "Topography of Sensation", venue: "대구미술관", venueEn: "Daegu Art Museum", location: "대구", tag: "전시" },
-  { id: 8, year: "2019", title: "제10회 송은미술대상 우수상", titleEn: "10th Songeun Art Award", venue: "송은아트스페이스", venueEn: "Songeun Art Space", location: "서울", tag: "수상" },
+  { id: 1, year: "2024", title: "형태와 기억 사이", titleEn: "Between Form and Memory", venue: "국립현대미술관", venueEn: "MMCA", location: "서울", tag: "개인전", activityId: 1 },
+  { id: 2, year: "2024", title: "한국 현대회화의 지금", titleEn: "Korean Contemporary Painting Now", venue: "부산시립미술관", venueEn: "Busan Museum of Art", location: "부산", tag: "단체전", activityId: 4 },
+  { id: 3, year: "2023", title: "Boundaries Unseen", titleEn: "Boundaries Unseen", venue: "Galerie Templon", venueEn: "Galerie Templon", location: "파리, 프랑스", tag: "개인전" },
+  { id: 4, year: "2023", title: "이중섭미술상 수상작가전", titleEn: "Lee Jung-seob Art Award Exhibition", venue: "조선일보미술관", venueEn: "Chosun Ilbo Art Museum", location: "서울", tag: "개인전", award: "제23회 이중섭미술상", activityId: 3 },
+  { id: 5, year: "2023", title: "침묵의 언어", titleEn: "Language of Silence", venue: "아트선재센터", venueEn: "Art Sonje Center", location: "서울", tag: "개인전", activityId: 3 },
+  { id: 6, year: "2022", title: "Seoul Contemporary", titleEn: "Seoul Contemporary", venue: "KIAF SEOUL", venueEn: "KIAF SEOUL", location: "서울", tag: "아트페어" },
+  { id: 7, year: "2021", title: "감각의 지형", titleEn: "Topography of Sensation", venue: "대구미술관", venueEn: "Daegu Art Museum", location: "대구", tag: "단체전" },
+  { id: 8, year: "2019", title: "송은미술대상 수상작가전", titleEn: "Songeun Art Award Exhibition", venue: "송은아트스페이스", venueEn: "Songeun Art Space", location: "서울", tag: "단체전", award: "제10회 송은미술대상 우수상" },
 ];
 export const initActivityPhotos: ActivityPhoto[] = [
   { id: 1, caption: "2024 개인전 설치 작업", captionEn: "2024 Solo Exhibition Installation" },
