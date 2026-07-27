@@ -234,10 +234,10 @@ export function CurrentExhibitions({
                           </div>
                         ) : (
                           <>
-                            <div className="flex items-center gap-1.5">
-                              <p className="text-sm font-light text-foreground/80 leading-snug" style={SERIF}>{lang === "ko" ? ex.title : ex.titleEn}</p>
-                              <span className={`shrink-0 text-xs px-1.5 py-0.5 border ${EX_TAG_STYLE[ex.tag]}`} style={MONO}>{ex.tag === "개인전" ? u.exSolo : ex.tag === "단체전" ? u.exGroup : ex.tag === "아트페어" ? u.exFair : u.exCompetition}</span>
-                            </div>
+                            <p className="text-sm font-light text-foreground/80 leading-snug" style={SERIF}>
+                              {lang === "ko" ? ex.title : ex.titleEn}{" "}
+                              <span className={`inline-block align-middle text-xs px-1.5 py-0.5 border ${EX_TAG_STYLE[ex.tag]}`} style={MONO}>{ex.tag === "개인전" ? u.exSolo : ex.tag === "단체전" ? u.exGroup : ex.tag === "아트페어" ? u.exFair : u.exCompetition}</span>
+                            </p>
                             <p className="text-xs text-muted-foreground/50 mt-0.5">{lang === "ko" ? ex.venue : ex.venueEn} · {lang === "ko" ? ex.location : ex.locationEn}</p>
                             <p className="text-xs text-muted-foreground/30 mt-0.5" style={MONO}>{ex.startDate} — {ex.endDate}</p>
                           </>
