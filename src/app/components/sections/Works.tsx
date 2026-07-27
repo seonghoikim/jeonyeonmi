@@ -97,13 +97,13 @@ export function Works({
                       <input value={s.name} onChange={(e) => updateSeries(s.id, "name", e.target.value)} className="bg-transparent text-xs text-accent outline-none w-16 sm:w-20" style={MONO} autoFocus />
                       <span className="text-muted-foreground/40 text-xs">/</span>
                       <input value={s.nameEn} onChange={(e) => updateSeries(s.id, "nameEn", e.target.value)} className="bg-transparent text-xs text-muted-foreground outline-none w-16 sm:w-20" style={MONO} />
-                      <button onClick={() => setEditingSeriesId(null)} className="ml-1 text-accent"><Check size={11} /></button>
-                      <button onClick={() => deleteSeries(s.id)} className="text-muted-foreground hover:text-red-400"><Trash2 size={11} /></button>
+                      <button onClick={() => setEditingSeriesId(null)} aria-label={u.editDone} className="ml-1 text-accent"><Check size={11} /></button>
+                      <button onClick={() => deleteSeries(s.id)} aria-label={u.worksDelete} className="text-muted-foreground hover:text-red-400"><Trash2 size={11} /></button>
                     </div>
                   ) : (
                     <button onClick={() => setSelectedSeries(s.name)} className={`text-xs tracking-wider px-3 sm:px-4 py-2 border transition-all ${isActive ? "border-accent text-accent" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>{name}</button>
                   )}
-                  {editMode && !isEditingThis && <button onClick={() => setEditingSeriesId(s.id)} className="absolute -top-2 -right-2 bg-background border border-border text-muted-foreground hover:text-foreground p-0.5 opacity-0 group-hover/series:opacity-100 transition-opacity"><Edit3 size={9} /></button>}
+                  {editMode && !isEditingThis && <button onClick={() => setEditingSeriesId(s.id)} aria-label={u.editLabel} className="absolute -top-2 -right-2 bg-background border border-border text-muted-foreground hover:text-foreground p-0.5 opacity-0 group-hover/series:opacity-100 transition-opacity"><Edit3 size={9} /></button>}
                   {editMode && !isEditingThis && (
                     <ReorderButtons
                       className="absolute -top-2 -left-2 bg-background border border-border opacity-0 group-hover/series:opacity-100 transition-opacity"
@@ -116,7 +116,7 @@ export function Works({
                 </div>
               );
             })}
-            {editMode && <button onClick={addSeries} className="flex items-center gap-1 text-xs border border-dashed border-accent/40 text-accent/70 px-3 py-2 hover:border-accent hover:text-accent transition-colors" style={MONO}><Plus size={11} /><span className="hidden sm:inline">{u.seriesAdd}</span></button>}
+            {editMode && <button onClick={addSeries} aria-label={u.seriesAdd} className="flex items-center gap-1 text-xs border border-dashed border-accent/40 text-accent/70 px-3 py-2 hover:border-accent hover:text-accent transition-colors" style={MONO}><Plus size={11} /><span className="hidden sm:inline">{u.seriesAdd}</span></button>}
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-background">
@@ -160,7 +160,7 @@ export function Works({
                   : <img src="/work-placeholder-v2.svg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />}
                 <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-all duration-500" />
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"><ArrowUpRight size={16} className="text-foreground" /></div>
-                {editMode && <button onClick={(e) => { e.stopPropagation(); deleteWork(work.id); }} className="absolute top-3 left-3 bg-background/80 hover:bg-background text-foreground p-1.5 transition-all"><Trash2 size={13} /></button>}
+                {editMode && <button onClick={(e) => { e.stopPropagation(); deleteWork(work.id); }} aria-label={u.worksDelete} className="absolute top-3 left-3 bg-background/80 hover:bg-background text-foreground p-1.5 transition-all"><Trash2 size={13} /></button>}
                 <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
                   {work.series && (() => { const s = seriesList.find((s) => s.name === work.series); const label = lang === "ko" ? work.series : (s?.nameEn ?? work.series); return <span className="text-xs px-2 py-0.5 bg-background/70 text-muted-foreground" style={MONO}>{label}</span>; })()}
                   {work.collected && <span className="text-xs px-2 py-0.5 bg-accent/90 text-accent-foreground ml-auto" style={MONO}>{u.worksCollected}</span>}
@@ -186,7 +186,7 @@ export function Works({
       {selectedWork && (
         <div ref={modalRef} tabIndex={-1} className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-8 outline-none" onClick={() => setSelectedWorkId(null)} onTouchStart={handleModalTouchStart} onTouchEnd={handleModalTouchEnd}>
           <div className="relative max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 bg-card max-h-[95dvh] overflow-y-auto hide-sb" onClick={(e) => e.stopPropagation()}>
-            <button className="absolute top-3 right-3 z-10 bg-card/80 text-muted-foreground hover:text-foreground p-1.5 transition-colors" onClick={() => setSelectedWorkId(null)}><X size={18} /></button>
+            <button className="absolute top-3 right-3 z-10 bg-card/80 text-muted-foreground hover:text-foreground p-1.5 transition-colors" onClick={() => setSelectedWorkId(null)} aria-label={u.lbClose}><X size={18} /></button>
             {/* image panel */}
             <div className={`relative bg-background overflow-hidden flex items-center justify-center ${editMode ? "cursor-pointer" : ""}`} style={{ minHeight: "260px", maxHeight: "min(60vh, 560px)" }} onClick={() => editMode && triggerUpload(`artwork-${selectedWork.id}`, selectedWork.titleEn)}>
               {img(`artwork-${selectedWork.id}`) || selectedWork.image
@@ -287,7 +287,7 @@ export function Works({
           <div className="w-full max-w-xs bg-card border border-border" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <span className="text-xs tracking-widest text-muted-foreground" style={MONO}>{u.contactPick}</span>
-              <button onClick={() => setShowInquiry(false)} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
+              <button onClick={() => setShowInquiry(false)} aria-label={u.lbClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
             </div>
             <div className="p-1">
               {visibleContacts.map((item) => (

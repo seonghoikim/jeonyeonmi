@@ -30,7 +30,7 @@ export function Video({
             <div className="text-xs tracking-[0.25em] text-accent mb-4 uppercase" style={MONO}><C field="s06label" /></div>
             <h2 className={`font-light text-foreground ${hSize("text-3xl sm:text-4xl", "text-4xl sm:text-5xl", lang)}`} style={SERIF}><C field="s06heading" /></h2>
           </div>
-          {editMode && <button onClick={addVideo} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.videoAdd}</span></button>}
+          {editMode && <button onClick={addVideo} aria-label={u.videoAdd} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.videoAdd}</span></button>}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-background items-start">
           {videoList.map((vid, idx) => {
@@ -73,7 +73,7 @@ export function Video({
                       <button
                         onClick={() => setFullscreenVideoYtId(youtubeId)}
                         className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/90 text-white/70 hover:text-white transition-all z-10"
-                        title="전체화면">
+                        title={lang === "ko" ? "전체화면" : "Fullscreen"} aria-label={lang === "ko" ? "전체화면" : "Fullscreen"}>
                         <Maximize2 size={13} />
                       </button>
                     </>
@@ -81,14 +81,14 @@ export function Video({
                     <>
                       <img src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`} alt={vid.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100" loading="lazy" decoding="async" />
                       <div className="absolute inset-0 bg-background/20 group-hover:bg-background/10 transition-colors" />
-                      {!isEditing && <button onClick={() => setPlayingVideoId(vid.id)} className="absolute inset-0 flex items-center justify-center">
+                      {!isEditing && <button onClick={() => setPlayingVideoId(vid.id)} aria-label={lang === "ko" ? "재생" : "Play"} className="absolute inset-0 flex items-center justify-center">
                         <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-full bg-background/80 border border-foreground/20 flex items-center justify-center transition-all duration-300 group-hover:bg-background/95 group-hover:scale-110"><Play size={18} className="text-foreground ml-1" fill="currentColor" /></div>
                       </button>}
                     </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-background"><span className="text-xs text-muted-foreground" style={MONO}>{u.videoUrlPh}</span></div>
                   )}
-                  {editMode && <button onClick={() => deleteVideo(vid.id)} className="absolute top-3 right-3 bg-background/80 hover:bg-background text-foreground p-1.5 transition-all z-10"><Trash2 size={13} /></button>}
+                  {editMode && <button onClick={() => deleteVideo(vid.id)} aria-label={u.worksDelete} className="absolute top-3 right-3 bg-background/80 hover:bg-background text-foreground p-1.5 transition-all z-10"><Trash2 size={13} /></button>}
                 </div>
                 <div className="p-4 sm:p-5 flex flex-col gap-2 flex-1">
                   {isEditing ? (

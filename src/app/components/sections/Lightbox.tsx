@@ -37,16 +37,16 @@ export function Lightbox({
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-1">
           {showZoom && (<>
-            <button onClick={onZoomOut} disabled={scale <= 0.25}
+            <button onClick={onZoomOut} disabled={scale <= 0.25} aria-label={u.zoomOut}
               className="p-2 text-white/60 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
               <ZoomOut size={16} />
             </button>
             <span className="text-xs text-white/50 w-12 text-center" style={MONO}>{Math.round(scale * 100)}%</span>
-            <button onClick={onZoomIn} disabled={scale >= 8}
+            <button onClick={onZoomIn} disabled={scale >= 8} aria-label={u.zoomIn}
               className="p-2 text-white/60 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
               <ZoomIn size={16} />
             </button>
-            <button onClick={onReset} className="p-2 text-white/60 hover:text-white hover:bg-white/10 transition-colors ml-1" title={u.lbReset}>
+            <button onClick={onReset} className="p-2 text-white/60 hover:text-white hover:bg-white/10 transition-colors ml-1" title={u.lbReset} aria-label={u.lbReset}>
               <RotateCcw size={14} />
             </button>
             <span className="text-xs text-white/30 ml-3 hidden sm:block" style={MONO}>{u.lbHint}</span>

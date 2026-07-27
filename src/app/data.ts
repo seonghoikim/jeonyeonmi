@@ -137,6 +137,8 @@ export const UI = {
     pwConfirm: "확인", pwError: "비밀번호가 올바르지 않습니다", pwCancel: "취소",
     lbClose: "닫기", lbReset: "원래 크기",
     lbHint: "스크롤 = 확대/축소 · 드래그 = 이동 · 0 = 초기화 · ESC = 닫기",
+    navPrev: "이전", navNext: "다음", zoomIn: "확대", zoomOut: "축소",
+    menuOpen: "메뉴 열기", menuClose: "메뉴 닫기", langSwitch: "언어 전환",
   },
   en: {
     langLabel: "KO",
@@ -168,6 +170,8 @@ export const UI = {
     pwConfirm: "Confirm", pwError: "Incorrect password", pwCancel: "Cancel",
     lbClose: "Close", lbReset: "Reset",
     lbHint: "scroll = zoom · drag = pan · 0 = reset · esc = close",
+    navPrev: "Previous", navNext: "Next", zoomIn: "Zoom in", zoomOut: "Zoom out",
+    menuOpen: "Open menu", menuClose: "Close menu", langSwitch: "Switch language",
   },
 } as const;
 

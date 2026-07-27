@@ -842,12 +842,12 @@ export default function App() {
                 </span>
               )}
               {editMode && (
-                <button onClick={translateAll} disabled={isTranslating} title="전체 번역" className="flex items-center gap-1.5 text-xs tracking-widest border border-accent text-accent px-2.5 py-1.5 hover:bg-accent/10 transition-colors disabled:opacity-50" style={MONO}>
+                <button onClick={translateAll} disabled={isTranslating} title="전체 번역" aria-label="전체 번역" className="flex items-center gap-1.5 text-xs tracking-widest border border-accent text-accent px-2.5 py-1.5 hover:bg-accent/10 transition-colors disabled:opacity-50" style={MONO}>
                   <Languages size={13} /><span className="hidden sm:inline">{isTranslating ? "번역 중…" : "전체 번역"}</span>
                 </button>
               )}
-              <button onClick={handleLangClick} className={`text-xs tracking-widest border px-2.5 py-1.5 transition-all ${editMode ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"}`} style={MONO}>{u.langLabel}</button>
-              <button className="lg:hidden text-foreground p-1" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
+              <button onClick={handleLangClick} aria-label={u.langSwitch} className={`text-xs tracking-widest border px-2.5 py-1.5 transition-all ${editMode ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"}`} style={MONO}>{u.langLabel}</button>
+              <button className="lg:hidden text-foreground p-1" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? u.menuClose : u.menuOpen}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
             </div>
           </div>
           {menuOpen && (

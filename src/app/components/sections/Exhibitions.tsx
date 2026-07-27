@@ -38,7 +38,7 @@ export function Exhibitions({
             {([["전체", u.exAll], ["개인전", u.exSolo], ["단체전", u.exGroup], ["아트페어", u.exFair], ["공모전", u.exCompetition]] as const).map(([f, label]) => (
               <button key={f} onClick={() => changeExFilter(f as ExFilter)} className={`text-xs tracking-wider px-3 sm:px-4 py-2 border transition-all ${exFilter === f ? "border-accent text-accent" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>{label}</button>
             ))}
-            {editMode && <button onClick={addExhibition} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.exAdd}</span></button>}
+            {editMode && <button onClick={addExhibition} aria-label={u.exAdd} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.exAdd}</span></button>}
           </div>
         </div>
         <div className="transition-opacity duration-200" style={{ opacity: exVisible ? 1 : 0 }}>
@@ -89,8 +89,8 @@ export function Exhibitions({
                         {ex.tag === "개인전" ? u.exSolo : ex.tag === "단체전" ? u.exGroup : ex.tag === "아트페어" ? u.exFair : u.exCompetition} ⇄
                       </button>
                       <div className="flex items-center gap-1 ml-auto shrink-0">
-                        <button onClick={() => setEditingExId(null)} className="p-1 text-accent transition-colors"><Check size={13} /></button>
-                        <button onClick={() => deleteEx(ex.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
+                        <button onClick={() => setEditingExId(null)} aria-label={u.editDone} className="p-1 text-accent transition-colors"><Check size={13} /></button>
+                        <button onClick={() => deleteEx(ex.id)} aria-label={u.worksDelete} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
                       </div>
                     </div>
                     <input value={ex.title} onChange={(e) => updateEx(ex.id, "title", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground font-light outline-none" style={SERIF} placeholder="제목 KO" />
@@ -145,8 +145,8 @@ export function Exhibitions({
                     <div className="col-span-2 lg:col-span-1 flex justify-center">
                       <span className={`text-xs px-1.5 py-0.5 border ${EX_TAG_STYLE[ex.tag]}`} style={MONO}>{ex.tag === "개인전" ? u.exSolo : ex.tag === "단체전" ? u.exGroup : ex.tag === "아트페어" ? u.exFair : u.exCompetition}</span>
                     </div>
-                    <div className="col-span-1 flex justify-end">{linkedPhoto && !exThumb && <button onClick={() => scrollToActivity(linkedPhoto.id)} className="text-muted-foreground hover:text-accent transition-colors p-1" title={lang === "ko" ? linkedPhoto.caption : linkedPhoto.captionEn}><Link2 size={14} /></button>}</div>
-                    <div className="col-span-1 flex justify-end">{editMode && <div className="flex gap-1"><button onClick={() => setEditingExId(ex.id)} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><Edit3 size={12} /></button><button onClick={() => deleteEx(ex.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button></div>}</div>
+                    <div className="col-span-1 flex justify-end">{linkedPhoto && !exThumb && <button onClick={() => scrollToActivity(linkedPhoto.id)} className="text-muted-foreground hover:text-accent transition-colors p-1" title={lang === "ko" ? linkedPhoto.caption : linkedPhoto.captionEn} aria-label={lang === "ko" ? linkedPhoto.caption : linkedPhoto.captionEn}><Link2 size={14} /></button>}</div>
+                    <div className="col-span-1 flex justify-end">{editMode && <div className="flex gap-1"><button onClick={() => setEditingExId(ex.id)} aria-label={u.editLabel} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><Edit3 size={12} /></button><button onClick={() => deleteEx(ex.id)} aria-label={u.worksDelete} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button></div>}</div>
                   </>
                 )}
               </div>

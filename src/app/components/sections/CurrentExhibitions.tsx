@@ -37,7 +37,7 @@ export function CurrentExhibitions({
             <div className="text-xs tracking-[0.25em] text-accent mb-4 uppercase" style={MONO}><C field="s01label" /></div>
             <h2 className={`font-light text-foreground ${hSize("text-3xl sm:text-4xl", "text-4xl sm:text-5xl", lang)}`} style={SERIF}><C field="s01heading" /></h2>
           </div>
-          {editMode && <button onClick={addCurrentEx} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.currentAdd}</span></button>}
+          {editMode && <button onClick={addCurrentEx} aria-label={u.currentAdd} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.currentAdd}</span></button>}
         </div>
 
         {/* active / upcoming cards */}
@@ -140,11 +140,11 @@ export function CurrentExhibitions({
                     )}
                     {editMode && (
                       <div className="flex gap-1 ml-auto">
-                        <button onClick={() => toggleCurrentExVisible(ex.id)} className={`p-1.5 transition-colors ${ex.visible ? "text-muted-foreground hover:text-foreground" : "text-accent"}`} title={ex.visible ? "숨기기" : "보이기"}>
+                        <button onClick={() => toggleCurrentExVisible(ex.id)} className={`p-1.5 transition-colors ${ex.visible ? "text-muted-foreground hover:text-foreground" : "text-accent"}`} title={ex.visible ? u.contactHide : u.contactShow} aria-label={ex.visible ? u.contactHide : u.contactShow}>
                           {ex.visible ? <Eye size={13} /> : <EyeOff size={13} />}
                         </button>
-                        <button onClick={() => setEditingCurrentId(isEditing ? null : ex.id)} className={`p-1.5 transition-colors ${isEditing ? "text-accent" : "text-muted-foreground hover:text-foreground"}`}>{isEditing ? <Check size={13} /> : <Edit3 size={13} />}</button>
-                        <button onClick={() => deleteCurrentEx(ex.id)} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
+                        <button onClick={() => setEditingCurrentId(isEditing ? null : ex.id)} aria-label={isEditing ? u.editDone : u.editLabel} className={`p-1.5 transition-colors ${isEditing ? "text-accent" : "text-muted-foreground hover:text-foreground"}`}>{isEditing ? <Check size={13} /> : <Edit3 size={13} />}</button>
+                        <button onClick={() => deleteCurrentEx(ex.id)} aria-label={u.worksDelete} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
                       </div>
                     )}
                   </div>
@@ -245,9 +245,9 @@ export function CurrentExhibitions({
                       </div>
                       {editMode && (
                         <div className="flex gap-1 shrink-0">
-                          <button onClick={() => toggleCurrentExVisible(ex.id)} className={`p-1.5 transition-colors ${ex.visible ? "text-muted-foreground hover:text-foreground" : "text-accent"}`}>{ex.visible ? <Eye size={12} /> : <EyeOff size={12} />}</button>
-                          <button onClick={() => setEditingCurrentId(isEditing ? null : ex.id)} className={`p-1.5 transition-colors ${isEditing ? "text-accent" : "text-muted-foreground hover:text-foreground"}`}>{isEditing ? <Check size={12} /> : <Edit3 size={12} />}</button>
-                          <button onClick={() => deleteCurrentEx(ex.id)} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button>
+                          <button onClick={() => toggleCurrentExVisible(ex.id)} aria-label={ex.visible ? u.contactHide : u.contactShow} className={`p-1.5 transition-colors ${ex.visible ? "text-muted-foreground hover:text-foreground" : "text-accent"}`}>{ex.visible ? <Eye size={12} /> : <EyeOff size={12} />}</button>
+                          <button onClick={() => setEditingCurrentId(isEditing ? null : ex.id)} aria-label={isEditing ? u.editDone : u.editLabel} className={`p-1.5 transition-colors ${isEditing ? "text-accent" : "text-muted-foreground hover:text-foreground"}`}>{isEditing ? <Check size={12} /> : <Edit3 size={12} />}</button>
+                          <button onClick={() => deleteCurrentEx(ex.id)} aria-label={u.worksDelete} className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button>
                         </div>
                       )}
                     </div>

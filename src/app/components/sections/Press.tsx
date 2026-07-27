@@ -35,7 +35,7 @@ export function Press({
             <div className="text-xs tracking-[0.25em] text-accent mb-4 uppercase" style={MONO}><C field="s08label" /></div>
             <h2 className={`font-light text-foreground ${hSize("text-3xl sm:text-4xl", "text-4xl sm:text-5xl", lang)}`} style={SERIF}><C field="s08heading" /></h2>
           </div>
-          {editMode && <button onClick={addPress} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.pressAdd}</span></button>}
+          {editMode && <button onClick={addPress} aria-label={u.pressAdd} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.pressAdd}</span></button>}
         </div>
 
         {pressList.map((item, idx) => {
@@ -74,8 +74,8 @@ export function Press({
                     )}
                     <button onClick={() => updatePress(item.id, "type", nextType(item.type))} className="text-xs px-1.5 py-0.5 border border-accent text-accent shrink-0" style={MONO}>{typeLabel(item.type)} ⇄</button>
                     <div className="flex items-center gap-1 ml-auto shrink-0">
-                      <button onClick={() => setEditingPressId(null)} className="p-1 text-accent transition-colors"><Check size={13} /></button>
-                      <button onClick={() => deletePress(item.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
+                      <button onClick={() => setEditingPressId(null)} aria-label={u.editDone} className="p-1 text-accent transition-colors"><Check size={13} /></button>
+                      <button onClick={() => deletePress(item.id)} aria-label={u.worksDelete} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -112,8 +112,8 @@ export function Press({
                   <span className="text-xs px-1.5 py-0.5 border border-border text-muted-foreground shrink-0" style={MONO}>{typeLabel(item.type)}</span>
                   {editMode && (
                     <div className="flex gap-1 shrink-0">
-                      <button onClick={() => setEditingPressId(item.id)} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><Edit3 size={12} /></button>
-                      <button onClick={() => deletePress(item.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button>
+                      <button onClick={() => setEditingPressId(item.id)} aria-label={u.editLabel} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><Edit3 size={12} /></button>
+                      <button onClick={() => deletePress(item.id)} aria-label={u.worksDelete} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button>
                     </div>
                   )}
                 </>

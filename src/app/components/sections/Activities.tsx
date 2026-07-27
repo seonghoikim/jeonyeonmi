@@ -66,7 +66,7 @@ export function Activities({
               <div className="text-xs tracking-[0.25em] text-accent mb-4 uppercase" style={MONO}><C field="s05label" /></div>
               <h2 className={`font-light text-foreground ${hSize("text-3xl sm:text-4xl", "text-4xl sm:text-5xl", lang)}`} style={SERIF}><C field="s05heading" /></h2>
             </div>
-            {editMode && <button onClick={addActivityPhoto} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.activityAdd}</span></button>}
+            {editMode && <button onClick={addActivityPhoto} aria-label={u.activityAdd} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.activityAdd}</span></button>}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-background items-start">
             {activityPhotos.map((photo, idx) => {
@@ -109,7 +109,7 @@ export function Activities({
                       ? <img src={actImg} alt={photo.caption} className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${isHighlighted ? "opacity-100" : "opacity-80"}`} loading="lazy" decoding="async" />
                       : <img src="/activity-placeholder-v2.svg" alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />}
                     {editMode && <div className="absolute inset-0 flex items-center justify-center bg-background/50 hover:bg-background/65 transition-colors"><div className="flex flex-col items-center gap-2 text-foreground"><Upload size={18} /><span className="text-xs text-center px-2" style={MONO}>{u.activityManage}</span></div></div>}
-                    {editMode && <button onClick={(e) => { e.stopPropagation(); deleteActivityPhoto(photo.id); }} className="absolute top-2 right-2 bg-background/80 hover:bg-background text-foreground p-1 transition-all"><Trash2 size={12} /></button>}
+                    {editMode && <button onClick={(e) => { e.stopPropagation(); deleteActivityPhoto(photo.id); }} aria-label={u.worksDelete} className="absolute top-2 right-2 bg-background/80 hover:bg-background text-foreground p-1 transition-all"><Trash2 size={12} /></button>}
                     {extraCount > 0 && (
                       <div className="absolute bottom-1.5 right-1.5 z-10 flex items-center gap-1 bg-background/80 text-foreground text-xs px-1.5 py-0.5" style={MONO}>
                         <Images size={11} />{extraCount + 1}
@@ -138,7 +138,7 @@ export function Activities({
           <div className="relative w-full max-w-lg bg-card border border-border max-h-[90dvh] overflow-y-auto hide-sb" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border sticky top-0 bg-card z-10">
               <span className="text-xs tracking-widest text-muted-foreground" style={MONO}>{u.activityManage}</span>
-              <button onClick={() => setManagingId(null)} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
+              <button onClick={() => setManagingId(null)} aria-label={u.lbClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
             </div>
             <div className="p-4 sm:p-5 space-y-5">
               {/* cover */}
@@ -182,8 +182,8 @@ export function Activities({
                           disableUp={idx === 0}
                           disableDown={idx === ids.length - 1}
                         />
-                        <button onClick={() => setPhotoAsCover(managingPhoto.id, subId)} title={u.activitySetCover} className="absolute bottom-1 left-1 bg-background/80 hover:bg-background text-foreground p-1 transition-colors"><Star size={11} /></button>
-                        <button onClick={() => deleteExtraPhoto(managingPhoto.id, subId)} className="absolute bottom-1 right-1 bg-background/80 hover:bg-background text-foreground p-1 transition-colors"><Trash2 size={11} /></button>
+                        <button onClick={() => setPhotoAsCover(managingPhoto.id, subId)} title={u.activitySetCover} aria-label={u.activitySetCover} className="absolute bottom-1 left-1 bg-background/80 hover:bg-background text-foreground p-1 transition-colors"><Star size={11} /></button>
+                        <button onClick={() => deleteExtraPhoto(managingPhoto.id, subId)} aria-label={u.worksDelete} className="absolute bottom-1 right-1 bg-background/80 hover:bg-background text-foreground p-1 transition-colors"><Trash2 size={11} /></button>
                       </div>
                     );
                   })}
@@ -218,12 +218,12 @@ export function Activities({
               <img src={img(galleryKeys[gallery.index])!} alt="" className="object-contain" style={{ maxWidth: "92vw", maxHeight: "calc(100dvh - 100px)" }} />
             )}
             {gallery.index > 0 && (
-              <button onClick={() => goGallery(-1)} className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 sm:p-2.5 rounded-full transition-colors">
+              <button onClick={() => goGallery(-1)} aria-label={u.navPrev} className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 sm:p-2.5 rounded-full transition-colors">
                 <ChevronLeft size={20} />
               </button>
             )}
             {gallery.index < galleryKeys.length - 1 && (
-              <button onClick={() => goGallery(1)} className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 sm:p-2.5 rounded-full transition-colors">
+              <button onClick={() => goGallery(1)} aria-label={u.navNext} className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 sm:p-2.5 rounded-full transition-colors">
                 <ChevronRight size={20} />
               </button>
             )}
