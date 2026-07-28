@@ -3,6 +3,7 @@ import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, type ContactItem } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
 import { contactIcon } from "../contactIcon";
+import { trackEvent } from "../../analytics";
 
 type ContactProps = {
   contactItems: ContactItem[];
@@ -66,7 +67,7 @@ export function Contact({ contactItems, setContactItems, editingContactId, setEd
                         />
                       </div>
                     )}
-                    <a href={item.visible ? item.href : "#"} target={item.type === "email" || item.type === "phone" ? "_self" : "_blank"} rel="noopener noreferrer" className={`flex items-center gap-3 sm:gap-4 p-4 sm:p-5 flex-1 transition-all ${!item.visible || editMode ? "pointer-events-none" : ""}`}>
+                    <a href={item.visible ? item.href : "#"} target={item.type === "email" || item.type === "phone" ? "_self" : "_blank"} rel="noopener noreferrer" onClick={() => trackEvent("contact_click", { type: item.type })} className={`flex items-center gap-3 sm:gap-4 p-4 sm:p-5 flex-1 transition-all ${!item.visible || editMode ? "pointer-events-none" : ""}`}>
                       <span className="text-muted-foreground group-hover/ci:text-accent transition-colors w-4 flex items-center justify-center shrink-0">{contactIcon(item.type)}</span>
                       <div><p className="text-xs text-muted-foreground mb-0.5" style={MONO}>{lang === "ko" ? item.labelKo : item.labelEn}</p><p className={`font-light text-foreground ${hSize("text-sm", "text-base", lang)}`}>{item.display}</p></div>
                       {item.visible && !editMode && <ArrowUpRight size={14} className="text-muted-foreground group-hover/ci:text-accent transition-colors ml-auto" />}

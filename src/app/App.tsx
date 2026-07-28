@@ -7,6 +7,7 @@ import {
   type Lang, type ContentKey, type CurrentExhibition, type Artwork, type Series, type Slide, type ExhibitionEntry, type ActivityPhoto, type VideoEntry, type ContactItem, type PressEntry,
 } from "./data";
 import { useGoogleAnalytics } from "./useGoogleAnalytics";
+import { trackEvent } from "./analytics";
 import { useSeoMeta } from "./useSeoMeta";
 import { useStructuredData } from "./useStructuredData";
 import { useModalLock } from "./useModalLock";
@@ -51,7 +52,6 @@ function parseWorkIdFromPath(pathname: string): number | null {
 }
 
 export default function App() {
-  useGoogleAnalytics();
   // /en is a real, crawlable, bookmarkable/shareable URL for the English version (with its
   // own hreflang entry) — it always wins over locale/timezone guessing. Anywhere else, keep
   // guessing from the visitor's timezone as before.
@@ -63,6 +63,7 @@ export default function App() {
       return "ko";
     }
   });
+  useGoogleAnalytics(lang);
   const u = UI[lang];
   const SERIF = serifOf(lang);
   const SANS = sansOf(lang);
@@ -781,7 +782,7 @@ export default function App() {
     ["__portfolio__", u.navPortfolio],
   ];
   const handleNavClick = (id: string) => {
-    if (id === "__portfolio__") { setShowPortfolioPrint(true); setMenuOpen(false); return; }
+    if (id === "__portfolio__") { trackEvent("portfolio_download", { location: "nav" }); setShowPortfolioPrint(true); setMenuOpen(false); return; }
     scrollTo(id);
   };
 
@@ -1053,7 +1054,7 @@ export default function App() {
           setEditingContactId={setEditingContactId}
           updateContact={updateContact}
           toggleContactVisibility={toggleContactVisibility}
-          onDownloadPortfolio={() => setShowPortfolioPrint(true)}
+          onDownloadPortfolio={() => { trackEvent("portfolio_download", { location: "contact" }); setShowPortfolioPrint(true); }}
         />
 
         <Footer />
