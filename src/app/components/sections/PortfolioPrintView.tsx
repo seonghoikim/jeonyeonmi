@@ -1,0 +1,165 @@
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { X, Printer } from "lucide-react";
+import { usePortfolioContext } from "../../PortfolioContext";
+import type { Slide, Artwork, CurrentExhibition, ExhibitionEntry, PressEntry } from "../../data";
+
+type PortfolioPrintViewProps = {
+  show: boolean;
+  onClose: () => void;
+  slides: Slide[];
+  artworks: Artwork[];
+  current: CurrentExhibition[];
+  history: ExhibitionEntry[];
+  press: PressEntry[];
+};
+
+// A4 print page: @page sizing/margins live in GLOBAL_CSS's `@media print` block
+// (data.ts) since that's a CSS at-rule, not something an inline style can express.
+const PAGE_BREAK = { breakBefore: "page" as const, pageBreakBefore: "always" as const };
+const AVOID_BREAK = { breakInside: "avoid" as const, pageBreakInside: "avoid" as const };
+
+const tagLabel = (tag: ExhibitionEntry["tag"], u: ReturnType<typeof usePortfolioContext>["u"]) =>
+  tag === "개인전" ? u.exSolo : tag === "단체전" ? u.exGroup : tag === "아트페어" ? u.exFair : u.exCompetition;
+
+export function PortfolioPrintView({ show, onClose, slides, artworks, current, history, press }: PortfolioPrintViewProps) {
+  const { lang, u, c, img, contactItems } = usePortfolioContext();
+  const [portalEl] = useState(() => document.createElement("div"));
+  const contacts = contactItems.filter((item) => item.visible);
+
+  useEffect(() => {
+    if (!show) return;
+    document.body.appendChild(portalEl);
+    const timer = setTimeout(() => window.print(), 150);
+    const onAfterPrint = () => onClose();
+    window.addEventListener("afterprint", onAfterPrint);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("afterprint", onAfterPrint);
+      if (portalEl.parentNode) document.body.removeChild(portalEl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, portalEl]);
+
+  if (!show) return null;
+
+  const sectionHeading: React.CSSProperties = { fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "#000", borderBottom: "1px solid #ccc", paddingBottom: 6, marginBottom: 16 };
+
+  return createPortal(
+    <div style={{ background: "#fff", color: "#000", minHeight: "100vh" }}>
+      <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: 16, background: "#f2f2f2", position: "sticky", top: 0 }}>
+        <button onClick={() => window.print()} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, letterSpacing: "0.05em", border: "1px solid #999", background: "#fff", color: "#000", padding: "8px 14px", cursor: "pointer" }}>
+          <Printer size={13} />{u.cvPrint}
+        </button>
+        <button onClick={onClose} aria-label={u.lbClose} style={{ border: "1px solid #999", background: "#fff", color: "#000", padding: "8px 10px", cursor: "pointer" }}>
+          <X size={14} />
+        </button>
+      </div>
+
+      <div style={{ maxWidth: 720, margin: "0 auto" }}>
+        {/* ── cover ── */}
+        <div style={{ minHeight: "250mm", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 32px" }}>
+          <p style={{ fontSize: 12, letterSpacing: "0.25em", textTransform: "uppercase", color: "#666", marginBottom: 8 }}>{lang === "ko" ? "포트폴리오" : "PORTFOLIO"}</p>
+          <h1 style={{ fontSize: 40, fontWeight: 400, margin: 0 }}>{c("heroName")}</h1>
+          <p style={{ fontSize: 13, letterSpacing: "0.1em", color: "#666", marginTop: 6, textTransform: "uppercase" }}>{c("heroSub")}</p>
+          <p style={{ fontSize: 14, color: "#333", maxWidth: 420, lineHeight: 1.7, marginTop: 24 }}>{c("heroDesc")}</p>
+          <p style={{ fontSize: 10, color: "#999", marginTop: 48 }}>{u.cvGenerated}: {new Date().toISOString().slice(0, 10)}</p>
+        </div>
+
+        {/* ── artist statement ── */}
+        {slides.length > 0 && (
+          <div style={{ ...PAGE_BREAK, padding: "48px 32px" }}>
+            <h2 style={sectionHeading}>{c("s03heading")}</h2>
+            {slides.map((s) => (
+              <div key={s.id} style={{ ...AVOID_BREAK, marginBottom: 28 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 500, margin: "0 0 8px", whiteSpace: "pre-line" }}>{lang === "ko" ? s.heading : s.headingEn}</h3>
+                <p style={{ fontSize: 13, color: "#333", lineHeight: 1.8, margin: 0 }}>{lang === "ko" ? s.body : s.bodyEn}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── works ── */}
+        {artworks.length > 0 && (
+          <div style={{ ...PAGE_BREAK, padding: "48px 32px" }}>
+            <h2 style={sectionHeading}>{c("s02heading")}</h2>
+            {artworks.map((w) => {
+              const imageUrl = img(`artwork-${w.id}`);
+              return (
+                <div key={w.id} style={{ ...AVOID_BREAK, display: "flex", gap: 16, marginBottom: 20 }}>
+                  <div style={{ width: 120, height: 150, background: "#f0f0f0", flexShrink: 0, overflow: "hidden" }}>
+                    {imageUrl && <img src={imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                  </div>
+                  <div style={{ paddingTop: 4 }}>
+                    <p style={{ fontSize: 14, fontWeight: 500, margin: "0 0 4px" }}>{lang === "ko" ? w.title : w.titleEn} <span style={{ fontSize: 11, color: "#666", fontWeight: 400 }}>({w.year})</span></p>
+                    <p style={{ fontSize: 11, color: "#666", margin: 0 }}>{lang === "ko" ? w.medium : w.mediumEn} · {w.size}</p>
+                    {w.collected && <p style={{ fontSize: 11, color: "#999", margin: "4px 0 0" }}>{u.worksCollected}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── exhibitions & awards ── */}
+        {(current.length > 0 || history.length > 0) && (
+          <div style={{ ...PAGE_BREAK, padding: "48px 32px" }}>
+            <h2 style={sectionHeading}>{c("s04heading")}</h2>
+            {current.length > 0 && (
+              <section style={{ marginBottom: 28 }}>
+                <h3 style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "#666", marginBottom: 10 }}>{u.cvCurrent}</h3>
+                {current.map((ex) => (
+                  <p key={ex.id} style={{ ...AVOID_BREAK, fontSize: 13, margin: "4px 0", lineHeight: 1.5 }}>
+                    <span style={{ color: "#000" }}>{ex.startDate} — {ex.endDate}  </span>
+                    {lang === "ko" ? ex.title : ex.titleEn}
+                    <span style={{ color: "#000" }}> — {lang === "ko" ? ex.venue : ex.venueEn}, {lang === "ko" ? ex.location : ex.locationEn}</span>
+                  </p>
+                ))}
+              </section>
+            )}
+            {history.length > 0 && (
+              <section>
+                <h3 style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "#666", marginBottom: 10 }}>{u.cvHistory}</h3>
+                {history.map((ex) => (
+                  <p key={ex.id} style={{ ...AVOID_BREAK, fontSize: 13, margin: "4px 0", lineHeight: 1.5 }}>
+                    <span style={{ color: "#000" }}>{ex.year}  </span>
+                    {lang === "ko" ? ex.title : ex.titleEn}
+                    <span style={{ color: "#000" }}> — {lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)}, {ex.location}  [{tagLabel(ex.tag, u)}]</span>
+                    {ex.award && <span style={{ color: "#000" }}> — {ex.award}</span>}
+                  </p>
+                ))}
+              </section>
+            )}
+          </div>
+        )}
+
+        {/* ── press ── */}
+        {press.length > 0 && (
+          <div style={{ ...PAGE_BREAK, padding: "48px 32px" }}>
+            <h2 style={sectionHeading}>{c("s08heading")}</h2>
+            {press.map((p) => (
+              <p key={p.id} style={{ ...AVOID_BREAK, fontSize: 13, margin: "6px 0", lineHeight: 1.5 }}>
+                <span style={{ color: "#666" }}>{p.date}  </span>
+                {lang === "ko" ? p.outlet : (p.outletEn || p.outlet)}
+                {" — "}{lang === "ko" ? p.title : p.titleEn}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* ── contact ── */}
+        {contacts.length > 0 && (
+          <div style={{ padding: "48px 32px 64px" }}>
+            <h2 style={sectionHeading}>{u.cvContact}</h2>
+            {contacts.map((item) => (
+              <p key={item.id} style={{ ...AVOID_BREAK, fontSize: 13, margin: "4px 0" }}>
+                <span style={{ color: "#000" }}>{lang === "ko" ? item.labelKo : item.labelEn}: </span>{item.display}
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>,
+    portalEl
+  );
+}

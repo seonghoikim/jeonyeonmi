@@ -26,7 +26,7 @@ const Contact = lazy(() => import("./components/sections/Contact").then((m) => (
 const Footer = lazy(() => import("./components/sections/Footer").then((m) => ({ default: m.Footer })));
 const Lightbox = lazy(() => import("./components/sections/Lightbox").then((m) => ({ default: m.Lightbox })));
 const PasswordModal = lazy(() => import("./components/sections/PasswordModal").then((m) => ({ default: m.PasswordModal })));
-const CvPrintView = lazy(() => import("./components/sections/CvPrintView").then((m) => ({ default: m.CvPrintView })));
+const PortfolioPrintView = lazy(() => import("./components/sections/PortfolioPrintView").then((m) => ({ default: m.PortfolioPrintView })));
 
 // Module-scope (not defined inside App's render) so its identity is stable across
 // re-renders. It used to be a closure defined inline in App() and handed out via
@@ -274,7 +274,7 @@ export default function App() {
   const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
   const [fullscreenVideoYtId, setFullscreenVideoYtId] = useState<string | null>(null);
   const videoOverlayRef = useModalLock<HTMLDivElement>(!!fullscreenVideoYtId, () => setFullscreenVideoYtId(null));
-  const [showCvPrint, setShowCvPrint] = useState(false);
+  const [showPortfolioPrint, setShowPortfolioPrint] = useState(false);
   const [contactItems, setContactItems] = useState(initContacts);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const [pressList, setPressList] = useState(initPress);
@@ -920,7 +920,22 @@ export default function App() {
           setHeroCaptionEn={setHeroCaptionEn}
           editingCaption={editingCaption}
           setEditingCaption={setEditingCaption}
+          onDownloadPortfolio={() => setShowPortfolioPrint(true)}
         />
+
+        {showPortfolioPrint && (
+          <Suspense fallback={null}>
+          <PortfolioPrintView
+            show={showPortfolioPrint}
+            onClose={() => setShowPortfolioPrint(false)}
+            slides={slides}
+            artworks={artworkList}
+            current={currentExList.filter((ex) => ex.status !== "지난전시" && ex.visible)}
+            history={exhibitionList}
+            press={pressList}
+          />
+          </Suspense>
+        )}
 
         <CurrentExhibitions
           currentExList={currentExList}
@@ -982,23 +997,7 @@ export default function App() {
           addExhibition={addExhibition}
           updateEx={updateEx}
           deleteEx={deleteEx}
-          onDownloadCv={() => setShowCvPrint(true)}
         />
-
-        {showCvPrint && (
-          <Suspense fallback={null}>
-          <CvPrintView
-            show={showCvPrint}
-            onClose={() => setShowCvPrint(false)}
-            lang={lang}
-            u={u}
-            name={c("heroName")}
-            contacts={contactItems.filter((item) => item.visible)}
-            current={currentExList.filter((ex) => ex.status !== "지난전시" && ex.visible)}
-            history={exhibitionList}
-          />
-          </Suspense>
-        )}
 
         <Press
           pressList={pressList}
