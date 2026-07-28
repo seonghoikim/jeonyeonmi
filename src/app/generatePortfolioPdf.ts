@@ -18,6 +18,11 @@ const MARGIN_RIGHT = 22;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
 const PT_TO_MM = 0.352778;
 const IMAGE_BOX_HEIGHT = 55;
+// Works are drawn as a single bordered card enclosing both the photo and its caption
+// (title/meta/tag) rather than a border around the photo alone — a border that stops
+// at the photo but leaves the caption floating below it read as disconnected from what
+// it was captioning. CARD_PADDING is the inner margin on every side of that card.
+const CARD_PADDING = 4;
 // Gap before a section that intentionally flows onto the same page as the one before
 // it (Statement after the cover, Press after Exhibitions, Contact after Press) rather
 // than forcing a page break — enough breathing room to read as a new section without
@@ -177,63 +182,68 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
     startNewPage();
     sectionHeading(data.worksHeading);
     for (let i = 0; i < data.works.length; i += 2) {
+      const row = [data.works[i], data.works[i + 1]];
+      const rowImgs = [images[i], images[i + 1]];
+      // Both cards in a row share one height (the taller of the two captions) so the
+      // row's borders line up — computed up front since ensureSpace/the card border
+      // need the final height before any drawing starts.
+      const captionHeight = (w: PortfolioPdfWork) => 4.6 + 4.2 + (w.tag ? 4.2 : 0);
+      const cardHeight = CARD_PADDING + IMAGE_BOX_HEIGHT + CARD_PADDING +
+        Math.max(...row.filter((w): w is PortfolioPdfWork => !!w).map(captionHeight)) + CARD_PADDING;
       // Must capture rowStartY *after* ensureSpace() — if this row triggers a page
       // break, ensureSpace resets y to the new page's top margin, and capturing the
       // stale pre-break y here would corrupt every row's height math for the rest
       // of the section (each subsequent row would think it started far down the
       // previous page, forcing it to break too — which is why only the very first
       // page of works ever rendered more than one row).
-      ensureSpace(IMAGE_BOX_HEIGHT); // row always begins together; text below is short enough not to need its own check
+      ensureSpace(cardHeight);
       const rowStartY = y;
-      const row = [data.works[i], data.works[i + 1]];
-      const rowImgs = [images[i], images[i + 1]];
-      let maxRowHeight = 0;
       row.forEach((w, col) => {
         if (!w) return;
         const x = MARGIN_LEFT + col * (COL_WIDTH + COL_GAP);
         const imgInfo = rowImgs[col];
-        // White fill so the box reads as one continuous card with the artwork photo's
-        // own white background. The image is inset by IMAGE_PADDING so it can never
-        // reach all the way to the box edge — otherwise a photo whose aspect ratio
-        // happens to match the box exactly would cover the border line completely on
-        // those sides ("먹히는" — the border getting swallowed by the photo). The
-        // border itself is stroked *after* the image (not combined into one "FD" fill+
-        // stroke call) so it's always painted on top, with a slightly thicker line for
-        // visibility.
+        // White fill so the card reads as one continuous surface with the artwork
+        // photo's own white background, bordering the photo *and* its caption together
+        // instead of leaving the caption floating disconnected below a bordered photo.
         pdf.setFillColor(255, 255, 255);
-        pdf.rect(x, y, COL_WIDTH, IMAGE_BOX_HEIGHT, "F");
+        pdf.rect(x, rowStartY, COL_WIDTH, cardHeight, "F");
         if (imgInfo) {
-          const IMAGE_PADDING = 3;
-          const availW = COL_WIDTH - IMAGE_PADDING * 2;
-          const availH = IMAGE_BOX_HEIGHT - IMAGE_PADDING * 2;
+          // Inset horizontally so a photo whose aspect ratio happens to match the image
+          // area's width can never reach the card's left/right border and cover it
+          // ("먹히는" — the border getting swallowed by the photo). No vertical inset is
+          // needed: the image area's own top/bottom edges aren't drawn borders — the
+          // card padding already keeps them clear of the top border and the caption gap.
+          const availW = COL_WIDTH - CARD_PADDING * 2;
+          const availH = IMAGE_BOX_HEIGHT;
           const scale = Math.min(availW / imgInfo.width, availH / imgInfo.height);
           const w2 = imgInfo.width * scale;
           const h2 = imgInfo.height * scale;
-          pdf.addImage(imgInfo.dataUrl, x + (COL_WIDTH - w2) / 2, y + (IMAGE_BOX_HEIGHT - h2) / 2, w2, h2);
+          pdf.addImage(imgInfo.dataUrl, x + (COL_WIDTH - w2) / 2, rowStartY + CARD_PADDING + (availH - h2) / 2, w2, h2);
         }
-        pdf.setDrawColor(210, 210, 210);
-        pdf.setLineWidth(0.4);
-        pdf.rect(x, y, COL_WIDTH, IMAGE_BOX_HEIGHT, "S");
-        pdf.setLineWidth(0.2); // restore the default so later section-heading underlines aren't affected
-        let textY = y + IMAGE_BOX_HEIGHT + 5;
+        let textY = rowStartY + CARD_PADDING + IMAGE_BOX_HEIGHT + CARD_PADDING + 3.2;
+        const textX = x + CARD_PADDING;
         pdf.setFont(FONT_FAMILY, "bold");
         pdf.setFontSize(10.5);
         pdf.setTextColor(0, 0, 0);
-        pdf.text(`${w.title} (${w.year})`, x, textY);
+        pdf.text(`${w.title} (${w.year})`, textX, textY);
         textY += 4.6;
         pdf.setFont(FONT_FAMILY, "normal");
         pdf.setFontSize(9);
         pdf.setTextColor(110, 110, 110);
-        pdf.text(w.meta, x, textY);
+        pdf.text(w.meta, textX, textY);
         textY += 4.2;
         if (w.tag) {
           pdf.setTextColor(150, 150, 150);
-          pdf.text(w.tag, x, textY);
-          textY += 4.2;
+          pdf.text(w.tag, textX, textY);
         }
-        maxRowHeight = Math.max(maxRowHeight, textY - rowStartY);
+        // Border stroked *last*, on top of the fill/image/text, with a slightly
+        // thicker line, so it's always the topmost thing drawn around the card.
+        pdf.setDrawColor(210, 210, 210);
+        pdf.setLineWidth(0.4);
+        pdf.rect(x, rowStartY, COL_WIDTH, cardHeight, "S");
+        pdf.setLineWidth(0.2); // restore the default so later section-heading underlines aren't affected
       });
-      y = rowStartY + Math.max(maxRowHeight, IMAGE_BOX_HEIGHT) + 8;
+      y = rowStartY + cardHeight + 8;
     }
   }
 
