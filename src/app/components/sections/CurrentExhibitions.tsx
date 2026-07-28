@@ -1,4 +1,4 @@
-import { Plus, Upload, GripVertical, Eye, EyeOff, Edit3, Check, Trash2, ArrowUpRight, ChevronRight } from "lucide-react";
+import { Plus, Upload, GripVertical, Eye, EyeOff, Edit3, Check, Trash2, ArrowUpRight, ChevronRight, MapPin } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, moveInFiltered, hSize, EX_TAG_ORDER, EX_TAG_STYLE, type CurrentExhibition } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
@@ -123,6 +123,8 @@ export function CurrentExhibitions({
                         <input value={ex.endDate} onChange={(e) => updateCurrentEx(ex.id, "endDate", e.target.value)} className="flex-1 bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" style={MONO} placeholder="종료일" />
                       </div>
                       <input value={ex.url ?? ""} onChange={(e) => updateCurrentEx(ex.id, "url", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" style={MONO} placeholder="링크 URL (선택)" />
+                      <input value={ex.openingDate ?? ""} onChange={(e) => updateCurrentEx(ex.id, "openingDate", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" style={MONO} placeholder={u.openingPh} />
+                      <input value={ex.mapUrl ?? ""} onChange={(e) => updateCurrentEx(ex.id, "mapUrl", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" style={MONO} placeholder={u.mapPh} />
                     </div>
                   ) : (
                     <div className="flex-1 flex flex-col justify-center">
@@ -131,12 +133,18 @@ export function CurrentExhibitions({
                       <p className="text-xs text-muted-foreground mb-1">{lang === "ko" ? ex.venue : ex.venueEn}</p>
                       <p className="text-xs text-muted-foreground mb-1">{lang === "ko" ? ex.location : ex.locationEn}</p>
                       <p className="text-xs text-muted-foreground" style={MONO}>{ex.startDate} — {ex.endDate}</p>
+                      {ex.openingDate && <p className="text-xs text-accent mt-1" style={MONO}>{u.openingLabel} {ex.openingDate}</p>}
                     </div>
                   )}
                   <div className="flex items-center justify-between mt-auto pt-2 border-t border-border">
-                    {!isEditing && (ex.url
-                      ? <a href={ex.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}>{u.viewMore} <ArrowUpRight size={11} /></a>
-                      : <button onClick={() => scrollTo("works")} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}>{u.viewMore} <ArrowUpRight size={11} /></button>
+                    {!isEditing && (
+                      <div className="flex items-center gap-3">
+                        {ex.url
+                          ? <a href={ex.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}>{u.viewMore} <ArrowUpRight size={11} /></a>
+                          : <button onClick={() => scrollTo("works")} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}>{u.viewMore} <ArrowUpRight size={11} /></button>
+                        }
+                        {ex.mapUrl && <a href={ex.mapUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}><MapPin size={11} />{u.mapLabel}</a>}
+                      </div>
                     )}
                     {editMode && (
                       <div className="flex gap-1 ml-auto">

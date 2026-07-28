@@ -64,7 +64,7 @@ export const EX_TAG_STYLE: Record<ExTag, string> = {
   아트페어: "border-blue-500/60 text-blue-400",
   공모전: "border-green-600/60 text-green-500",
 };
-export type CurrentExhibition = { id: number; title: string; titleEn: string; venue: string; venueEn: string; location: string; locationEn: string; startDate: string; endDate: string; status: "진행중" | "예정" | "지난전시"; tag: ExTag; visible: boolean; url?: string; };
+export type CurrentExhibition = { id: number; title: string; titleEn: string; venue: string; venueEn: string; location: string; locationEn: string; startDate: string; endDate: string; status: "진행중" | "예정" | "지난전시"; tag: ExTag; visible: boolean; url?: string; openingDate?: string; mapUrl?: string; };
 export type Artwork = { id: number; title: string; titleEn: string; year: string; medium: string; mediumEn: string; size: string; image: string; category: string; categoryEn: string; series: string; collected: boolean; description?: string; descriptionEn?: string; };
 export type Series = { id: number; name: string; nameEn: string; };
 export type Slide = { id: number; heading: string; headingEn: string; body: string; bodyEn: string; };
@@ -140,6 +140,7 @@ export const UI = {
     navPrev: "이전", navNext: "다음", zoomIn: "확대", zoomOut: "축소",
     menuOpen: "메뉴 열기", menuClose: "메뉴 닫기", langSwitch: "언어 전환",
     thumbBackfill: "썸네일 생성", thumbRegenerate: "썸네일 재생성", thumbBackfilling: "생성 중",
+    openingLabel: "오프닝", openingPh: "오프닝 리셉션 일시 (선택, 예: 2026.11.15 18:00)", mapLabel: "지도", mapPh: "지도 링크 (선택)",
   },
   en: {
     langLabel: "KO",
@@ -174,6 +175,7 @@ export const UI = {
     navPrev: "Previous", navNext: "Next", zoomIn: "Zoom in", zoomOut: "Zoom out",
     menuOpen: "Open menu", menuClose: "Close menu", langSwitch: "Switch language",
     thumbBackfill: "Generate thumbnails", thumbRegenerate: "Regenerate thumbnails", thumbBackfilling: "Generating",
+    openingLabel: "Opening", openingPh: "Opening reception date/time (optional, e.g. 2026.11.15 18:00)", mapLabel: "Map", mapPh: "Map link (optional)",
   },
 } as const;
 
