@@ -125,13 +125,14 @@ export const UI = {
     statUpload: "이미지 교체", statUploading: "업로드 중…",
     exAdd: "항목 추가", exAll: "전체", exSolo: "개인전", exGroup: "단체전", exFair: "아트페어", exCompetition: "공모전", exNoLink: "연결 없음", exAwardPh: "수상내역 (예: 대상, 특선)",
     pressAdd: "보도자료 추가", pressUrlPh: "기사 URL 입력", pressFetch: "가져오기", pressFetching: "가져오는 중…",
-    pressFeaturedIn: "이런 곳에 소개됐어요",
     pressFetchError: "미리보기를 가져오지 못했습니다. 직접 입력해주세요.", pressNoUrl: "URL을 먼저 입력하세요",
     pressArticle: "기사", pressInterview: "인터뷰", pressBroadcast: "방송", pressScrap: "스크랩",
     activityAdd: "사진 추가", activityUpload: "사진 업로드", activityUploading: "업로드 중…", activityViewOriginal: "원본 보기",
     activityManage: "사진 관리", activityAddMore: "사진 추가 (여러 장 선택 가능)", activityCover: "대표", activitySetCover: "대표로 지정",
     videoAdd: "영상 추가", videoUrlPh: "YouTube URL 입력",
     contactHide: "숨기기", contactShow: "보이기", contactPick: "연락 방법 선택",
+    cvDownload: "CV 다운로드", cvPrint: "인쇄 / PDF 저장", cvTitle: "이력서",
+    cvContact: "연락처", cvCurrent: "현재 · 예정 전시", cvHistory: "전시 및 수상 이력", cvGenerated: "생성일",
     inquiryName: "이름", inquiryNamePh: "이름을 입력해주세요",
     inquiryEmail: "이메일", inquiryEmailPh: "답장받을 이메일 주소",
     inquiryArtwork: "관심 작품", inquiryMessage: "메시지", inquiryMessagePh: "작품에 대해 궁금한 점을 남겨주세요",
@@ -167,13 +168,14 @@ export const UI = {
     statUpload: "Replace Image", statUploading: "Uploading…",
     exAdd: "Add Item", exAll: "All", exSolo: "Solo", exGroup: "Group", exFair: "ArtFair", exCompetition: "Competition", exNoLink: "No link", exAwardPh: "Award (e.g. Grand Prize)",
     pressAdd: "Add Press Item", pressUrlPh: "Enter article URL", pressFetch: "Fetch", pressFetching: "Fetching…",
-    pressFeaturedIn: "As Featured In",
     pressFetchError: "Couldn't fetch a preview. Please fill it in manually.", pressNoUrl: "Enter a URL first",
     pressArticle: "Article", pressInterview: "Interview", pressBroadcast: "Broadcast", pressScrap: "Scrap",
     activityAdd: "Add Photo", activityUpload: "Upload Photo", activityUploading: "Uploading…", activityViewOriginal: "View Original",
     activityManage: "Manage Photos", activityAddMore: "Add Photos (multiple)", activityCover: "Cover", activitySetCover: "Set as Cover",
     videoAdd: "Add Video", videoUrlPh: "Enter YouTube URL",
     contactHide: "Hide", contactShow: "Show", contactPick: "Choose a contact method",
+    cvDownload: "Download CV", cvPrint: "Print / Save PDF", cvTitle: "Curriculum Vitae",
+    cvContact: "Contact", cvCurrent: "Current & Upcoming Exhibitions", cvHistory: "Exhibition & Award History", cvGenerated: "Generated on",
     inquiryName: "Name", inquiryNamePh: "Your name",
     inquiryEmail: "Email", inquiryEmailPh: "Email address for a reply",
     inquiryArtwork: "Artwork of interest", inquiryMessage: "Message", inquiryMessagePh: "Let us know what you'd like to ask about this piece",
@@ -290,6 +292,12 @@ export const GLOBAL_CSS = `
     var(--secondary) 75%);
   background-size: 200% 100%;
   animation: img-shimmer 1.8s ease-in-out infinite;
+}
+/* CV print view: rendered in a portal outside .app-root so it's the only thing
+   left on the page when the browser's print/"save as PDF" runs. */
+@media print {
+  .app-root { display: none !important; }
+  .no-print { display: none !important; }
 }
 `;
 
