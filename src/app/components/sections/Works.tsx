@@ -33,6 +33,8 @@ export function Works({
   addArtwork, deleteWork, updateWork, addSeries, updateSeries, deleteSeries,
 }: WorksProps) {
   const { lang, u, MONO, SERIF, editMode, img, imgThumb, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, triggerUpload, openLightbox, contactItems, C } = usePortfolioContext();
+  // The artist's own clicks while editing shouldn't count as visitor engagement.
+  const track = (name: string, params?: Record<string, string | number | boolean>) => { if (!editMode) trackEvent(name, params); };
   const selectedWork = artworkList.find((w) => w.id === selectedWorkId) ?? null;
   const modalRef = useModalLock<HTMLDivElement>(!!selectedWork, () => setSelectedWorkId(null));
   const [showInquiry, setShowInquiry] = useState(false);
@@ -81,7 +83,7 @@ export function Works({
       "",
       inquiryMessage,
     ].join("\n");
-    if (!editMode) trackEvent("work_inquiry_submit", { work: workTitle });
+    track("work_inquiry_submit", { work: workTitle });
     window.location.href = `mailto:${artistEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     closeInquiry();
   };
@@ -199,7 +201,7 @@ export function Works({
               }}
               onDragEnd={() => { dragSrc.current = null; setDragOverKey(null); }}
               style={{ outline: dragOverKey === "work-" + idx ? "2px solid var(--accent)" : "none" }}
-              onClick={() => { if (!editMode) trackEvent("work_view", { title: lang === "ko" ? work.title : work.titleEn, series: work.series || "(none)" }); setSelectedWorkId(work.id); }}>
+              onClick={() => { track("work_view", { title: lang === "ko" ? work.title : work.titleEn, series: work.series || "(none)" }); setSelectedWorkId(work.id); }}>
               <div className="relative aspect-[4/5] overflow-hidden bg-background shrink-0">
                 {editMode && <div className="absolute top-1.5 left-1.5 z-10 text-accent/60 cursor-grab"><GripVertical size={14} /></div>}
                 {editMode && (
@@ -339,7 +341,7 @@ export function Works({
                 )}
               </div>
               <div className="mt-6 sm:mt-8 flex items-center justify-between flex-wrap gap-3">
-                <button onClick={() => { if (!editMode) trackEvent("inquiry_open", { work: lang === "ko" ? selectedWork.title : selectedWork.titleEn }); setShowInquiry(true); }} className="text-xs tracking-widest text-muted-foreground hover:text-accent border border-border px-4 py-2 hover:border-accent transition-all" style={MONO}>{u.worksInquiry}</button>
+                <button onClick={() => { track("inquiry_open", { work: lang === "ko" ? selectedWork.title : selectedWork.titleEn }); setShowInquiry(true); }} className="text-xs tracking-widest text-muted-foreground hover:text-accent border border-border px-4 py-2 hover:border-accent transition-all" style={MONO}>{u.worksInquiry}</button>
                 {editMode && <button onClick={() => deleteWork(selectedWork.id)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-red-400 transition-colors" style={MONO}><Trash2 size={12} />{u.worksDelete}</button>}
               </div>
             </div>
@@ -352,7 +354,7 @@ export function Works({
         <div ref={inquiryRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="inquiry-modal-title" className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 outline-none" onClick={closeInquiry}>
           <div className="w-full max-w-sm bg-card border border-border" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <span id="inquiry-modal-title" className="text-xs tracking-widest text-muted-foreground" style={MONO}>{u.worksInquiry.replace(" →", "")}</span>
+              <span id="inquiry-modal-title" className="text-xs tracking-widest text-muted-foreground" style={MONO}>{u.inquiryTitle}</span>
               <button onClick={closeInquiry} aria-label={u.lbClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
             </div>
             {!showOtherContacts ? (

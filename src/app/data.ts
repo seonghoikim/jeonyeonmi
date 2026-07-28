@@ -64,6 +64,10 @@ export const EX_TAG_STYLE: Record<ExTag, string> = {
   아트페어: "border-blue-500/60 text-blue-400",
   공모전: "border-green-600/60 text-green-500",
 };
+// Localized label for an exhibition tag — takes the current language's UI strings
+// object (u) since the labels themselves live there, not in this static data module.
+export const exTagLabel = (tag: ExTag, u: (typeof UI)[Lang]): string =>
+  ({ 개인전: u.exSolo, 단체전: u.exGroup, 아트페어: u.exFair, 공모전: u.exCompetition } as Record<ExTag, string>)[tag];
 export type CurrentExhibition = { id: number; title: string; titleEn: string; venue: string; venueEn: string; location: string; locationEn: string; startDate: string; endDate: string; status: "진행중" | "예정" | "지난전시"; tag: ExTag; visible: boolean; url?: string; openingDate?: string; mapUrl?: string; };
 export type Artwork = { id: number; title: string; titleEn: string; year: string; medium: string; mediumEn: string; size: string; image: string; category: string; categoryEn: string; series: string; collected: boolean; description?: string; descriptionEn?: string; };
 export type Series = { id: number; name: string; nameEn: string; };
@@ -134,6 +138,7 @@ export const UI = {
     contactHide: "숨기기", contactShow: "보이기", contactPick: "연락 방법 선택",
     portfolioDownload: "포트폴리오 다운로드", portfolioPreparing: "포트폴리오를 준비하고 있습니다…", portfolioError: "포트폴리오를 만들지 못했습니다. 다시 시도해주세요.", portfolioReady: "포트폴리오가 준비됐습니다. 아래 버튼을 눌러 저장하세요.",
     cvContact: "연락처", cvCurrent: "현재 · 예정 전시", cvHistory: "전시 및 수상 이력", cvGenerated: "생성일",
+    inquiryTitle: "작품 문의",
     inquiryName: "이름", inquiryNamePh: "이름을 입력해주세요",
     inquiryEmail: "이메일", inquiryEmailPh: "답장받을 이메일 주소",
     inquiryArtwork: "관심 작품", inquiryMessage: "메시지", inquiryMessagePh: "작품에 대해 궁금한 점을 남겨주세요",
@@ -178,6 +183,7 @@ export const UI = {
     contactHide: "Hide", contactShow: "Show", contactPick: "Choose a contact method",
     portfolioDownload: "Download Portfolio", portfolioPreparing: "Preparing your portfolio…", portfolioError: "Couldn't generate the portfolio. Please try again.", portfolioReady: "Your portfolio is ready. Tap the button below to save it.",
     cvContact: "Contact", cvCurrent: "Current & Upcoming Exhibitions", cvHistory: "Exhibition & Award History", cvGenerated: "Generated on",
+    inquiryTitle: "Artwork Inquiry",
     inquiryName: "Name", inquiryNamePh: "Your name",
     inquiryEmail: "Email", inquiryEmailPh: "Email address for a reply",
     inquiryArtwork: "Artwork of interest", inquiryMessage: "Message", inquiryMessagePh: "Let us know what you'd like to ask about this piece",
