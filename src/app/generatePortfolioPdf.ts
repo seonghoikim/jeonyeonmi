@@ -59,19 +59,21 @@ async function fetchFontBase64(url: string): Promise<string> {
 async function fetchImageAsDataUrl(url: string): Promise<{ dataUrl: string; width: number; height: number } | null> {
   try {
     const blob = await fetch(url).then((r) => r.blob());
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(blob);
-    });
-    const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      img.onerror = () => reject(new Error("image decode failed"));
-      img.src = dataUrl;
-    });
-    return { dataUrl, width, height };
+    const bitmap = await createImageBitmap(blob);
+    // Draw onto an opaque white canvas before exporting as JPEG — WebP thumbnails can
+    // carry an alpha channel around the artwork, and flattening straight to JPEG (no
+    // alpha support) would otherwise default any transparent pixels to black instead
+    // of white, which is what was showing up as a black backdrop around the works.
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close();
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+    return { dataUrl, width: canvas.width, height: canvas.height };
   } catch (err) {
     console.error("[Portfolio PDF] failed to load image:", url, err);
     return null;
@@ -170,8 +172,14 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
     startNewPage();
     sectionHeading(data.worksHeading);
     for (let i = 0; i < data.works.length; i += 2) {
-      const rowStartY = y;
+      // Must capture rowStartY *after* ensureSpace() — if this row triggers a page
+      // break, ensureSpace resets y to the new page's top margin, and capturing the
+      // stale pre-break y here would corrupt every row's height math for the rest
+      // of the section (each subsequent row would think it started far down the
+      // previous page, forcing it to break too — which is why only the very first
+      // page of works ever rendered more than one row).
       ensureSpace(IMAGE_BOX_HEIGHT); // row always begins together; text below is short enough not to need its own check
+      const rowStartY = y;
       const row = [data.works[i], data.works[i + 1]];
       const rowImgs = [images[i], images[i + 1]];
       let maxRowHeight = 0;
@@ -227,9 +235,11 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
     }
   }
 
-  // ── press ──
+  // ── press (flows straight on from Exhibitions, like Statement does from the
+  //    cover, instead of forcing a fresh page — otherwise a short exhibitions
+  //    list leaves a large dead gap before press starts on its own page) ──
   if (data.press.length > 0) {
-    startNewPage();
+    y += 8;
     sectionHeading(data.pressHeading);
     for (const p of data.press) {
       paragraph(p.text, { size: 10, leading: 1.6, color: p.url ? [20, 70, 160] : [0, 0, 0], link: p.url ?? undefined });
