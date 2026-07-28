@@ -18,6 +18,11 @@ const MARGIN_RIGHT = 22;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
 const PT_TO_MM = 0.352778;
 const IMAGE_BOX_HEIGHT = 55;
+// Gap before a section that intentionally flows onto the same page as the one before
+// it (Statement after the cover, Press after Exhibitions, Contact after Press) rather
+// than forcing a page break — enough breathing room to read as a new section without
+// jumping to a fresh page.
+const FLOW_SECTION_GAP = 20;
 const COL_GAP = 8;
 const COL_WIDTH = (CONTENT_WIDTH - COL_GAP) / 2;
 
@@ -151,7 +156,7 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
   // ── artist statement (flows straight on from the cover — no forced page —
   //    so the cover doesn't sit alone as a nearly-empty page) ──
   if (data.slides.length > 0 || data.workNotes.length > 0) {
-    y += 8;
+    y += FLOW_SECTION_GAP;
     sectionHeading(data.statementHeading);
     for (const s of data.slides) {
       paragraph(s.heading, { size: 13, bold: true });
@@ -187,9 +192,12 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
         if (!w) return;
         const x = MARGIN_LEFT + col * (COL_WIDTH + COL_GAP);
         const imgInfo = rowImgs[col];
-        pdf.setDrawColor(230, 230, 230);
-        pdf.setFillColor(245, 245, 245);
-        pdf.rect(x, y, COL_WIDTH, IMAGE_BOX_HEIGHT, "F");
+        // White fill (not gray) so the box reads as one continuous card with the
+        // artwork photo's own white background instead of showing a visible seam;
+        // "FD" (fill + stroke) keeps a thin border so the card boundary is still legible.
+        pdf.setDrawColor(225, 225, 225);
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(x, y, COL_WIDTH, IMAGE_BOX_HEIGHT, "FD");
         if (imgInfo) {
           const scale = Math.min(COL_WIDTH / imgInfo.width, IMAGE_BOX_HEIGHT / imgInfo.height);
           const w2 = imgInfo.width * scale;
@@ -239,7 +247,7 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
   //    cover, instead of forcing a fresh page — otherwise a short exhibitions
   //    list leaves a large dead gap before press starts on its own page) ──
   if (data.press.length > 0) {
-    y += 8;
+    y += FLOW_SECTION_GAP;
     sectionHeading(data.pressHeading);
     for (const p of data.press) {
       paragraph(p.text, { size: 10, leading: 1.6, color: p.url ? [20, 70, 160] : [0, 0, 0], link: p.url ?? undefined });
@@ -248,7 +256,7 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
 
   // ── contact ──
   if (data.contacts.length > 0) {
-    y += 8;
+    y += FLOW_SECTION_GAP;
     sectionHeading(data.contactHeading);
     for (const c of data.contacts) paragraph(`${c.label}: ${c.value}`, { size: 10, leading: 1.6 });
   }
