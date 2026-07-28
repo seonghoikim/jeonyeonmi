@@ -24,8 +24,15 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
   const { lang, u, c, img, contactItems } = usePortfolioContext();
   const [portalEl] = useState(() => document.createElement("div"));
   const [status, setStatus] = useState<"working" | "ready" | "error">("working");
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const pdfRef = useRef<jsPDF | null>(null);
   const filenameRef = useRef("portfolio.pdf");
+
+  // Revoke the previous object URL whenever a new one replaces it (or on unmount) —
+  // it's only ever read by the anchor below, so nothing else needs it kept alive.
+  useEffect(() => {
+    return () => { if (downloadUrl) URL.revokeObjectURL(downloadUrl); };
+  }, [downloadUrl]);
 
   // window.print() silently does nothing in several in-app WebViews (Instagram,
   // KakaoTalk, etc.), and a plain a[download] click can *also* go nowhere findable
@@ -41,6 +48,7 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
     let cancelled = false;
     setStatus("working");
     pdfRef.current = null;
+    setDownloadUrl(null);
 
     const run = async () => {
       const contacts = contactItems.filter((item) => item.visible);
@@ -94,6 +102,7 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
         if (cancelled) return;
         pdfRef.current = pdf;
         filenameRef.current = `${c("heroName")}_${lang === "ko" ? "포트폴리오" : "portfolio"}.pdf`;
+        setDownloadUrl(String(pdf.output("bloburl")));
         setStatus("ready");
       } catch (err) {
         console.error("[Portfolio PDF] generation failed:", err);
@@ -109,36 +118,31 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, portalEl]);
 
-  // Runs only from a direct button click, never automatically — so it's always a
-  // fresh, genuine user gesture. Prefers the File System Access API (a real native
-  // "save as" dialog letting the user pick the exact location) where the browser
-  // supports it; everywhere else, navigates the current tab to the PDF blob so the
-  // browser's own PDF viewer takes over — its Share/Save affordance is far more
-  // discoverable on mobile than a silent background download nobody can find
-  // afterward. This deliberately navigates in place rather than opening a new tab:
-  // Safari has a long-standing bug where a blob: URL opened via window.open()/
-  // target="_blank" fails silently in the new tab — the same URL loads fine when
-  // it's the current document's own navigation instead.
-  const handleSave = async () => {
+  // The button is a *real* anchor with a real href/download, not a synthetic click
+  // fired from JS — iOS Safari/Chrome (same WebKit engine) were silently swallowing
+  // both window.open(blobUrl, "_blank") and window.location.href = blobUrl, so a
+  // native, user-initiated link navigation is the most compatible fallback left:
+  // the browser handles it exactly like tapping any other download link. Desktop
+  // Chrome/Edge gets a nicer upgrade — the File System Access API's real "save as"
+  // dialog — by intercepting the click and preventing the plain navigation.
+  const handleAnchorClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     const pdf = pdfRef.current;
-    if (!pdf) return;
     const showSaveFilePicker = (window as unknown as { showSaveFilePicker?: (opts: unknown) => Promise<{ createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }> }> }).showSaveFilePicker;
-    if (showSaveFilePicker) {
-      try {
-        const handle = await showSaveFilePicker({
-          suggestedName: filenameRef.current,
-          types: [{ description: "PDF", accept: { "application/pdf": [".pdf"] } }],
-        });
-        const writable = await handle.createWritable();
-        await writable.write(pdf.output("blob"));
-        await writable.close();
-        return;
-      } catch (err) {
-        if ((err as { name?: string })?.name === "AbortError") return; // user cancelled the picker themselves
-        console.error("[Portfolio PDF] showSaveFilePicker failed, falling back to opening the PDF directly:", err);
-      }
+    if (!pdf || !showSaveFilePicker) return; // let the plain anchor navigation happen
+    e.preventDefault();
+    try {
+      const handle = await showSaveFilePicker({
+        suggestedName: filenameRef.current,
+        types: [{ description: "PDF", accept: { "application/pdf": [".pdf"] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(pdf.output("blob"));
+      await writable.close();
+    } catch (err) {
+      if ((err as { name?: string })?.name === "AbortError") return; // user cancelled the picker themselves
+      console.error("[Portfolio PDF] showSaveFilePicker failed, falling back to the plain link:", err);
+      if (downloadUrl) window.location.href = downloadUrl;
     }
-    window.location.href = String(pdf.output("bloburl"));
   };
 
   if (!show) return null;
@@ -155,16 +159,18 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
             </button>
           </>
         )}
-        {status === "ready" && (
+        {status === "ready" && downloadUrl && (
           <>
             <p style={{ fontSize: 13, margin: "0 0 16px" }}>{u.portfolioReady}</p>
             <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-              <button
-                onClick={handleSave}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, border: "1px solid #333", background: "#000", color: "#fff", padding: "8px 14px", cursor: "pointer" }}
+              <a
+                href={downloadUrl}
+                download={filenameRef.current}
+                onClick={handleAnchorClick}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, border: "1px solid #333", background: "#000", color: "#fff", padding: "8px 14px", cursor: "pointer", textDecoration: "none" }}
               >
                 <Download size={13} />{u.portfolioDownload}
-              </button>
+              </a>
               <button onClick={onClose} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, border: "1px solid #999", background: "#fff", color: "#000", padding: "8px 14px", cursor: "pointer" }}>
                 <X size={13} />{u.lbClose}
               </button>
