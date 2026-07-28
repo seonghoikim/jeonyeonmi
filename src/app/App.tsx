@@ -554,12 +554,18 @@ export default function App() {
   // would keep pulling those down at full size until re-uploaded. This backfills a
   // "<key>-thumb" for every such key, one at a time, from inside an authenticated
   // edit-mode session (this sandbox has no network path to Supabase to run it itself).
+  // If every image already has a thumb (e.g. after a prior run, or after bumping
+  // THUMB_MAX_PX/quality in supabase.ts), the same button regenerates all of them —
+  // upload uses upsert, so overwriting an existing thumb is safe.
   const [backfillProgress, setBackfillProgress] = useState<{ done: number; total: number } | null>(null);
-  const keysNeedingThumbs = Object.keys(imageUrls).filter((k) => !k.endsWith("-thumb") && !imageUrls[`${k}-thumb`]);
+  const allImageKeys = Object.keys(imageUrls).filter((k) => !k.endsWith("-thumb"));
+  const keysNeedingThumbs = allImageKeys.filter((k) => !imageUrls[`${k}-thumb`]);
+  const isRegenerate = keysNeedingThumbs.length === 0;
+  const backfillTargets = isRegenerate ? allImageKeys : keysNeedingThumbs;
   const runThumbnailBackfill = async () => {
     const token = editTokenRef.current;
     if (!token) { alert("편집 권한이 필요합니다. 다시 로그인해주세요."); return; }
-    const keys = keysNeedingThumbs;
+    const keys = backfillTargets;
     setBackfillProgress({ done: 0, total: keys.length });
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
@@ -863,9 +869,9 @@ export default function App() {
         {editMode && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-accent text-accent-foreground px-5 py-2.5 shadow-lg" style={MONO}>
             <Edit3 size={13} /><span className="text-xs tracking-widest hidden sm:inline">{u.editBanner}</span>
-            {(keysNeedingThumbs.length > 0 || backfillProgress) && (
+            {(backfillTargets.length > 0 || backfillProgress) && (
               <button onClick={runThumbnailBackfill} disabled={!!backfillProgress} className="ml-2 sm:ml-4 flex items-center gap-1.5 text-xs bg-accent-foreground/15 hover:bg-accent-foreground/25 px-3 py-1 transition-colors disabled:opacity-60" style={MONO}>
-                {backfillProgress ? `${u.thumbBackfilling} ${backfillProgress.done}/${backfillProgress.total}` : `${u.thumbBackfill} (${keysNeedingThumbs.length})`}
+                {backfillProgress ? `${u.thumbBackfilling} ${backfillProgress.done}/${backfillProgress.total}` : `${isRegenerate ? u.thumbRegenerate : u.thumbBackfill} (${backfillTargets.length})`}
               </button>
             )}
             <button onClick={exitEditMode} className="ml-2 sm:ml-4 flex items-center gap-1.5 text-xs bg-accent-foreground/15 hover:bg-accent-foreground/25 px-3 py-1 transition-colors"><Check size={11} />{u.editDone}</button>

@@ -46,6 +46,13 @@ export async function toWebP(file: File, quality = 0.85, maxPx = 2000): Promise<
 // so the two don't collide.
 const gatewayHeaders = () => ({ Authorization: `Bearer ${publicAnonKey}` });
 
+// Grid cards (Works/CurrentExhibitions) render up to ~450px wide — on a 2x/retina
+// display that needs a ~900px source to look crisp, so the thumbnail can't be much
+// smaller than that without looking soft, even though it's still under 1/4 the
+// pixel area of the 2000px full image.
+const THUMB_MAX_PX = 900;
+const THUMB_QUALITY = 0.8;
+
 /* ── Editor login: password is verified server-side, never shipped to the client ── */
 export async function loginEditor(password: string): Promise<string> {
   const res = await fetch(`${FUNCTIONS_URL}/auth/login`, {
@@ -101,7 +108,7 @@ export async function uploadImage(key: string, file: File, token: string, label?
   }
   // Thumbnail is derived from the already-resized full file (cheap re-encode, not
   // the original — avoids re-decoding a potentially huge source image twice).
-  const thumb = await toWebP(full, 0.75, 480);
+  const thumb = await toWebP(full, THUMB_QUALITY, THUMB_MAX_PX);
 
   const url = await uploadOne(key, full, token, label);
   const thumbUrl = await uploadOne(`${key}-thumb`, thumb, token, label);
@@ -116,7 +123,7 @@ export async function backfillThumbnail(key: string, imageUrl: string, token: st
   if (!res.ok) throw new Error(`원본 이미지를 가져오지 못했습니다 (${res.status})`);
   const blob = await res.blob();
   const file = new File([blob], "source.webp", { type: blob.type || "image/webp" });
-  const thumb = await toWebP(file, 0.75, 480);
+  const thumb = await toWebP(file, THUMB_QUALITY, THUMB_MAX_PX);
   return uploadOne(`${key}-thumb`, thumb, token, label);
 }
 

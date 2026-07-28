@@ -139,7 +139,7 @@ export const UI = {
     lbHint: "스크롤 = 확대/축소 · 드래그 = 이동 · 0 = 초기화 · ESC = 닫기",
     navPrev: "이전", navNext: "다음", zoomIn: "확대", zoomOut: "축소",
     menuOpen: "메뉴 열기", menuClose: "메뉴 닫기", langSwitch: "언어 전환",
-    thumbBackfill: "썸네일 생성", thumbBackfilling: "생성 중",
+    thumbBackfill: "썸네일 생성", thumbRegenerate: "썸네일 재생성", thumbBackfilling: "생성 중",
   },
   en: {
     langLabel: "KO",
@@ -173,7 +173,7 @@ export const UI = {
     lbHint: "scroll = zoom · drag = pan · 0 = reset · esc = close",
     navPrev: "Previous", navNext: "Next", zoomIn: "Zoom in", zoomOut: "Zoom out",
     menuOpen: "Open menu", menuClose: "Close menu", langSwitch: "Switch language",
-    thumbBackfill: "Generate thumbnails", thumbBackfilling: "Generating",
+    thumbBackfill: "Generate thumbnails", thumbRegenerate: "Regenerate thumbnails", thumbBackfilling: "Generating",
   },
 } as const;
 
