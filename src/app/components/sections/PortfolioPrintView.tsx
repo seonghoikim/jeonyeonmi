@@ -112,9 +112,13 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
   // Runs only from a direct button click, never automatically — so it's always a
   // fresh, genuine user gesture. Prefers the File System Access API (a real native
   // "save as" dialog letting the user pick the exact location) where the browser
-  // supports it; everywhere else, opens the PDF in a new tab so the browser's own
-  // PDF viewer takes over — its Share/Save affordance is far more discoverable on
-  // mobile than a silent background download nobody can find afterward.
+  // supports it; everywhere else, navigates the current tab to the PDF blob so the
+  // browser's own PDF viewer takes over — its Share/Save affordance is far more
+  // discoverable on mobile than a silent background download nobody can find
+  // afterward. This deliberately navigates in place rather than opening a new tab:
+  // Safari has a long-standing bug where a blob: URL opened via window.open()/
+  // target="_blank" fails silently in the new tab — the same URL loads fine when
+  // it's the current document's own navigation instead.
   const handleSave = async () => {
     const pdf = pdfRef.current;
     if (!pdf) return;
@@ -131,10 +135,10 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
         return;
       } catch (err) {
         if ((err as { name?: string })?.name === "AbortError") return; // user cancelled the picker themselves
-        console.error("[Portfolio PDF] showSaveFilePicker failed, falling back to a new tab:", err);
+        console.error("[Portfolio PDF] showSaveFilePicker failed, falling back to opening the PDF directly:", err);
       }
     }
-    window.open(String(pdf.output("bloburl")), "_blank");
+    window.location.href = String(pdf.output("bloburl"));
   };
 
   if (!show) return null;
