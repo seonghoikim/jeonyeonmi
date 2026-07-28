@@ -135,10 +135,10 @@ export function Activities({
 
       {/* ── PHOTO MANAGEMENT MODAL (edit mode) ── */}
       {managingPhoto && (
-        <div ref={managingModalRef} tabIndex={-1} className="fixed inset-0 z-[250] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 outline-none" onClick={() => setManagingId(null)}>
+        <div ref={managingModalRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="activity-manage-title" className="fixed inset-0 z-[250] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 outline-none" onClick={() => setManagingId(null)}>
           <div className="relative w-full max-w-lg bg-card border border-border max-h-[90dvh] overflow-y-auto hide-sb" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border sticky top-0 bg-card z-10">
-              <span className="text-xs tracking-widest text-muted-foreground" style={MONO}>{u.activityManage}</span>
+              <span id="activity-manage-title" className="text-xs tracking-widest text-muted-foreground" style={MONO}>{u.activityManage}</span>
               <button onClick={() => setManagingId(null)} aria-label={u.lbClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
             </div>
             <div className="p-4 sm:p-5 space-y-5">
@@ -205,7 +205,7 @@ export function Activities({
 
       {/* ── MULTI-PHOTO GALLERY VIEWER (view mode) ── */}
       {gallery && galleryPhoto && (
-        <div ref={galleryModalRef} tabIndex={-1} className="fixed inset-0 z-[300] bg-black/95 flex flex-col outline-none"
+        <div ref={galleryModalRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={(lang === "ko" ? galleryPhoto.caption : galleryPhoto.captionEn) || u.navActivities} className="fixed inset-0 z-[300] bg-black/95 flex flex-col outline-none"
           onTouchStart={handleGalleryTouchStart} onTouchEnd={handleGalleryTouchEnd}
           onKeyDown={(e) => { if (e.key === "ArrowLeft") goGallery(-1); if (e.key === "ArrowRight") goGallery(1); }}>
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 shrink-0">

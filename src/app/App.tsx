@@ -793,7 +793,7 @@ export default function App() {
 
         {/* ── Video fullscreen overlay ── */}
         {fullscreenVideoYtId && (
-          <div ref={videoOverlayRef} tabIndex={-1} className="fixed inset-0 z-[350] bg-black flex flex-col outline-none">
+          <div ref={videoOverlayRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={u.navVideo} className="fixed inset-0 z-[350] bg-black flex flex-col outline-none">
             <div className="flex items-center justify-end px-4 py-2.5 shrink-0">
               <button onClick={() => setFullscreenVideoYtId(null)}
                 className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white px-3 py-1.5 border border-white/20 hover:border-white/40 transition-colors" style={MONO}>

@@ -207,7 +207,7 @@ export function Works({
 
       {/* ── ARTWORK MODAL ── */}
       {selectedWork && (
-        <div ref={modalRef} tabIndex={-1} className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-8 outline-none" onClick={() => setSelectedWorkId(null)} onTouchStart={handleModalTouchStart} onTouchEnd={handleModalTouchEnd}>
+        <div ref={modalRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={lang === "ko" ? selectedWork.title : selectedWork.titleEn} className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-8 outline-none" onClick={() => setSelectedWorkId(null)} onTouchStart={handleModalTouchStart} onTouchEnd={handleModalTouchEnd}>
           <div className="relative max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 bg-card max-h-[95dvh] overflow-y-auto hide-sb" onClick={(e) => e.stopPropagation()}>
             <button className="absolute top-3 right-3 z-10 bg-card/80 text-muted-foreground hover:text-foreground p-1.5 transition-colors" onClick={() => setSelectedWorkId(null)} aria-label={u.lbClose}><X size={18} /></button>
             {/* image panel */}
@@ -306,10 +306,10 @@ export function Works({
 
       {/* ── INQUIRY FORM ── */}
       {showInquiry && (
-        <div ref={inquiryRef} tabIndex={-1} className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 outline-none" onClick={closeInquiry}>
+        <div ref={inquiryRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="inquiry-modal-title" className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 outline-none" onClick={closeInquiry}>
           <div className="w-full max-w-sm bg-card border border-border" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <span className="text-xs tracking-widest text-muted-foreground" style={MONO}>{u.worksInquiry.replace(" →", "")}</span>
+              <span id="inquiry-modal-title" className="text-xs tracking-widest text-muted-foreground" style={MONO}>{u.worksInquiry.replace(" →", "")}</span>
               <button onClick={closeInquiry} aria-label={u.lbClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
             </div>
             {!showOtherContacts ? (

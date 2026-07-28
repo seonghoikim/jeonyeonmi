@@ -32,7 +32,7 @@ export function Lightbox({
   const { u, MONO } = usePortfolioContext();
   const modalRef = useModalLock<HTMLDivElement>(true, onClose);
   return (
-    <div ref={modalRef} tabIndex={-1} className="fixed inset-0 z-[300] bg-black/97 flex flex-col outline-none">
+    <div ref={modalRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={u.lbTitle} className="fixed inset-0 z-[300] bg-black/97 flex flex-col outline-none">
       {/* toolbar */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-1">

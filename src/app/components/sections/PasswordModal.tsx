@@ -18,9 +18,9 @@ export function PasswordModal({ pwInput, setPwInput, pwErrorMsg, setPwErrorMsg, 
   const { u, MONO, SERIF } = usePortfolioContext();
   const containerRef = useModalLock<HTMLDivElement>(true, onCancel);
   return (
-    <div ref={containerRef} tabIndex={-1} className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-sm flex items-center justify-center p-6 outline-none">
+    <div ref={containerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="pw-modal-title" className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-sm flex items-center justify-center p-6 outline-none">
       <div className="bg-card border border-border p-8 w-full max-w-sm">
-        <div className="flex items-center gap-2 mb-6"><Lock size={14} className="text-accent" /><h3 className="text-sm font-light" style={SERIF}>{u.pwTitle}</h3></div>
+        <div className="flex items-center gap-2 mb-6"><Lock size={14} className="text-accent" /><h3 id="pw-modal-title" className="text-sm font-light" style={SERIF}>{u.pwTitle}</h3></div>
         <div className="relative mb-3">
           <input type={showPw ? "text" : "password"} value={pwInput} onChange={(e) => { setPwInput(e.target.value); setPwErrorMsg(""); }} onKeyDown={(e) => e.key === "Enter" && onSubmit()} placeholder={u.pwPlaceholder} className="w-full bg-secondary border border-border text-foreground text-sm px-4 py-3 pr-10 outline-none focus:border-accent transition-colors" style={MONO} autoFocus />
           <button onClick={() => setShowPw(!showPw)} aria-label={showPw ? u.contactHide : u.contactShow} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">{showPw ? <EyeOff size={14} /> : <Eye size={14} />}</button>
