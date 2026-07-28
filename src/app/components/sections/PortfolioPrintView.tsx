@@ -107,7 +107,7 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
               url: p.url || null,
             })),
             contactHeading: u.cvContact,
-            contacts: contacts.map((item) => ({ label: lang === "ko" ? item.labelKo : item.labelEn, value: item.display })),
+            contacts: contacts.map((item) => ({ label: lang === "ko" ? item.labelKo : item.labelEn, value: item.display, url: item.href || null })),
           }
           ),
           timeout,

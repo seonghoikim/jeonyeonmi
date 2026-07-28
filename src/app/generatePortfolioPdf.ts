@@ -23,6 +23,9 @@ const IMAGE_BOX_HEIGHT = 50;
 // at the photo but leaves the caption floating below it read as disconnected from what
 // it was captioning. CARD_PADDING is the inner margin on every side of that card.
 const CARD_PADDING = 3;
+// Extra indent for the caption text on top of CARD_PADDING, so it reads as its own
+// block instead of sitting flush against the photo's left edge / the card border.
+const CAPTION_INDENT = 3;
 // Vertical gap between rows of work cards.
 const ROW_GAP = 6;
 // Gap before a section that intentionally flows onto the same page as the one before
@@ -54,7 +57,7 @@ export type PortfolioPdfData = {
   pressHeading: string;
   press: PortfolioPdfPress[];
   contactHeading: string;
-  contacts: { label: string; value: string }[];
+  contacts: { label: string; value: string; url: string | null }[];
 };
 
 async function fetchFontBase64(url: string): Promise<string> {
@@ -223,7 +226,10 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
           pdf.addImage(imgInfo.dataUrl, x + (COL_WIDTH - w2) / 2, rowStartY + CARD_PADDING + (availH - h2) / 2, w2, h2);
         }
         let textY = rowStartY + CARD_PADDING + IMAGE_BOX_HEIGHT + CARD_PADDING + 3.2;
-        const textX = x + CARD_PADDING;
+        // Indented a bit further than the card padding alone (which lines the caption up
+        // flush with the photo's own left edge) so the caption reads as its own block
+        // rather than sitting flush-left against the card border.
+        const textX = x + CARD_PADDING + CAPTION_INDENT;
         pdf.setFont(FONT_FAMILY, "bold");
         pdf.setFontSize(10.5);
         pdf.setTextColor(0, 0, 0);
@@ -281,7 +287,9 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
   if (data.contacts.length > 0) {
     y += FLOW_SECTION_GAP;
     sectionHeading(data.contactHeading);
-    for (const c of data.contacts) paragraph(`${c.label}: ${c.value}`, { size: 10, leading: 1.6 });
+    for (const c of data.contacts) {
+      paragraph(`${c.label}: ${c.value}`, { size: 10, leading: 1.6, color: c.url ? [20, 70, 160] : [0, 0, 0], link: c.url ?? undefined });
+    }
   }
 
   return pdf;
