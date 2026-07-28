@@ -1,105 +1,242 @@
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
-// 1 CSS px = 1/96 inch, converted to mm — keeps every measurement (container width,
-// block positions, page height) in one consistent unit system without relying on
-// jsPDF's own px-unit quirks.
-const PX_TO_MM = 25.4 / 96;
-const A4_ASPECT = 297 / 210; // page height / width
-const BASE_SCALE = 1.5;
-const MAX_CANVAS_HEIGHT_PX = 14000; // stay well under mobile browsers' canvas size limits
-const IMAGE_WAIT_TIMEOUT_MS = 10000;
+// Real, selectable/searchable text — not a rasterized screenshot of the page — so it
+// needs an embedded font that actually covers Hangul (jsPDF's built-in fonts are
+// Latin-only). The two files are the Korean-subset weights of Noto Sans KR, converted
+// from @fontsource's woff2 to raw ttf (jsPDF's addFont only accepts ttf/otf) and
+// self-hosted under public/fonts so generation never depends on a third-party font CDN.
+const FONT_REGULAR_URL = "/fonts/NotoSansKR-Regular.ttf";
+const FONT_BOLD_URL = "/fonts/NotoSansKR-Bold.ttf";
+const FONT_FAMILY = "NotoSansKR";
 
-// Rasterizing (rather than a real-text PDF) is a deliberate choice here: it's the only
-// approach that works from *any* browser context — including in-app WebViews (Instagram,
-// KakaoTalk, etc.) that silently no-op on window.print() — and it renders Korean text
-// via the browser's own fonts instead of needing a bundled CJK font for a text-based PDF
-// library. Filesystem save is a plain Blob download, which those WebViews do support.
-export async function waitForImages(container: HTMLElement): Promise<void> {
-  const imgs = Array.from(container.querySelectorAll("img"));
-  const loaders = imgs.map((el) => {
-    const image = el as HTMLImageElement;
-    if (image.complete) return Promise.resolve();
-    return new Promise<void>((resolve) => {
-      image.addEventListener("load", () => resolve(), { once: true });
-      image.addEventListener("error", () => resolve(), { once: true });
-    });
-  });
-  await Promise.race([
-    Promise.all(loaders),
-    new Promise<void>((resolve) => setTimeout(resolve, IMAGE_WAIT_TIMEOUT_MS)),
-  ]);
-}
+const PAGE_WIDTH = 210;
+const PAGE_HEIGHT = 297;
+const MARGIN_TOP = 24;
+const MARGIN_BOTTOM = 24;
+const MARGIN_LEFT = 22;
+const MARGIN_RIGHT = 22;
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
+const PT_TO_MM = 0.352778;
+const IMAGE_BOX_HEIGHT = 55;
+const COL_GAP = 8;
+const COL_WIDTH = (CONTENT_WIDTH - COL_GAP) / 2;
 
-type PdfBlock = { top: number; bottom: number; height: number; sectionId: string | null; url: string | null };
+export type PortfolioPdfWork = { title: string; year: string; meta: string; tag: string | null; imageUrl: string | null };
+export type PortfolioPdfPress = { text: string; url: string | null };
+export type PortfolioPdfData = {
+  coverLabel: string;
+  name: string;
+  subtitle: string;
+  description: string;
+  generatedLabel: string;
+  statementHeading: string;
+  slides: { heading: string; body: string }[];
+  workNotes: { heading: string; body: string }[];
+  worksHeading: string;
+  works: PortfolioPdfWork[];
+  exhibitionsHeading: string;
+  currentLabel: string;
+  current: string[];
+  historyLabel: string;
+  history: string[];
+  pressHeading: string;
+  press: PortfolioPdfPress[];
+  contactHeading: string;
+  contacts: { label: string; value: string }[];
+};
 
-// Splits the tall single capture into pages along the boundaries between
-// `[data-pdf-atom]` elements only — never through one — and forces a fresh page
-// whenever a `[data-pdf-section]` ancestor changes, mirroring what the old
-// print-media CSS (`break-inside: avoid` / `break-before: page`) did for the
-// browser's own paginator, which isn't available in this raster path.
-function paginate(blocks: PdfBlock[], pageHeightPx: number): { start: number; blocks: PdfBlock[] }[] {
-  const pages: { start: number; blocks: PdfBlock[] }[] = [];
-  let current: { start: number; blocks: PdfBlock[] } | null = null;
-  let lastSection: string | null = null;
-
-  for (const block of blocks) {
-    const enteringNewSection = block.sectionId !== null && block.sectionId !== lastSection;
-    const overflowing = !!current && block.bottom - current.start > pageHeightPx;
-    if (!current || enteringNewSection || overflowing) {
-      if (current) pages.push(current);
-      current = { start: block.top, blocks: [] };
-    }
-    current.blocks.push(block);
-    lastSection = block.sectionId ?? lastSection;
+async function fetchFontBase64(url: string): Promise<string> {
+  const buf = await fetch(url).then((r) => r.arrayBuffer());
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
-  if (current) pages.push(current);
-  return pages;
+  return btoa(binary);
 }
 
-export async function generatePortfolioPdf(container: HTMLElement, filename: string): Promise<void> {
-  await waitForImages(container);
+async function fetchImageAsDataUrl(url: string): Promise<{ dataUrl: string; width: number; height: number } | null> {
+  try {
+    const blob = await fetch(url).then((r) => r.blob());
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+    const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => reject(new Error("image decode failed"));
+      img.src = dataUrl;
+    });
+    return { dataUrl, width, height };
+  } catch (err) {
+    console.error("[Portfolio PDF] failed to load image:", url, err);
+    return null;
+  }
+}
 
-  const containerRect = container.getBoundingClientRect();
-  const containerWidthPx = containerRect.width;
-  const pageHeightPx = containerWidthPx * A4_ASPECT;
+export async function generatePortfolioPdf(data: PortfolioPdfData, filename: string): Promise<void> {
+  const [regularBase64, boldBase64] = await Promise.all([fetchFontBase64(FONT_REGULAR_URL), fetchFontBase64(FONT_BOLD_URL)]);
+  const images = await Promise.all(data.works.map((w) => (w.imageUrl ? fetchImageAsDataUrl(w.imageUrl) : Promise.resolve(null))));
 
-  const atomEls = Array.from(container.querySelectorAll<HTMLElement>("[data-pdf-atom]"));
-  const blocks: PdfBlock[] = atomEls.map((el) => {
-    const r = el.getBoundingClientRect();
-    const section = el.closest<HTMLElement>("[data-pdf-section]");
-    const link = el.matches("a[href]") ? (el as HTMLAnchorElement) : el.querySelector<HTMLAnchorElement>("a[href]");
-    return {
-      top: r.top - containerRect.top,
-      bottom: r.bottom - containerRect.top,
-      height: r.height,
-      sectionId: section?.getAttribute("data-pdf-section") ?? null,
-      url: link?.getAttribute("href") ?? null,
-    };
-  });
+  const pdf = new jsPDF({ unit: "mm", format: "a4" });
+  pdf.addFileToVFS("NotoSansKR-Regular.ttf", regularBase64);
+  pdf.addFont("NotoSansKR-Regular.ttf", FONT_FAMILY, "normal");
+  pdf.addFileToVFS("NotoSansKR-Bold.ttf", boldBase64);
+  pdf.addFont("NotoSansKR-Bold.ttf", FONT_FAMILY, "bold");
+  pdf.setFont(FONT_FAMILY, "normal");
 
-  // Cap the capture scale so very long portfolios (many works) can't produce a
-  // canvas taller than what mobile browsers reliably support.
-  const contentHeightPx = container.scrollHeight;
-  const scale = Math.max(0.75, Math.min(BASE_SCALE, MAX_CANVAS_HEIGHT_PX / contentHeightPx));
-
-  const canvas = await html2canvas(container, { scale, backgroundColor: "#ffffff", useCORS: true });
-  const imgData = canvas.toDataURL("image/jpeg", 0.92);
-  const canvasCssHeightPx = canvas.height / scale;
-
-  const pages = paginate(blocks, pageHeightPx);
-  const pageWidthMm = containerWidthPx * PX_TO_MM;
-  const pageHeightMm = pageHeightPx * PX_TO_MM;
-
-  const pdf = new jsPDF({ unit: "mm", format: [pageWidthMm, pageHeightMm] });
-  pages.forEach((page, i) => {
-    if (i > 0) pdf.addPage([pageWidthMm, pageHeightMm]);
-    pdf.addImage(imgData, "JPEG", 0, -page.start * PX_TO_MM, containerWidthPx * PX_TO_MM, canvasCssHeightPx * PX_TO_MM);
-    for (const block of page.blocks) {
-      if (!block.url) continue;
-      pdf.link(0, (block.top - page.start) * PX_TO_MM, containerWidthPx * PX_TO_MM, block.height * PX_TO_MM, { url: block.url });
+  let y = MARGIN_TOP;
+  const ensureSpace = (neededMm: number) => {
+    if (y + neededMm > PAGE_HEIGHT - MARGIN_BOTTOM) {
+      pdf.addPage();
+      y = MARGIN_TOP;
     }
-  });
+  };
+  const startNewPage = () => {
+    if (y > MARGIN_TOP) {
+      pdf.addPage();
+      y = MARGIN_TOP;
+    }
+  };
+  const wrap = (text: string, maxWidth: number): string[] =>
+    text.split("\n").flatMap((line) => (line.trim() ? (pdf.splitTextToSize(line, maxWidth) as string[]) : [""]));
+
+  const paragraph = (text: string, opts: { size: number; bold?: boolean; color?: [number, number, number]; leading?: number; x?: number; maxWidth?: number; link?: string }) => {
+    pdf.setFont(FONT_FAMILY, opts.bold ? "bold" : "normal");
+    pdf.setFontSize(opts.size);
+    const [r, g, b] = opts.color ?? [0, 0, 0];
+    pdf.setTextColor(r, g, b);
+    const x = opts.x ?? MARGIN_LEFT;
+    const maxWidth = opts.maxWidth ?? CONTENT_WIDTH;
+    const lineHeight = opts.size * (opts.leading ?? 1.6) * PT_TO_MM;
+    const lines = wrap(text, maxWidth);
+    for (const line of lines) {
+      ensureSpace(lineHeight);
+      pdf.text(line, x, y + lineHeight * 0.72);
+      if (opts.link) pdf.link(x, y, maxWidth, lineHeight, { url: opts.link });
+      y += lineHeight;
+    }
+  };
+
+  const sectionHeading = (text: string) => {
+    ensureSpace(14);
+    paragraph(text.toUpperCase(), { size: 10, bold: true, color: [90, 90, 90] });
+    pdf.setDrawColor(210, 210, 210);
+    pdf.line(MARGIN_LEFT, y + 1, MARGIN_LEFT + CONTENT_WIDTH, y + 1);
+    y += 7;
+  };
+
+  // ── cover ──
+  paragraph(data.coverLabel, { size: 10, color: [110, 110, 110] });
+  y += 2;
+  paragraph(data.name, { size: 26, bold: true });
+  y += 1;
+  paragraph(data.subtitle, { size: 10, color: [110, 110, 110] });
+  y += 5;
+  paragraph(data.description, { size: 11.5, color: [50, 50, 50], leading: 1.75, maxWidth: 130 });
+  y += 10;
+  paragraph(data.generatedLabel, { size: 8, color: [160, 160, 160] });
+
+  // ── artist statement (flows straight on from the cover — no forced page —
+  //    so the cover doesn't sit alone as a nearly-empty page) ──
+  if (data.slides.length > 0 || data.workNotes.length > 0) {
+    y += 8;
+    sectionHeading(data.statementHeading);
+    for (const s of data.slides) {
+      paragraph(s.heading, { size: 13, bold: true });
+      y += 1;
+      paragraph(s.body, { size: 10.5, color: [40, 40, 40], leading: 1.7 });
+      y += 7;
+    }
+    for (const n of data.workNotes) {
+      paragraph(n.heading, { size: 13, bold: true });
+      y += 1;
+      paragraph(n.body, { size: 10.5, color: [40, 40, 40], leading: 1.7 });
+      y += 7;
+    }
+  }
+
+  // ── works ──
+  if (data.works.length > 0) {
+    startNewPage();
+    sectionHeading(data.worksHeading);
+    for (let i = 0; i < data.works.length; i += 2) {
+      const rowStartY = y;
+      ensureSpace(IMAGE_BOX_HEIGHT); // row always begins together; text below is short enough not to need its own check
+      const row = [data.works[i], data.works[i + 1]];
+      const rowImgs = [images[i], images[i + 1]];
+      let maxRowHeight = 0;
+      row.forEach((w, col) => {
+        if (!w) return;
+        const x = MARGIN_LEFT + col * (COL_WIDTH + COL_GAP);
+        const imgInfo = rowImgs[col];
+        pdf.setDrawColor(230, 230, 230);
+        pdf.setFillColor(245, 245, 245);
+        pdf.rect(x, y, COL_WIDTH, IMAGE_BOX_HEIGHT, "F");
+        if (imgInfo) {
+          const scale = Math.min(COL_WIDTH / imgInfo.width, IMAGE_BOX_HEIGHT / imgInfo.height);
+          const w2 = imgInfo.width * scale;
+          const h2 = imgInfo.height * scale;
+          pdf.addImage(imgInfo.dataUrl, x + (COL_WIDTH - w2) / 2, y + (IMAGE_BOX_HEIGHT - h2) / 2, w2, h2);
+        }
+        let textY = y + IMAGE_BOX_HEIGHT + 5;
+        pdf.setFont(FONT_FAMILY, "bold");
+        pdf.setFontSize(10.5);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(`${w.title} (${w.year})`, x, textY);
+        textY += 4.6;
+        pdf.setFont(FONT_FAMILY, "normal");
+        pdf.setFontSize(9);
+        pdf.setTextColor(110, 110, 110);
+        pdf.text(w.meta, x, textY);
+        textY += 4.2;
+        if (w.tag) {
+          pdf.setTextColor(150, 150, 150);
+          pdf.text(w.tag, x, textY);
+          textY += 4.2;
+        }
+        maxRowHeight = Math.max(maxRowHeight, textY - rowStartY);
+      });
+      y = rowStartY + Math.max(maxRowHeight, IMAGE_BOX_HEIGHT) + 8;
+    }
+  }
+
+  // ── exhibitions & awards ──
+  if (data.current.length > 0 || data.history.length > 0) {
+    startNewPage();
+    sectionHeading(data.exhibitionsHeading);
+    if (data.current.length > 0) {
+      paragraph(data.currentLabel, { size: 9.5, bold: true, color: [110, 110, 110] });
+      y += 2;
+      for (const line of data.current) paragraph(line, { size: 10, leading: 1.5 });
+      y += 6;
+    }
+    if (data.history.length > 0) {
+      paragraph(data.historyLabel, { size: 9.5, bold: true, color: [110, 110, 110] });
+      y += 2;
+      for (const line of data.history) paragraph(line, { size: 10, leading: 1.5 });
+    }
+  }
+
+  // ── press ──
+  if (data.press.length > 0) {
+    startNewPage();
+    sectionHeading(data.pressHeading);
+    for (const p of data.press) {
+      paragraph(p.text, { size: 10, leading: 1.6, color: p.url ? [20, 70, 160] : [0, 0, 0], link: p.url ?? undefined });
+    }
+  }
+
+  // ── contact ──
+  if (data.contacts.length > 0) {
+    y += 8;
+    sectionHeading(data.contactHeading);
+    for (const c of data.contacts) paragraph(`${c.label}: ${c.value}`, { size: 10, leading: 1.6 });
+  }
 
   pdf.save(filename);
 }
