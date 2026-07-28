@@ -1,4 +1,4 @@
-import { ArrowUpRight, Download, Upload, Check, Edit3 } from "lucide-react";
+import { ArrowUpRight, Upload, Check, Edit3 } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 
 type HeroProps = {
@@ -9,10 +9,9 @@ type HeroProps = {
   setHeroCaptionEn: (v: string) => void;
   editingCaption: boolean;
   setEditingCaption: (v: boolean) => void;
-  onDownloadPortfolio: () => void;
 };
 
-export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCaption, setHeroCaptionEn, editingCaption, setEditingCaption, onDownloadPortfolio }: HeroProps) {
+export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCaption, setHeroCaptionEn, editingCaption, setEditingCaption }: HeroProps) {
   const { lang, u, MONO, SERIF, SANS, content, updateContent, c, editMode, img, uploadingTarget, triggerUpload, scrollTo } = usePortfolioContext();
 
   return (
@@ -44,9 +43,6 @@ export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCapti
           </button>
           <button onClick={() => scrollTo("works")} className="flex items-center gap-2 text-xs tracking-widest text-foreground border border-border px-5 py-3 hover:border-accent hover:text-accent transition-all w-fit" style={MONO}>
             {c("heroCta")} <ArrowUpRight size={14} />
-          </button>
-          <button onClick={onDownloadPortfolio} className="flex items-center gap-2 text-xs tracking-widest text-foreground border border-border px-5 py-3 hover:border-accent hover:text-accent transition-all w-fit" style={MONO}>
-            {u.portfolioDownload} <Download size={14} />
           </button>
         </div>
       </div>

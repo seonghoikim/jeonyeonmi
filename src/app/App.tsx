@@ -776,7 +776,14 @@ export default function App() {
     // Press hides itself entirely with no items outside edit mode (see Press.tsx) — skip its nav link too, or it'd point nowhere.
     ...(pressList.length > 0 || editMode ? [["press", u.navPress] as [string, string]] : []),
     ["activities", u.navActivities], ["videos", u.navVideo], ["contact", u.navContact],
+    // Not a scroll target — this id is special-cased below to open the portfolio
+    // download modal instead of scrolling to a (nonexistent) section.
+    ["__portfolio__", u.navPortfolio],
   ];
+  const handleNavClick = (id: string) => {
+    if (id === "__portfolio__") { setShowPortfolioPrint(true); setMenuOpen(false); return; }
+    scrollTo(id);
+  };
 
   const contextValue: PortfolioContextValue = {
     lang, u, MONO, SERIF, SANS, hSize,
@@ -889,7 +896,7 @@ export default function App() {
               {c("heroName")}
             </button>
             <div className="hidden lg:flex items-center gap-7">
-              {navItems.map(([id, label]) => <button key={id} onClick={() => scrollTo(id)} className="text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}>{label}</button>)}
+              {navItems.map(([id, label]) => <button key={id} onClick={() => handleNavClick(id)} className="text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}>{label}</button>)}
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               {isSupabaseReady && (
@@ -908,7 +915,7 @@ export default function App() {
           </div>
           {menuOpen && (
             <div className="lg:hidden bg-background/98 border-t border-border px-6 py-6 flex flex-col gap-5">
-              {navItems.map(([id, label]) => <button key={id} onClick={() => scrollTo(id)} className="text-left text-foreground text-sm tracking-widest uppercase" style={MONO}>{label}</button>)}
+              {navItems.map(([id, label]) => <button key={id} onClick={() => handleNavClick(id)} className="text-left text-foreground text-sm tracking-widest uppercase" style={MONO}>{label}</button>)}
             </div>
           )}
         </nav>
@@ -921,7 +928,6 @@ export default function App() {
           setHeroCaptionEn={setHeroCaptionEn}
           editingCaption={editingCaption}
           setEditingCaption={setEditingCaption}
-          onDownloadPortfolio={() => setShowPortfolioPrint(true)}
         />
 
         {showPortfolioPrint && (
@@ -1047,6 +1053,7 @@ export default function App() {
           setEditingContactId={setEditingContactId}
           updateContact={updateContact}
           toggleContactVisibility={toggleContactVisibility}
+          onDownloadPortfolio={() => setShowPortfolioPrint(true)}
         />
 
         <Footer />
