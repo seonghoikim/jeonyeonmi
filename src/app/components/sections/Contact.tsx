@@ -1,4 +1,4 @@
-import { GripVertical, Check, Eye, EyeOff, Edit3, ArrowUpRight } from "lucide-react";
+import { GripVertical, Check, Eye, EyeOff, Edit3, ArrowUpRight, Download } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, type ContactItem } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
@@ -11,9 +11,10 @@ type ContactProps = {
   setEditingContactId: (id: string | null) => void;
   updateContact: (id: string, patch: Partial<ContactItem>) => void;
   toggleContactVisibility: (id: string) => void;
+  onDownloadPortfolio: () => void;
 };
 
-export function Contact({ contactItems, setContactItems, editingContactId, setEditingContactId, updateContact, toggleContactVisibility }: ContactProps) {
+export function Contact({ contactItems, setContactItems, editingContactId, setEditingContactId, updateContact, toggleContactVisibility, onDownloadPortfolio }: ContactProps) {
   const { lang, u, MONO, SERIF, SANS, editMode, content, updateContent, c, dragSrc, dragOverKey, setDragOverKey, C } = usePortfolioContext();
 
   return (
@@ -76,6 +77,16 @@ export function Contact({ contactItems, setContactItems, editingContactId, setEd
               </div>
             );
           })}
+          {/* A closing action rather than another contact channel — visually set apart
+              with its own top border/spacing so it doesn't read as one more way to
+              reach the artist, but as "now that you've seen everything, take it with you." */}
+          <div className="pt-4 mt-2 border-t border-border/50">
+            <button onClick={onDownloadPortfolio} className="w-full flex items-center gap-3 sm:gap-4 p-4 sm:p-5 border border-border hover:border-accent transition-all group/dl">
+              <span className="text-muted-foreground group-hover/dl:text-accent transition-colors w-4 flex items-center justify-center shrink-0"><Download size={14} /></span>
+              <p className={`font-light text-foreground ${hSize("text-sm", "text-base", lang)}`}>{u.portfolioDownload}</p>
+              <ArrowUpRight size={14} className="text-muted-foreground group-hover/dl:text-accent transition-colors ml-auto" />
+            </button>
+          </div>
         </div>
       </div>
     </section>
