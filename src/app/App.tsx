@@ -930,6 +930,7 @@ export default function App() {
             onClose={() => setShowPortfolioPrint(false)}
             slides={slides}
             artworks={artworkList}
+            seriesList={seriesList}
             current={currentExList.filter((ex) => ex.status !== "지난전시" && ex.visible)}
             history={exhibitionList}
             press={pressList}
