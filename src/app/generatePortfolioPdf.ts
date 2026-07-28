@@ -11,18 +11,20 @@ const FONT_FAMILY = "NotoSansKR";
 
 const PAGE_WIDTH = 210;
 const PAGE_HEIGHT = 297;
-const MARGIN_TOP = 24;
-const MARGIN_BOTTOM = 24;
+const MARGIN_TOP = 18;
+const MARGIN_BOTTOM = 18;
 const MARGIN_LEFT = 22;
 const MARGIN_RIGHT = 22;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
 const PT_TO_MM = 0.352778;
-const IMAGE_BOX_HEIGHT = 55;
+const IMAGE_BOX_HEIGHT = 50;
 // Works are drawn as a single bordered card enclosing both the photo and its caption
 // (title/meta/tag) rather than a border around the photo alone — a border that stops
 // at the photo but leaves the caption floating below it read as disconnected from what
 // it was captioning. CARD_PADDING is the inner margin on every side of that card.
-const CARD_PADDING = 4;
+const CARD_PADDING = 3;
+// Vertical gap between rows of work cards.
+const ROW_GAP = 6;
 // Gap before a section that intentionally flows onto the same page as the one before
 // it (Statement after the cover, Press after Exhibitions, Contact after Press) rather
 // than forcing a page break — enough breathing room to read as a new section without
@@ -243,7 +245,7 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
         pdf.rect(x, rowStartY, COL_WIDTH, cardHeight, "S");
         pdf.setLineWidth(0.2); // restore the default so later section-heading underlines aren't affected
       });
-      y = rowStartY + cardHeight + 8;
+      y = rowStartY + cardHeight + ROW_GAP;
     }
   }
 
