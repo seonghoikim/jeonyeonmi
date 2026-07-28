@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { Plus, GripVertical, ArrowUpRight, Trash2, Edit3, Check, Upload, Maximize2, X, AlignLeft, ChevronRight } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, moveInFiltered, hSize, type Artwork, type Series } from "../../data";
@@ -54,6 +54,19 @@ export function Works({
   const [worksExpanded, setWorksExpanded] = useState(false);
   useEffect(() => { setWorksExpanded(false); }, [selectedSeries]);
   const isCollapsing = !editMode && !worksExpanded && filteredWorks.length > WORKS_MOBILE_LIMIT;
+
+  // Collapsing shrinks the grid back down, which can leave the viewport stranded
+  // well past the end of the (now shorter) section — scroll the toggle back into
+  // view once the collapsed layout has committed, so it reads as "snap back" rather
+  // than "stuck near the bottom of the page".
+  const worksToggleRef = useRef<HTMLDivElement>(null);
+  const wasExpandedRef = useRef(worksExpanded);
+  useLayoutEffect(() => {
+    if (wasExpandedRef.current && !worksExpanded) {
+      worksToggleRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    wasExpandedRef.current = worksExpanded;
+  }, [worksExpanded]);
 
   const submitInquiry = () => {
     if (!inquiryName.trim() || !inquiryEmail.trim()) { setInquiryError(u.inquiryRequired); return; }
@@ -222,7 +235,7 @@ export function Works({
           {editMode && <button onClick={addArtwork} className="group aspect-[4/5] bg-background border border-dashed border-border hover:border-accent transition-colors flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-accent"><Plus size={24} /><span className="text-xs tracking-widest" style={MONO}>{u.worksAdd}</span></button>}
         </div>
         {!editMode && filteredWorks.length > WORKS_MOBILE_LIMIT && (
-          <div className="mt-10 flex justify-center">
+          <div ref={worksToggleRef} className="mt-10 flex justify-center">
             <button onClick={() => setWorksExpanded((p) => !p)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors" style={MONO}>
               <span className="w-4 h-px bg-muted-foreground/40" />
               {worksExpanded ? u.worksShowLess : u.worksShowMore}
