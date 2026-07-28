@@ -109,7 +109,7 @@ export const initContent = {
 export const UI = {
   ko: {
     langLabel: "EN",
-    navCurrent: "현재 전시", navWorks: "작품", navStatement: "작가노트", navExhibitions: "전시이력", navPress: "보도자료", navActivities: "활동", navVideo: "영상", navContact: "연락처",
+    navHome: "홈", navCurrent: "현재 전시", navWorks: "작품", navStatement: "작가노트", navExhibitions: "전시이력", navPress: "보도자료", navActivities: "활동", navVideo: "영상", navContact: "연락처",
     currentAdd: "전시 추가", currentUpload: "포스터 교체", currentUploading: "업로드 중…",
     statusOngoing: "진행중", statusUpcoming: "예정", statusPast: "지난전시", viewMore: "자세히 보기",
     showPastEx: "지난 전시 보기", hidePastEx: "접기",
@@ -153,7 +153,7 @@ export const UI = {
   },
   en: {
     langLabel: "KO",
-    navCurrent: "Now", navWorks: "Works", navStatement: "Statement", navExhibitions: "Exhibitions", navPress: "Press", navActivities: "Activities", navVideo: "Video", navContact: "Contact",
+    navHome: "Home", navCurrent: "Now", navWorks: "Works", navStatement: "Statement", navExhibitions: "Exhibitions", navPress: "Press", navActivities: "Activities", navVideo: "Video", navContact: "Contact",
     currentAdd: "Add Exhibition", currentUpload: "Replace Poster", currentUploading: "Uploading…",
     statusOngoing: "Ongoing", statusUpcoming: "Upcoming", statusPast: "Past", viewMore: "View More",
     showPastEx: "Past Exhibitions", hidePastEx: "Hide",

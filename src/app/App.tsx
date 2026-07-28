@@ -771,6 +771,7 @@ export default function App() {
   const filteredEx = exFilter === "전체" ? exhibitionList : exhibitionList.filter((e) => e.tag === exFilter);
 
   const navItems: [string, string][] = [
+    ["hero", u.navHome],
     ["current-exhibitions", u.navCurrent], ["statement", u.navStatement], ["works", u.navWorks], ["exhibitions", u.navExhibitions],
     // Press hides itself entirely with no items outside edit mode (see Press.tsx) — skip its nav link too, or it'd point nowhere.
     ...(pressList.length > 0 || editMode ? [["press", u.navPress] as [string, string]] : []),

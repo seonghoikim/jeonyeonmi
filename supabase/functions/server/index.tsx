@@ -180,7 +180,24 @@ app.post(`${PREFIX}/portfolio/translate`, requireAuth, async (c) => {
     return c.json({ error: "번역 기능이 설정되지 않았습니다" }, 500);
   }
 
-  const numbered = texts.map((t: string, i: number) => `${i}: ${JSON.stringify(t)}`).join("\n");
+  // Blank fields (e.g. an unused optional description) have nothing to translate —
+  // asking Gemini to "translate" an empty string made it improvise a conversational
+  // filler like "Here is the English translation for your latest text." instead of
+  // just returning "", which then got saved as the actual field value across the
+  // site. Skip them entirely and splice "" back in at their original positions.
+  const nonEmptyIndices: number[] = [];
+  const nonEmptyTexts: string[] = [];
+  texts.forEach((t: string, i: number) => {
+    if (t.trim()) {
+      nonEmptyIndices.push(i);
+      nonEmptyTexts.push(t);
+    }
+  });
+  if (nonEmptyTexts.length === 0) {
+    return c.json({ translations: texts.map(() => "") });
+  }
+
+  const numbered = nonEmptyTexts.map((t, i) => `${i}: ${JSON.stringify(t)}`).join("\n");
   const prompt = `다음은 한국 현대미술 작가의 포트폴리오 웹사이트에 들어가는 한국어 문장들입니다. 각 문장을 자연스러운 영어로 번역하세요. 예술적/문학적 어조를 살리고, 줄바꿈(\\n)은 그대로 유지하세요.
 
 각 줄은 "인덱스: JSON 문자열" 형식입니다:
@@ -188,7 +205,7 @@ ${numbered}
 
 아래 JSON 형식으로만 응답하세요:
 {"translations": ["...", "...", ...]}
-번역 배열의 길이와 순서는 입력과 정확히 같아야 합니다 (총 ${texts.length}개).`;
+번역 배열의 길이와 순서는 입력과 정확히 같아야 합니다 (총 ${nonEmptyTexts.length}개). 다른 설명이나 안내 문구 없이 번역문만 담으세요.`;
 
   try {
     const res = await fetch(
@@ -209,11 +226,13 @@ ${numbered}
     const data = await res.json();
     const textOut: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     const parsed = JSON.parse(textOut);
-    const translations = parsed?.translations;
-    if (!Array.isArray(translations) || translations.length !== texts.length) {
+    const nonEmptyTranslations = parsed?.translations;
+    if (!Array.isArray(nonEmptyTranslations) || nonEmptyTranslations.length !== nonEmptyTexts.length) {
       console.error("[translate] unexpected translation response shape:", textOut);
       return c.json({ error: "번역 응답 형식이 올바르지 않습니다" }, 502);
     }
+    const translations = texts.map(() => "");
+    nonEmptyIndices.forEach((origIdx, i) => { translations[origIdx] = nonEmptyTranslations[i]; });
     return c.json({ translations });
   } catch (err) {
     console.error("[translate] error:", err);
