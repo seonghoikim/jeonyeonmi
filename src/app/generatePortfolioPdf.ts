@@ -25,7 +25,7 @@ const IMAGE_BOX_HEIGHT = 50;
 const CARD_PADDING = 3;
 // Extra indent for the caption text on top of CARD_PADDING, so it reads as its own
 // block instead of sitting flush against the photo's left edge / the card border.
-const CAPTION_INDENT = 3;
+const CAPTION_INDENT = 6;
 // Vertical gap between rows of work cards.
 const ROW_GAP = 6;
 // Gap before a section that intentionally flows onto the same page as the one before
