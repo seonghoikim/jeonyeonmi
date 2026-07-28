@@ -101,8 +101,12 @@ async function fetchImageAsDataUrl(url: string): Promise<{ dataUrl: string; widt
 // is no longer "fresh" enough to count as user-initiated. Building first and letting the
 // caller trigger `pdf.save()` from an actual, synchronous click handler avoids that.
 export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> {
-  const [regularBase64, boldBase64] = await Promise.all([fetchFontBase64(FONT_REGULAR_URL), fetchFontBase64(FONT_BOLD_URL)]);
-  const images = await Promise.all(data.works.map((w) => (w.imageUrl ? fetchImageAsDataUrl(w.imageUrl) : Promise.resolve(null))));
+  // Fonts and images are entirely independent fetches — kick both off before
+  // awaiting either, rather than waiting for the fonts to finish before starting
+  // on the images.
+  const fontsPromise = Promise.all([fetchFontBase64(FONT_REGULAR_URL), fetchFontBase64(FONT_BOLD_URL)]);
+  const imagesPromise = Promise.all(data.works.map((w) => (w.imageUrl ? fetchImageAsDataUrl(w.imageUrl) : Promise.resolve(null))));
+  const [[regularBase64, boldBase64], images] = await Promise.all([fontsPromise, imagesPromise]);
 
   const pdf = new jsPDF({ unit: "mm", format: "a4" });
   pdf.addFileToVFS("NotoSansKR-Regular.ttf", regularBase64);
@@ -186,13 +190,15 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
   if (data.works.length > 0) {
     startNewPage();
     sectionHeading(data.worksHeading);
+    // A work's caption is always 2 lines, or 3 if it has a tag — independent of any
+    // particular row, so this is computed once rather than redefined per iteration.
+    const captionHeight = (w: PortfolioPdfWork) => 4.6 + 4.2 + (w.tag ? 4.2 : 0);
     for (let i = 0; i < data.works.length; i += 2) {
       const row = [data.works[i], data.works[i + 1]];
       const rowImgs = [images[i], images[i + 1]];
       // Both cards in a row share one height (the taller of the two captions) so the
       // row's borders line up — computed up front since ensureSpace/the card border
       // need the final height before any drawing starts.
-      const captionHeight = (w: PortfolioPdfWork) => 4.6 + 4.2 + (w.tag ? 4.2 : 0);
       const cardHeight = CARD_PADDING + IMAGE_BOX_HEIGHT + CARD_PADDING +
         Math.max(...row.filter((w): w is PortfolioPdfWork => !!w).map(captionHeight)) + CARD_PADDING;
       // Must capture rowStartY *after* ensureSpace() — if this row triggers a page
@@ -249,8 +255,8 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
         pdf.setDrawColor(210, 210, 210);
         pdf.setLineWidth(0.4);
         pdf.rect(x, rowStartY, COL_WIDTH, cardHeight, "S");
-        pdf.setLineWidth(0.2); // restore the default so later section-heading underlines aren't affected
       });
+      pdf.setLineWidth(0.2); // restore the default so later section-heading underlines aren't affected
       y = rowStartY + cardHeight + ROW_GAP;
     }
   }

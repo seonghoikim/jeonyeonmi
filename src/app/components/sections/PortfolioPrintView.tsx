@@ -4,7 +4,8 @@ import { Download, X } from "lucide-react";
 import jsPDF from "jspdf";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { buildPortfolioPdf } from "../../generatePortfolioPdf";
-import type { Slide, Artwork, Series, CurrentExhibition, ExhibitionEntry, PressEntry } from "../../data";
+import { useModalLock } from "../../useModalLock";
+import { exTagLabel, type Slide, type Artwork, type Series, type CurrentExhibition, type ExhibitionEntry, type PressEntry } from "../../data";
 
 type PortfolioPrintViewProps = {
   show: boolean;
@@ -17,9 +18,6 @@ type PortfolioPrintViewProps = {
   press: PressEntry[];
 };
 
-const tagLabel = (tag: ExhibitionEntry["tag"], u: ReturnType<typeof usePortfolioContext>["u"]) =>
-  tag === "개인전" ? u.exSolo : tag === "단체전" ? u.exGroup : tag === "아트페어" ? u.exFair : u.exCompetition;
-
 export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList, current, history, press }: PortfolioPrintViewProps) {
   const { lang, u, c, imgThumb, contactItems } = usePortfolioContext();
   const [portalEl] = useState(() => document.createElement("div"));
@@ -28,6 +26,9 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const pdfRef = useRef<jsPDF | null>(null);
   const filenameRef = useRef("portfolio.pdf");
+  // Every other full-screen overlay in the app locks background scroll, traps Tab
+  // focus, and closes on Escape via this hook — this modal was missing all three.
+  const modalRef = useModalLock<HTMLDivElement>(show, onClose);
 
   // Revoke the previous object URL whenever a new one replaces it (or on unmount) —
   // it's only ever read by the anchor below, so nothing else needs it kept alive.
@@ -99,7 +100,7 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
             historyLabel: u.cvHistory,
             history: history.map((ex) => {
               const award = ex.award ? ` — ${ex.award}` : "";
-              return `${ex.year}   ${lang === "ko" ? ex.title : ex.titleEn} — ${lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)}, ${ex.location}  [${tagLabel(ex.tag, u)}]${award}`;
+              return `${ex.year}   ${lang === "ko" ? ex.title : ex.titleEn} — ${lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)}, ${ex.location}  [${exTagLabel(ex.tag, u)}]${award}`;
             }),
             pressHeading: c("s08heading"),
             press: press.map((p) => ({
@@ -164,7 +165,7 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
   if (!show) return null;
 
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div ref={modalRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={u.portfolioDownload} style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", outline: "none" }}>
       <div style={{ background: "#fff", color: "#000", padding: "24px 28px", maxWidth: 320, textAlign: "center", fontFamily: "sans-serif" }}>
         {status === "working" && <p style={{ fontSize: 13, margin: 0 }}>{u.portfolioPreparing}</p>}
         {status === "error" && (

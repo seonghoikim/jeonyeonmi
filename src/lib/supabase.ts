@@ -110,8 +110,11 @@ export async function uploadImage(key: string, file: File, token: string, label?
   // the original — avoids re-decoding a potentially huge source image twice).
   const thumb = await toWebP(full, THUMB_QUALITY, THUMB_MAX_PX);
 
-  const url = await uploadOne(key, full, token, label);
-  const thumbUrl = await uploadOne(`${key}-thumb`, thumb, token, label);
+  // Independent uploads to two different storage keys — run them concurrently.
+  const [url, thumbUrl] = await Promise.all([
+    uploadOne(key, full, token, label),
+    uploadOne(`${key}-thumb`, thumb, token, label),
+  ]);
   return { url, thumbUrl };
 }
 

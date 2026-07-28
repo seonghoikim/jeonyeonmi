@@ -561,8 +561,10 @@ export default function App() {
   // THUMB_MAX_PX/quality in supabase.ts), the same button regenerates all of them —
   // upload uses upsert, so overwriting an existing thumb is safe.
   const [backfillProgress, setBackfillProgress] = useState<{ done: number; total: number } | null>(null);
-  const allImageKeys = Object.keys(imageUrls).filter((k) => !k.endsWith("-thumb"));
-  const keysNeedingThumbs = allImageKeys.filter((k) => !imageUrls[`${k}-thumb`]);
+  // Only ever shown inside the edit-mode banner below — skip the scan entirely for
+  // every normal visitor render, where imageUrls can hold dozens of keys.
+  const allImageKeys = editMode ? Object.keys(imageUrls).filter((k) => !k.endsWith("-thumb")) : [];
+  const keysNeedingThumbs = editMode ? allImageKeys.filter((k) => !imageUrls[`${k}-thumb`]) : [];
   const isRegenerate = keysNeedingThumbs.length === 0;
   const backfillTargets = isRegenerate ? allImageKeys : keysNeedingThumbs;
   const runThumbnailBackfill = async () => {
@@ -771,20 +773,22 @@ export default function App() {
   const filteredWorks = selectedSeries === "전체" ? artworkList : artworkList.filter((a) => { const s = seriesList.find((s) => s.name === selectedSeries); return s ? a.series === s.name : false; });
   const filteredEx = exFilter === "전체" ? exhibitionList : exhibitionList.filter((e) => e.tag === exFilter);
 
-  const navItems: [string, string][] = [
-    ["hero", u.navHome],
-    ["current-exhibitions", u.navCurrent], ["statement", u.navStatement], ["works", u.navWorks], ["exhibitions", u.navExhibitions],
+  // Each item owns its own click behavior — most scroll to a section, but the
+  // portfolio entry opens a modal instead, so the list holds real actions rather
+  // than ids that every consumer would otherwise have to assume are scroll targets.
+  const navItems: { key: string; label: string; onClick: () => void }[] = [
+    { key: "hero", label: u.navHome, onClick: () => scrollTo("hero") },
+    { key: "current-exhibitions", label: u.navCurrent, onClick: () => scrollTo("current-exhibitions") },
+    { key: "statement", label: u.navStatement, onClick: () => scrollTo("statement") },
+    { key: "works", label: u.navWorks, onClick: () => scrollTo("works") },
+    { key: "exhibitions", label: u.navExhibitions, onClick: () => scrollTo("exhibitions") },
     // Press hides itself entirely with no items outside edit mode (see Press.tsx) — skip its nav link too, or it'd point nowhere.
-    ...(pressList.length > 0 || editMode ? [["press", u.navPress] as [string, string]] : []),
-    ["activities", u.navActivities], ["videos", u.navVideo], ["contact", u.navContact],
-    // Not a scroll target — this id is special-cased below to open the portfolio
-    // download modal instead of scrolling to a (nonexistent) section.
-    ["__portfolio__", u.navPortfolio],
+    ...(pressList.length > 0 || editMode ? [{ key: "press", label: u.navPress, onClick: () => scrollTo("press") }] : []),
+    { key: "activities", label: u.navActivities, onClick: () => scrollTo("activities") },
+    { key: "videos", label: u.navVideo, onClick: () => scrollTo("videos") },
+    { key: "contact", label: u.navContact, onClick: () => scrollTo("contact") },
+    { key: "portfolio", label: u.navPortfolio, onClick: () => { trackEvent("portfolio_download", { location: "nav" }); setShowPortfolioPrint(true); setMenuOpen(false); } },
   ];
-  const handleNavClick = (id: string) => {
-    if (id === "__portfolio__") { trackEvent("portfolio_download", { location: "nav" }); setShowPortfolioPrint(true); setMenuOpen(false); return; }
-    scrollTo(id);
-  };
 
   const contextValue: PortfolioContextValue = {
     lang, u, MONO, SERIF, SANS, hSize,
@@ -897,7 +901,7 @@ export default function App() {
               {c("heroName")}
             </button>
             <div className="hidden lg:flex items-center gap-7">
-              {navItems.map(([id, label]) => <button key={id} onClick={() => handleNavClick(id)} className="text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}>{label}</button>)}
+              {navItems.map((item) => <button key={item.key} onClick={item.onClick} className="text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}>{item.label}</button>)}
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               {isSupabaseReady && (
@@ -916,7 +920,7 @@ export default function App() {
           </div>
           {menuOpen && (
             <div className="lg:hidden bg-background/98 border-t border-border px-6 py-6 flex flex-col gap-5">
-              {navItems.map(([id, label]) => <button key={id} onClick={() => handleNavClick(id)} className="text-left text-foreground text-sm tracking-widest uppercase" style={MONO}>{label}</button>)}
+              {navItems.map((item) => <button key={item.key} onClick={item.onClick} className="text-left text-foreground text-sm tracking-widest uppercase" style={MONO}>{item.label}</button>)}
             </div>
           )}
         </nav>
