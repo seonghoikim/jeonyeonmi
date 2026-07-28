@@ -1,7 +1,8 @@
-import { Mail, Phone, Instagram, Globe, GripVertical, Check, Eye, EyeOff, Edit3, ArrowUpRight } from "lucide-react";
+import { GripVertical, Check, Eye, EyeOff, Edit3, ArrowUpRight } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, type ContactItem } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
+import { contactIcon } from "../contactIcon";
 
 type ContactProps = {
   contactItems: ContactItem[];
@@ -11,13 +12,6 @@ type ContactProps = {
   updateContact: (id: string, patch: Partial<ContactItem>) => void;
   toggleContactVisibility: (id: string) => void;
 };
-
-export function contactIcon(type: ContactItem["type"]) {
-  if (type === "email") return <Mail size={16} />;
-  if (type === "phone") return <Phone size={16} />;
-  if (type === "instagram") return <Instagram size={16} />;
-  return <Globe size={16} />;
-}
 
 export function Contact({ contactItems, setContactItems, editingContactId, setEditingContactId, updateContact, toggleContactVisibility }: ContactProps) {
   const { lang, u, MONO, SERIF, SANS, editMode, content, updateContent, c, dragSrc, dragOverKey, setDragOverKey, C } = usePortfolioContext();

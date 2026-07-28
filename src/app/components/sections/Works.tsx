@@ -4,7 +4,7 @@ import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, moveInFiltered, hSize, type Artwork, type Series } from "../../data";
 import { useModalLock } from "../../useModalLock";
 import { ReorderButtons } from "../ReorderButtons";
-import { contactIcon } from "./Contact";
+import { contactIcon } from "../contactIcon";
 
 type WorksProps = {
   artworkList: Artwork[];

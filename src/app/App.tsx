@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { loadPortfolio, savePortfolio, uploadImage, loginEditor, translateTexts, unfurlPress, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
 import { Menu, X, Edit3, Check, Languages } from "lucide-react";
 import {
@@ -14,15 +14,18 @@ import { PortfolioContext, usePortfolioContext, type PortfolioContextValue } fro
 import { Hero } from "./components/sections/Hero";
 import { CurrentExhibitions } from "./components/sections/CurrentExhibitions";
 import { Works } from "./components/sections/Works";
-import { ArtistStatement } from "./components/sections/ArtistStatement";
-import { Exhibitions } from "./components/sections/Exhibitions";
-import { Press } from "./components/sections/Press";
-import { Activities } from "./components/sections/Activities";
-import { Video } from "./components/sections/Video";
-import { Contact } from "./components/sections/Contact";
-import { Footer } from "./components/sections/Footer";
-import { Lightbox } from "./components/sections/Lightbox";
-import { PasswordModal } from "./components/sections/PasswordModal";
+// Below-the-fold sections and editor-only UI (upload/reorder/password modal) are
+// dead weight for every anonymous visitor's initial bundle — split them into their
+// own chunks that load in parallel once the above-the-fold JS has taken over.
+const ArtistStatement = lazy(() => import("./components/sections/ArtistStatement").then((m) => ({ default: m.ArtistStatement })));
+const Exhibitions = lazy(() => import("./components/sections/Exhibitions").then((m) => ({ default: m.Exhibitions })));
+const Press = lazy(() => import("./components/sections/Press").then((m) => ({ default: m.Press })));
+const Activities = lazy(() => import("./components/sections/Activities").then((m) => ({ default: m.Activities })));
+const Video = lazy(() => import("./components/sections/Video").then((m) => ({ default: m.Video })));
+const Contact = lazy(() => import("./components/sections/Contact").then((m) => ({ default: m.Contact })));
+const Footer = lazy(() => import("./components/sections/Footer").then((m) => ({ default: m.Footer })));
+const Lightbox = lazy(() => import("./components/sections/Lightbox").then((m) => ({ default: m.Lightbox })));
+const PasswordModal = lazy(() => import("./components/sections/PasswordModal").then((m) => ({ default: m.PasswordModal })));
 
 // Module-scope (not defined inside App's render) so its identity is stable across
 // re-renders. It used to be a closure defined inline in App() and handed out via
@@ -519,9 +522,17 @@ export default function App() {
     const next = (currentSlide + dir + slides.length) % slides.length;
     setIsSliding(true); setCurrentSlide(next); setTimeout(() => setIsSliding(false), 600);
   };
-  const scrollTo = (id: string) => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); setMenuOpen(false); };
+  // Below-the-fold sections are React.lazy — their DOM node may not exist yet the
+  // instant a nav link is clicked (its chunk is still downloading), so retry across a
+  // few frames instead of silently no-op'ing on a null getElementById.
+  const scrollToId = (id: string, opts: ScrollIntoViewOptions, tries = 30) => {
+    const el = document.getElementById(id);
+    if (el) { el.scrollIntoView(opts); return; }
+    if (tries > 0) requestAnimationFrame(() => scrollToId(id, opts, tries - 1));
+  };
+  const scrollTo = (id: string) => { scrollToId(id, { behavior: "smooth" }); setMenuOpen(false); };
   const scrollToActivity = (activityId: number) => {
-    document.getElementById(`activity-photo-${activityId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    scrollToId(`activity-photo-${activityId}`, { behavior: "smooth", block: "center" });
     setHighlightedPhotoId(activityId);
   };
 
@@ -779,6 +790,7 @@ export default function App() {
 
         {/* ── Lightbox ── */}
         {lightboxSrc && (
+          <Suspense fallback={null}>
           <Lightbox
             src={lightboxSrc}
             scale={lbScale}
@@ -800,10 +812,12 @@ export default function App() {
             onTouchEnd={handleLbTouchEnd}
             onDoubleClick={() => lbScale === 1 ? applyLbScale(2) : lbReset()}
           />
+          </Suspense>
         )}
 
         {/* ── Password modal ── */}
         {showPwModal && (
+          <Suspense fallback={null}>
           <PasswordModal
             pwInput={pwInput}
             setPwInput={setPwInput}
@@ -815,6 +829,7 @@ export default function App() {
             onSubmit={handlePwSubmit}
             onCancel={() => { setShowPwModal(false); setPwInput(""); setPwErrorMsg(""); }}
           />
+          </Suspense>
         )}
 
         {/* ── Edit banner ── */}
@@ -880,6 +895,7 @@ export default function App() {
           deleteCurrentEx={deleteCurrentEx}
         />
 
+        <Suspense fallback={null}>
         <ArtistStatement
           slides={slides}
           currentSlide={currentSlide}
@@ -890,6 +906,7 @@ export default function App() {
           updateSlide={updateSlide}
           goSlide={goSlide}
         />
+        </Suspense>
 
         <Works
           artworkList={artworkList}
@@ -911,6 +928,7 @@ export default function App() {
           deleteSeries={deleteSeries}
         />
 
+        <Suspense fallback={null}>
         <Exhibitions
           exhibitionList={exhibitionList}
           setExhibitionList={setExhibitionList}
@@ -975,6 +993,7 @@ export default function App() {
         />
 
         <Footer />
+        </Suspense>
       </div>
     </PortfolioContext.Provider>
   );
