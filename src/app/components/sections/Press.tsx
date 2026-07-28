@@ -2,6 +2,7 @@ import { Plus, GripVertical, ArrowUpRight, Edit3, Check, Trash2, RefreshCw } fro
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, type PressEntry } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
+import { trackEvent } from "../../analytics";
 
 type PressProps = {
   pressList: PressEntry[];
@@ -102,7 +103,7 @@ export function Press({
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground/70 mb-0.5" style={MONO}>{lang === "ko" ? item.outlet : (item.outletEn || item.outlet)}{item.date && <span> · {item.date}</span>}</p>
                     {item.url ? (
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm font-light text-foreground hover:text-accent transition-colors leading-snug flex items-center gap-1" style={SERIF}>
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("press_click", { outlet: lang === "ko" ? item.outlet : (item.outletEn || item.outlet), title: lang === "ko" ? item.title : item.titleEn })} className="text-sm font-light text-foreground hover:text-accent transition-colors leading-snug flex items-center gap-1" style={SERIF}>
                         {lang === "ko" ? item.title : item.titleEn} <ArrowUpRight size={12} className="shrink-0 opacity-60" />
                       </a>
                     ) : (

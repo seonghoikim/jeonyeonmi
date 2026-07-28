@@ -5,6 +5,7 @@ import { moveItem, moveInFiltered, hSize, type Artwork, type Series } from "../.
 import { useModalLock } from "../../useModalLock";
 import { ReorderButtons } from "../ReorderButtons";
 import { contactIcon } from "../contactIcon";
+import { trackEvent } from "../../analytics";
 
 type WorksProps = {
   artworkList: Artwork[];
@@ -80,6 +81,7 @@ export function Works({
       "",
       inquiryMessage,
     ].join("\n");
+    if (!editMode) trackEvent("work_inquiry_submit", { work: workTitle });
     window.location.href = `mailto:${artistEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     closeInquiry();
   };
@@ -197,7 +199,7 @@ export function Works({
               }}
               onDragEnd={() => { dragSrc.current = null; setDragOverKey(null); }}
               style={{ outline: dragOverKey === "work-" + idx ? "2px solid var(--accent)" : "none" }}
-              onClick={() => setSelectedWorkId(work.id)}>
+              onClick={() => { if (!editMode) trackEvent("work_view", { title: lang === "ko" ? work.title : work.titleEn, series: work.series || "(none)" }); setSelectedWorkId(work.id); }}>
               <div className="relative aspect-[4/5] overflow-hidden bg-background shrink-0">
                 {editMode && <div className="absolute top-1.5 left-1.5 z-10 text-accent/60 cursor-grab"><GripVertical size={14} /></div>}
                 {editMode && (
@@ -337,7 +339,7 @@ export function Works({
                 )}
               </div>
               <div className="mt-6 sm:mt-8 flex items-center justify-between flex-wrap gap-3">
-                <button onClick={() => setShowInquiry(true)} className="text-xs tracking-widest text-muted-foreground hover:text-accent border border-border px-4 py-2 hover:border-accent transition-all" style={MONO}>{u.worksInquiry}</button>
+                <button onClick={() => { if (!editMode) trackEvent("inquiry_open", { work: lang === "ko" ? selectedWork.title : selectedWork.titleEn }); setShowInquiry(true); }} className="text-xs tracking-widest text-muted-foreground hover:text-accent border border-border px-4 py-2 hover:border-accent transition-all" style={MONO}>{u.worksInquiry}</button>
                 {editMode && <button onClick={() => deleteWork(selectedWork.id)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-red-400 transition-colors" style={MONO}><Trash2 size={12} />{u.worksDelete}</button>}
               </div>
             </div>

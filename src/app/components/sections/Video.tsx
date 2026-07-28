@@ -2,6 +2,7 @@ import { Plus, GripVertical, Maximize2, Play, Trash2, Edit3, Check } from "lucid
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, getYoutubeId, type VideoEntry } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
+import { trackEvent } from "../../analytics";
 
 type VideoProps = {
   videoList: VideoEntry[];
@@ -81,7 +82,7 @@ export function Video({
                     <>
                       <img src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`} alt={vid.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100" loading="lazy" decoding="async" />
                       <div className="absolute inset-0 bg-background/20 group-hover:bg-background/10 transition-colors" />
-                      {!isEditing && <button onClick={() => setPlayingVideoId(vid.id)} aria-label={lang === "ko" ? "재생" : "Play"} className="absolute inset-0 flex items-center justify-center">
+                      {!isEditing && <button onClick={() => { if (!editMode) trackEvent("video_play", { title: lang === "ko" ? vid.title : vid.titleEn }); setPlayingVideoId(vid.id); }} aria-label={lang === "ko" ? "재생" : "Play"} className="absolute inset-0 flex items-center justify-center">
                         <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-full bg-background/80 border border-foreground/20 flex items-center justify-center transition-all duration-300 group-hover:bg-background/95 group-hover:scale-110"><Play size={18} className="text-foreground ml-1" fill="currentColor" /></div>
                       </button>}
                     </>
