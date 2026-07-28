@@ -28,13 +28,13 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
   const filenameRef = useRef("portfolio.pdf");
 
   // window.print() silently does nothing in several in-app WebViews (Instagram,
-  // KakaoTalk, etc.). A direct Blob download works far more broadly, but several
-  // mobile browsers (Chrome included) will still silently drop it if it fires deep
-  // inside this async chain — by the time the multi-second font/image fetch
-  // resolves, the original tap no longer counts as a fresh user gesture. So this
-  // only *builds* the PDF here, attempts one best-effort auto-download, and always
-  // leaves a real button behind so the user has a guaranteed, freshly-clicked way
-  // to trigger the save if the automatic one didn't go through.
+  // KakaoTalk, etc.), and a plain a[download] click can *also* go nowhere findable
+  // (some mobile browsers save it somewhere the user has no reason to look, with
+  // no confirmation at all) if it fires deep inside this async chain — by the time
+  // the multi-second font/image fetch resolves, the original tap may no longer
+  // count as a fresh user gesture. So this only *builds* the PDF here; saving it
+  // always happens later, from handleSave() below, in direct response to an actual
+  // click on the button rendered once status is "ready".
   useEffect(() => {
     if (!show) return;
     document.body.appendChild(portalEl);
@@ -95,7 +95,6 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
         pdfRef.current = pdf;
         filenameRef.current = `${c("heroName")}_${lang === "ko" ? "포트폴리오" : "portfolio"}.pdf`;
         setStatus("ready");
-        try { pdf.save(filenameRef.current); } catch { /* fall through to the manual button below */ }
       } catch (err) {
         console.error("[Portfolio PDF] generation failed:", err);
         if (!cancelled) setStatus("error");
@@ -109,6 +108,34 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, portalEl]);
+
+  // Runs only from a direct button click, never automatically — so it's always a
+  // fresh, genuine user gesture. Prefers the File System Access API (a real native
+  // "save as" dialog letting the user pick the exact location) where the browser
+  // supports it; everywhere else, opens the PDF in a new tab so the browser's own
+  // PDF viewer takes over — its Share/Save affordance is far more discoverable on
+  // mobile than a silent background download nobody can find afterward.
+  const handleSave = async () => {
+    const pdf = pdfRef.current;
+    if (!pdf) return;
+    const showSaveFilePicker = (window as unknown as { showSaveFilePicker?: (opts: unknown) => Promise<{ createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }> }> }).showSaveFilePicker;
+    if (showSaveFilePicker) {
+      try {
+        const handle = await showSaveFilePicker({
+          suggestedName: filenameRef.current,
+          types: [{ description: "PDF", accept: { "application/pdf": [".pdf"] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(pdf.output("blob"));
+        await writable.close();
+        return;
+      } catch (err) {
+        if ((err as { name?: string })?.name === "AbortError") return; // user cancelled the picker themselves
+        console.error("[Portfolio PDF] showSaveFilePicker failed, falling back to a new tab:", err);
+      }
+    }
+    window.open(String(pdf.output("bloburl")), "_blank");
+  };
 
   if (!show) return null;
 
@@ -129,7 +156,7 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
             <p style={{ fontSize: 13, margin: "0 0 16px" }}>{u.portfolioReady}</p>
             <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
               <button
-                onClick={() => pdfRef.current?.save(filenameRef.current)}
+                onClick={handleSave}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, border: "1px solid #333", background: "#000", color: "#fff", padding: "8px 14px", cursor: "pointer" }}
               >
                 <Download size={13} />{u.portfolioDownload}
