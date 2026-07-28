@@ -922,19 +922,6 @@ export default function App() {
           setEditingCaption={setEditingCaption}
         />
 
-        {/* ── Featured-in wordmark bar — press has no dedicated logo asset, so this
-             lists the outlet names themselves rather than image logos ── */}
-        {pressList.length > 0 && (
-          <div className="border-t border-border py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-2.5">
-              <span className="text-xs text-muted-foreground tracking-widest uppercase shrink-0" style={MONO}>{u.pressFeaturedIn}</span>
-              {Array.from(new Set(pressList.map((p) => (lang === "ko" ? p.outlet : (p.outletEn || p.outlet))))).map((name) => (
-                <span key={name} className="text-sm text-foreground/70 font-light">{name}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
         <CurrentExhibitions
           currentExList={currentExList}
           setCurrentExList={setCurrentExList}
