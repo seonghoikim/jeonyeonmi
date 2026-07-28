@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Plus, GripVertical, ArrowUpRight, Trash2, Edit3, Check, Upload, Maximize2, X, AlignLeft } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Plus, GripVertical, ArrowUpRight, Trash2, Edit3, Check, Upload, Maximize2, X, AlignLeft, ChevronRight } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, moveInFiltered, hSize, type Artwork, type Series } from "../../data";
 import { useModalLock } from "../../useModalLock";
@@ -44,6 +44,16 @@ export function Works({
   const inquiryRef = useModalLock<HTMLDivElement>(showInquiry, closeInquiry);
   const visibleContacts = contactItems.filter((item) => item.visible);
   const artistEmail = contactItems.find((item) => item.type === "email")?.display ?? "";
+
+  // Collapses the grid to ~4 rows on mobile (2 cols) / ~3 rows on desktop (3 cols)
+  // so a long works list doesn't force endless scrolling before reaching the next
+  // section — full list is always shown in edit mode since drag-reorder needs every
+  // item visible and addressable.
+  const WORKS_MOBILE_LIMIT = 8;
+  const WORKS_DESKTOP_LIMIT = 9;
+  const [worksExpanded, setWorksExpanded] = useState(false);
+  useEffect(() => { setWorksExpanded(false); }, [selectedSeries]);
+  const isCollapsing = !editMode && !worksExpanded && filteredWorks.length > WORKS_MOBILE_LIMIT;
 
   const submitInquiry = () => {
     if (!inquiryName.trim() || !inquiryEmail.trim()) { setInquiryError(u.inquiryRequired); return; }
@@ -143,9 +153,17 @@ export function Works({
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-background">
-          {filteredWorks.map((work, idx) => (
+          {filteredWorks.map((work, idx) => {
+            const displayClass = !isCollapsing
+              ? "flex"
+              : idx >= WORKS_DESKTOP_LIMIT
+                ? "hidden"
+                : idx >= WORKS_MOBILE_LIMIT
+                  ? "hidden lg:flex"
+                  : "flex";
+            return (
             <div key={work.id}
-              className="group bg-background flex flex-col cursor-pointer border-r border-b border-border/30"
+              className={`group bg-background ${displayClass} flex-col cursor-pointer border-r border-b border-border/30`}
               draggable={editMode}
               onDragStart={() => { dragSrc.current = idx; }}
               onDragOver={(e) => { e.preventDefault(); if (dragSrc.current !== idx) setDragOverKey("work-" + idx); }}
@@ -200,9 +218,19 @@ export function Works({
                 <p className="text-xs text-muted-foreground hidden sm:block" style={MONO}>{lang === "ko" ? work.medium : work.mediumEn}</p>
               </div>
             </div>
-          ))}
+          );})}
           {editMode && <button onClick={addArtwork} className="group aspect-[4/5] bg-background border border-dashed border-border hover:border-accent transition-colors flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-accent"><Plus size={24} /><span className="text-xs tracking-widest" style={MONO}>{u.worksAdd}</span></button>}
         </div>
+        {!editMode && filteredWorks.length > WORKS_MOBILE_LIMIT && (
+          <div className="mt-10 flex justify-center">
+            <button onClick={() => setWorksExpanded((p) => !p)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors" style={MONO}>
+              <span className="w-4 h-px bg-muted-foreground/40" />
+              {worksExpanded ? u.worksShowLess : u.worksShowMore}
+              <span className="text-muted-foreground/40">({filteredWorks.length - WORKS_MOBILE_LIMIT})</span>
+              <ChevronRight size={12} className={`transition-transform duration-200 ${worksExpanded ? "rotate-90" : ""}`} />
+            </button>
+          </div>
+        )}
       </section>
 
       {/* ── ARTWORK MODAL ── */}
