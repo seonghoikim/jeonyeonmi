@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { Download, X } from "lucide-react";
+import jsPDF from "jspdf";
 import { usePortfolioContext } from "../../PortfolioContext";
-import { generatePortfolioPdf } from "../../generatePortfolioPdf";
+import { buildPortfolioPdf } from "../../generatePortfolioPdf";
 import type { Slide, Artwork, Series, CurrentExhibition, ExhibitionEntry, PressEntry } from "../../data";
 
 type PortfolioPrintViewProps = {
@@ -22,24 +23,31 @@ const tagLabel = (tag: ExhibitionEntry["tag"], u: ReturnType<typeof usePortfolio
 export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList, current, history, press }: PortfolioPrintViewProps) {
   const { lang, u, c, img, contactItems } = usePortfolioContext();
   const [portalEl] = useState(() => document.createElement("div"));
-  const [status, setStatus] = useState<"working" | "error">("working");
+  const [status, setStatus] = useState<"working" | "ready" | "error">("working");
+  const pdfRef = useRef<jsPDF | null>(null);
+  const filenameRef = useRef("portfolio.pdf");
 
   // window.print() silently does nothing in several in-app WebViews (Instagram,
-  // KakaoTalk, etc.), so this builds a real, selectable-text PDF (embedded Korean
-  // font — see generatePortfolioPdf.ts) directly from the portfolio data and
-  // triggers a plain Blob download, which those WebViews do support.
+  // KakaoTalk, etc.). A direct Blob download works far more broadly, but several
+  // mobile browsers (Chrome included) will still silently drop it if it fires deep
+  // inside this async chain — by the time the multi-second font/image fetch
+  // resolves, the original tap no longer counts as a fresh user gesture. So this
+  // only *builds* the PDF here, attempts one best-effort auto-download, and always
+  // leaves a real button behind so the user has a guaranteed, freshly-clicked way
+  // to trigger the save if the automatic one didn't go through.
   useEffect(() => {
     if (!show) return;
     document.body.appendChild(portalEl);
     let cancelled = false;
     setStatus("working");
+    pdfRef.current = null;
 
     const run = async () => {
       const contacts = contactItems.filter((item) => item.visible);
       const workNotes = artworks.filter((w) => ((lang === "ko" ? w.description : w.descriptionEn || w.description) ?? "").trim());
 
       try {
-        await generatePortfolioPdf(
+        const pdf = await buildPortfolioPdf(
           {
             coverLabel: lang === "ko" ? "포트폴리오" : "PORTFOLIO",
             name: c("heroName"),
@@ -81,10 +89,13 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
             })),
             contactHeading: u.cvContact,
             contacts: contacts.map((item) => ({ label: lang === "ko" ? item.labelKo : item.labelEn, value: item.display })),
-          },
-          `${c("heroName")}_${lang === "ko" ? "포트폴리오" : "portfolio"}.pdf`
+          }
         );
-        if (!cancelled) onClose();
+        if (cancelled) return;
+        pdfRef.current = pdf;
+        filenameRef.current = `${c("heroName")}_${lang === "ko" ? "포트폴리오" : "portfolio"}.pdf`;
+        setStatus("ready");
+        try { pdf.save(filenameRef.current); } catch { /* fall through to the manual button below */ }
       } catch (err) {
         console.error("[Portfolio PDF] generation failed:", err);
         if (!cancelled) setStatus("error");
@@ -104,14 +115,29 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ background: "#fff", color: "#000", padding: "24px 28px", maxWidth: 320, textAlign: "center", fontFamily: "sans-serif" }}>
-        {status === "working" ? (
-          <p style={{ fontSize: 13, margin: 0 }}>{u.portfolioPreparing}</p>
-        ) : (
+        {status === "working" && <p style={{ fontSize: 13, margin: 0 }}>{u.portfolioPreparing}</p>}
+        {status === "error" && (
           <>
             <p style={{ fontSize: 13, margin: "0 0 16px" }}>{u.portfolioError}</p>
             <button onClick={onClose} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, border: "1px solid #999", background: "#fff", color: "#000", padding: "8px 14px", cursor: "pointer" }}>
               <X size={13} />{u.lbClose}
             </button>
+          </>
+        )}
+        {status === "ready" && (
+          <>
+            <p style={{ fontSize: 13, margin: "0 0 16px" }}>{u.portfolioReady}</p>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              <button
+                onClick={() => pdfRef.current?.save(filenameRef.current)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, border: "1px solid #333", background: "#000", color: "#fff", padding: "8px 14px", cursor: "pointer" }}
+              >
+                <Download size={13} />{u.portfolioDownload}
+              </button>
+              <button onClick={onClose} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, border: "1px solid #999", background: "#fff", color: "#000", padding: "8px 14px", cursor: "pointer" }}>
+                <X size={13} />{u.lbClose}
+              </button>
+            </div>
           </>
         )}
       </div>
