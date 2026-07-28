@@ -21,10 +21,11 @@ const tagLabel = (tag: ExhibitionEntry["tag"], u: ReturnType<typeof usePortfolio
   tag === "개인전" ? u.exSolo : tag === "단체전" ? u.exGroup : tag === "아트페어" ? u.exFair : u.exCompetition;
 
 export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList, current, history, press }: PortfolioPrintViewProps) {
-  const { lang, u, c, img, contactItems } = usePortfolioContext();
+  const { lang, u, c, imgThumb, contactItems } = usePortfolioContext();
   const [portalEl] = useState(() => document.createElement("div"));
   const [status, setStatus] = useState<"working" | "ready" | "error">("working");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const pdfRef = useRef<jsPDF | null>(null);
   const filenameRef = useRef("portfolio.pdf");
 
@@ -55,7 +56,11 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
       const workNotes = artworks.filter((w) => ((lang === "ko" ? w.description : w.descriptionEn || w.description) ?? "").trim());
 
       try {
-        const pdf = await buildPortfolioPdf(
+        const timeout = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("timeout")), 25000);
+        });
+        const pdf = await Promise.race([
+          buildPortfolioPdf(
           {
             coverLabel: lang === "ko" ? "포트폴리오" : "PORTFOLIO",
             name: c("heroName"),
@@ -79,7 +84,13 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
                 year: w.year,
                 meta: `${lang === "ko" ? w.medium : w.mediumEn} · ${w.size}`,
                 tag: [tagParts.join(" · "), w.collected ? u.worksCollected : null].filter(Boolean).join("  ·  ") || null,
-                imageUrl: img(`artwork-${w.id}`),
+                // The PDF only ever displays these at a fixed ~55mm-tall box, so the
+                // already-generated thumbnail is more than enough resolution — using
+                // the full-size original here was making generation fetch dozens of
+                // multi-MB photos at once, which is slow (or outright fatal — iOS
+                // Safari/Chrome will kill and reload the tab under memory pressure)
+                // on a real portfolio with many works, especially over mobile data.
+                imageUrl: imgThumb(`artwork-${w.id}`),
               };
             }),
             exhibitionsHeading: c("s04heading"),
@@ -98,7 +109,9 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
             contactHeading: u.cvContact,
             contacts: contacts.map((item) => ({ label: lang === "ko" ? item.labelKo : item.labelEn, value: item.display })),
           }
-        );
+          ),
+          timeout,
+        ]);
         if (cancelled) return;
         pdfRef.current = pdf;
         filenameRef.current = `${c("heroName")}_${lang === "ko" ? "포트폴리오" : "portfolio"}.pdf`;
@@ -106,7 +119,10 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
         setStatus("ready");
       } catch (err) {
         console.error("[Portfolio PDF] generation failed:", err);
-        if (!cancelled) setStatus("error");
+        if (!cancelled) {
+          setErrorDetail(err instanceof Error ? err.message : String(err));
+          setStatus("error");
+        }
       }
     };
     run();
@@ -153,7 +169,10 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
         {status === "working" && <p style={{ fontSize: 13, margin: 0 }}>{u.portfolioPreparing}</p>}
         {status === "error" && (
           <>
-            <p style={{ fontSize: 13, margin: "0 0 16px" }}>{u.portfolioError}</p>
+            <p style={{ fontSize: 13, margin: "0 0 8px" }}>{u.portfolioError}</p>
+            {errorDetail && (
+              <p style={{ fontSize: 10, color: "#999", margin: "0 0 16px", wordBreak: "break-all" }}>{errorDetail}</p>
+            )}
             <button onClick={onClose} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, border: "1px solid #999", background: "#fff", color: "#000", padding: "8px 14px", cursor: "pointer" }}>
               <X size={13} />{u.lbClose}
             </button>
