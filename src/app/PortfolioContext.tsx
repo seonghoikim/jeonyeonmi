@@ -15,6 +15,7 @@ export type PortfolioContextValue = {
   C: (props: { field: ContentKey; multi?: boolean; rows?: number; className?: string }) => ReactElement;
   editMode: boolean;
   img: (key: string) => string | null;
+  imgThumb: (key: string) => string | null;
   uploadingTarget: string | null;
   dragSrc: React.MutableRefObject<number | null>;
   dragOverKey: string | null;

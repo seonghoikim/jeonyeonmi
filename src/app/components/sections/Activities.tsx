@@ -24,7 +24,7 @@ export function Activities({
   addActivityPhoto, deleteActivityPhoto, updateActivityPhoto,
   triggerMultiUpload, uploadingExtraFor, setPhotoAsCover, deleteExtraPhoto, reorderExtraPhotos,
 }: ActivitiesProps) {
-  const { lang, u, MONO, SERIF, editMode, img, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, triggerUpload, openLightbox, C } = usePortfolioContext();
+  const { lang, u, MONO, SERIF, editMode, img, imgThumb, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, triggerUpload, openLightbox, C } = usePortfolioContext();
 
   const [managingId, setManagingId] = useState<number | null>(null);
   const managingPhoto = activityPhotos.find((p) => p.id === managingId) ?? null;
@@ -71,6 +71,7 @@ export function Activities({
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-background items-start">
             {activityPhotos.map((photo, idx) => {
               const actImg = img(`activity-${photo.id}`);
+              const actThumb = imgThumb(`activity-${photo.id}`);
               const extraCount = photo.extraPhotoIds?.length ?? 0;
               const isHighlighted = highlightedPhotoId === photo.id;
               return (
@@ -105,8 +106,8 @@ export function Activities({
                       if (extraCount > 0) { setGallery({ photoId: photo.id, index: 0 }); return; }
                       if (actImg) openLightbox(actImg);
                     }}>
-                    {actImg
-                      ? <img src={actImg} alt={photo.caption} className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${isHighlighted ? "opacity-100" : "opacity-80"}`} loading="lazy" decoding="async" />
+                    {actThumb
+                      ? <img src={actThumb} alt={photo.caption} className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${isHighlighted ? "opacity-100" : "opacity-80"}`} loading="lazy" decoding="async" />
                       : <img src="/activity-placeholder-v2.svg" alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />}
                     {editMode && <div className="absolute inset-0 flex items-center justify-center bg-background/50 hover:bg-background/65 transition-colors"><div className="flex flex-col items-center gap-2 text-foreground"><Upload size={18} /><span className="text-xs text-center px-2" style={MONO}>{u.activityManage}</span></div></div>}
                     {editMode && <button onClick={(e) => { e.stopPropagation(); deleteActivityPhoto(photo.id); }} aria-label={u.worksDelete} className="absolute top-2 right-2 bg-background/80 hover:bg-background text-foreground p-1 transition-all"><Trash2 size={12} /></button>}
@@ -145,7 +146,7 @@ export function Activities({
               <div>
                 <span className="text-xs text-accent uppercase tracking-widest block mb-2" style={MONO}>{u.activityCover}</span>
                 <div className="relative aspect-square w-28 sm:w-36 overflow-hidden bg-secondary cursor-pointer" onClick={() => triggerUpload(`activity-${managingPhoto.id}`, managingPhoto.captionEn)}>
-                  {img(`activity-${managingPhoto.id}`) ? <img src={img(`activity-${managingPhoto.id}`)!} alt="" className="w-full h-full object-cover" /> : <div className="absolute inset-0 img-placeholder" />}
+                  {imgThumb(`activity-${managingPhoto.id}`) ? <img src={imgThumb(`activity-${managingPhoto.id}`)!} alt="" className="w-full h-full object-cover" /> : <div className="absolute inset-0 img-placeholder" />}
                   <div className="absolute inset-0 flex items-center justify-center bg-background/50">
                     <Upload size={16} className="text-foreground" />
                   </div>
@@ -159,7 +160,7 @@ export function Activities({
                   {(managingPhoto.extraPhotoIds ?? []).map((subId, idx) => {
                     const ids = managingPhoto.extraPhotoIds ?? [];
                     const key = `activity-${managingPhoto.id}-${subId}`;
-                    const url = img(key);
+                    const url = imgThumb(key);
                     return (
                       <div key={subId}
                         className="relative aspect-square overflow-hidden bg-secondary"

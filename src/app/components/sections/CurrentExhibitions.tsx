@@ -20,7 +20,7 @@ export function CurrentExhibitions({
   currentExList, setCurrentExList, editingCurrentId, setEditingCurrentId, showPastEx, setShowPastEx,
   addCurrentEx, toggleCurrentExVisible, updateCurrentEx, deleteCurrentEx,
 }: CurrentExhibitionsProps) {
-  const { lang, u, MONO, SERIF, editMode, img, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, scrollTo, triggerUpload, C } = usePortfolioContext();
+  const { lang, u, MONO, SERIF, editMode, imgThumb, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, scrollTo, triggerUpload, C } = usePortfolioContext();
 
   const activeList = editMode
     ? currentExList.filter((e) => e.status !== "지난전시")
@@ -45,7 +45,7 @@ export function CurrentExhibitions({
         <div className="flex gap-px overflow-x-auto hide-sb pl-4 sm:pl-6 lg:pl-12 pr-4 sm:pr-6 lg:pr-12 pb-2" style={{ scrollSnapType: "x mandatory" }}>
           {activeList.map((ex, idx) => {
             const isEditing = editMode && editingCurrentId === ex.id;
-            const exImg = img(`current-${ex.id}`);
+            const exImg = imgThumb(`current-${ex.id}`);
             const statusLabel = ex.status === "진행중" ? u.statusOngoing : u.statusUpcoming;
             const statusCls = ex.status === "진행중" ? "bg-accent text-accent-foreground" : "bg-background/90 border border-border text-muted-foreground";
             return (
@@ -169,7 +169,7 @@ export function CurrentExhibitions({
               <div className="mt-4 border-t border-border/40">
                 {pastList.map((ex, pidx) => {
                   const isEditing = editMode && editingCurrentId === ex.id;
-                  const pastThumb = img(`current-${ex.id}`);
+                  const pastThumb = imgThumb(`current-${ex.id}`);
                   return (
                     <div key={ex.id}
                       draggable={editMode}

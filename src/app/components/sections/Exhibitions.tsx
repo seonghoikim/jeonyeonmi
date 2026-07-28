@@ -24,7 +24,7 @@ export function Exhibitions({
   exhibitionList, setExhibitionList, filteredEx, exFilter, exVisible, editingExId, setEditingExId,
   activityPhotos, changeExFilter, addExhibition, updateEx, deleteEx,
 }: ExhibitionsProps) {
-  const { lang, u, MONO, SERIF, editMode, img, dragSrc, dragOverKey, setDragOverKey, scrollToActivity, C } = usePortfolioContext();
+  const { lang, u, MONO, SERIF, editMode, imgThumb, dragSrc, dragOverKey, setDragOverKey, scrollToActivity, C } = usePortfolioContext();
 
   return (
     <section id="exhibitions" className="py-16 sm:py-24 border-t border-border">
@@ -45,7 +45,7 @@ export function Exhibitions({
           {filteredEx.map((ex, idx) => {
             const isEditing = editMode && editingExId === ex.id;
             const linkedPhoto = activityPhotos.find((p) => p.id === ex.activityId);
-            const exThumb = ex.activityId ? img(`activity-${ex.activityId}`) : null;
+            const exThumb = ex.activityId ? imgThumb(`activity-${ex.activityId}`) : null;
             return (
               <div key={ex.id}
                 draggable={editMode && !isEditing}

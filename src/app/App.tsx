@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, lazy, Suspense } from "react";
-import { loadPortfolio, savePortfolio, uploadImage, loginEditor, translateTexts, unfurlPress, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
+import { loadPortfolio, savePortfolio, uploadImage, backfillThumbnail, loginEditor, translateTexts, unfurlPress, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
 import { Menu, X, Edit3, Check, Languages } from "lucide-react";
 import {
   MONO, serifOf, sansOf, hSize, GLOBAL_CSS, artworkSlug, artworkIdFromSlug,
@@ -232,6 +232,9 @@ export default function App() {
   const saveDataRef = useRef<Parameters<typeof savePortfolio>[0]>({}); // always latest
   const lastUpdatedAtRef = useRef<string | undefined>(undefined); // last known DB updated_at, for conflict checks
   const img = useCallback((key: string) => imageUrls[key] ?? null, [imageUrls]);
+  // Grid/list views: prefer the small "<key>-thumb" variant, falling back to the
+  // full image for anything uploaded before thumbnails existed.
+  const imgThumb = useCallback((key: string) => imageUrls[`${key}-thumb`] ?? imageUrls[key] ?? null, [imageUrls]);
   useSeoMeta({ name: c("heroName"), description: c("heroDesc"), imageUrl: img("hero"), lang });
 
   /* other state */
@@ -538,13 +541,37 @@ export default function App() {
 
   const triggerUpload = (target: string, label?: string) => { pendingTarget.current = target; pendingLabel.current = label; fileInputRef.current?.click(); };
 
-  const applyImageUrl = (key: string, url: string) => {
-    setImageUrls((p) => ({ ...p, [key]: url }));
+  const applyImageUrl = (key: string, url: string, thumbUrl?: string) => {
+    setImageUrls((p) => ({ ...p, [key]: url, ...(thumbUrl ? { [`${key}-thumb`]: thumbUrl } : {}) }));
     if (key === "hero") {
       const i = new window.Image();
       i.onload = () => setHeroAspectRatio(i.naturalWidth / i.naturalHeight);
       i.src = url;
     }
+  };
+
+  // Images uploaded before thumbnails existed only have the full-size file — grids
+  // would keep pulling those down at full size until re-uploaded. This backfills a
+  // "<key>-thumb" for every such key, one at a time, from inside an authenticated
+  // edit-mode session (this sandbox has no network path to Supabase to run it itself).
+  const [backfillProgress, setBackfillProgress] = useState<{ done: number; total: number } | null>(null);
+  const keysNeedingThumbs = Object.keys(imageUrls).filter((k) => !k.endsWith("-thumb") && !imageUrls[`${k}-thumb`]);
+  const runThumbnailBackfill = async () => {
+    const token = editTokenRef.current;
+    if (!token) { alert("편집 권한이 필요합니다. 다시 로그인해주세요."); return; }
+    const keys = keysNeedingThumbs;
+    setBackfillProgress({ done: 0, total: keys.length });
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      try {
+        const thumbUrl = await backfillThumbnail(key, imageUrls[key], token);
+        setImageUrls((p) => ({ ...p, [`${key}-thumb`]: thumbUrl }));
+      } catch (err) {
+        console.error(`[Backfill] failed for ${key}:`, err);
+      }
+      setBackfillProgress({ done: i + 1, total: keys.length });
+    }
+    setTimeout(() => setBackfillProgress(null), 2000);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -556,8 +583,8 @@ export default function App() {
     if (!token) { alert("편집 권한이 필요합니다. 다시 로그인해주세요."); return; }
     setUploadingTarget(target);
     try {
-      const url = await uploadImage(target, file, token, label);
-      applyImageUrl(target, url);
+      const { url, thumbUrl } = await uploadImage(target, file, token, label);
+      applyImageUrl(target, url, thumbUrl);
     } catch (err) {
       console.error("[Upload] failed:", err);
       // Show image temporarily (base64) so user sees it, but mark as upload-failed
@@ -583,8 +610,8 @@ export default function App() {
     for (const file of Array.from(files)) {
       const subId = nextSubId++;
       try {
-        const url = await uploadImage(`activity-${photoId}-${subId}`, file, token, photo?.captionEn);
-        applyImageUrl(`activity-${photoId}-${subId}`, url);
+        const { url, thumbUrl } = await uploadImage(`activity-${photoId}-${subId}`, file, token, photo?.captionEn);
+        applyImageUrl(`activity-${photoId}-${subId}`, url, thumbUrl);
         addedIds.push(subId);
       } catch (err) {
         console.error("[Upload] extra activity photo failed:", err);
@@ -745,7 +772,7 @@ export default function App() {
   const contextValue: PortfolioContextValue = {
     lang, u, MONO, SERIF, SANS, hSize,
     content, updateContent, c, C: InlineField,
-    editMode, img, uploadingTarget,
+    editMode, img, imgThumb, uploadingTarget,
     dragSrc, dragOverKey, setDragOverKey,
     scrollTo, scrollToActivity, triggerUpload, openLightbox,
     contactItems,
@@ -836,6 +863,11 @@ export default function App() {
         {editMode && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-accent text-accent-foreground px-5 py-2.5 shadow-lg" style={MONO}>
             <Edit3 size={13} /><span className="text-xs tracking-widest hidden sm:inline">{u.editBanner}</span>
+            {(keysNeedingThumbs.length > 0 || backfillProgress) && (
+              <button onClick={runThumbnailBackfill} disabled={!!backfillProgress} className="ml-2 sm:ml-4 flex items-center gap-1.5 text-xs bg-accent-foreground/15 hover:bg-accent-foreground/25 px-3 py-1 transition-colors disabled:opacity-60" style={MONO}>
+                {backfillProgress ? `${u.thumbBackfilling} ${backfillProgress.done}/${backfillProgress.total}` : `${u.thumbBackfill} (${keysNeedingThumbs.length})`}
+              </button>
+            )}
             <button onClick={exitEditMode} className="ml-2 sm:ml-4 flex items-center gap-1.5 text-xs bg-accent-foreground/15 hover:bg-accent-foreground/25 px-3 py-1 transition-colors"><Check size={11} />{u.editDone}</button>
           </div>
         )}

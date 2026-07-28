@@ -58,25 +58,9 @@ export async function loginEditor(password: string): Promise<string> {
   return body.token as string;
 }
 
-/* ── Upload image → Supabase Storage as WebP, return public URL ──
-   Goes through the Edge Function (service role) since the storage bucket
-   blocks anon INSERT/UPDATE — requires a valid editor session token. */
-export async function uploadImage(key: string, file: File, token: string, label?: string): Promise<string> {
-  // Convert to WebP with resize. If the first attempt fails (e.g. very large HEIC),
-  // retry at half the max size before giving up.
-  let webp: File;
-  try {
-    webp = await toWebP(file, 0.85, 2000);
-  } catch {
-    try {
-      webp = await toWebP(file, 0.82, 1200); // retry at smaller size
-    } catch (e) {
-      throw new Error(`이미지 변환 실패 (지원하지 않는 형식일 수 있습니다): ${e}`);
-    }
-  }
-
+async function uploadOne(key: string, file: File, token: string, label?: string): Promise<string> {
   const form = new FormData();
-  form.append("file", webp);
+  form.append("file", file);
   form.append("key", key);
   // Used server-side to build a descriptive filename (e.g. floating-memory-i-<ts>.webp)
   // instead of a bare timestamp — pass the English title/caption when available.
@@ -89,6 +73,51 @@ export async function uploadImage(key: string, file: File, token: string, label?
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body?.error ?? `Storage upload failed (${res.status})`);
   return body.url as string;
+}
+
+/* ── Upload image → Supabase Storage as WebP, return both a full-size URL and a
+   small grid/list-thumbnail URL ──
+   Every grid/list view (Works, Activities, exhibition posters/thumbnails) used to
+   point at the same up-to-2000px full image as the detail/lightbox view, so a
+   single page load could pull down dozens of full-resolution images — this is what
+   blew through the Supabase free plan's cached-egress quota. Uploading a second,
+   much smaller variant under "<key>-thumb" (same upload endpoint, just a different
+   storage key, so no server/Edge Function change needed) lets grid views request a
+   file an order of magnitude smaller.
+   Goes through the Edge Function (service role) since the storage bucket blocks
+   anon INSERT/UPDATE — requires a valid editor session token. */
+export async function uploadImage(key: string, file: File, token: string, label?: string): Promise<{ url: string; thumbUrl: string }> {
+  // Convert to WebP with resize. If the first attempt fails (e.g. very large HEIC),
+  // retry at half the max size before giving up.
+  let full: File;
+  try {
+    full = await toWebP(file, 0.85, 2000);
+  } catch {
+    try {
+      full = await toWebP(file, 0.82, 1200); // retry at smaller size
+    } catch (e) {
+      throw new Error(`이미지 변환 실패 (지원하지 않는 형식일 수 있습니다): ${e}`);
+    }
+  }
+  // Thumbnail is derived from the already-resized full file (cheap re-encode, not
+  // the original — avoids re-decoding a potentially huge source image twice).
+  const thumb = await toWebP(full, 0.75, 480);
+
+  const url = await uploadOne(key, full, token, label);
+  const thumbUrl = await uploadOne(`${key}-thumb`, thumb, token, label);
+  return { url, thumbUrl };
+}
+
+// One-time backfill for images uploaded before thumbnails existed: fetches the
+// already-stored full-size file, derives a thumb from it, and uploads just that —
+// the full image is untouched, so this is safe to run repeatedly/partially.
+export async function backfillThumbnail(key: string, imageUrl: string, token: string, label?: string): Promise<string> {
+  const res = await fetch(imageUrl);
+  if (!res.ok) throw new Error(`원본 이미지를 가져오지 못했습니다 (${res.status})`);
+  const blob = await res.blob();
+  const file = new File([blob], "source.webp", { type: blob.type || "image/webp" });
+  const thumb = await toWebP(file, 0.75, 480);
+  return uploadOne(`${key}-thumb`, thumb, token, label);
 }
 
 /* ── Batch KO→EN translation via the Edge Function (Claude) ──

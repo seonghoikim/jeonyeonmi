@@ -31,7 +31,7 @@ export function Works({
   selectedSeries, setSelectedSeries, editingSeriesId, setEditingSeriesId, filteredWorks,
   addArtwork, deleteWork, updateWork, addSeries, updateSeries, deleteSeries,
 }: WorksProps) {
-  const { lang, u, MONO, SERIF, editMode, img, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, triggerUpload, openLightbox, contactItems, C } = usePortfolioContext();
+  const { lang, u, MONO, SERIF, editMode, img, imgThumb, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, triggerUpload, openLightbox, contactItems, C } = usePortfolioContext();
   const selectedWork = artworkList.find((w) => w.id === selectedWorkId) ?? null;
   const modalRef = useModalLock<HTMLDivElement>(!!selectedWork, () => setSelectedWorkId(null));
   const [showInquiry, setShowInquiry] = useState(false);
@@ -155,8 +155,8 @@ export function Works({
                     disableDown={idx === filteredWorks.length - 1}
                   />
                 )}
-                {img(`artwork-${work.id}`)
-                  ? <img src={img(`artwork-${work.id}`)!} alt={work.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" decoding="async" />
+                {imgThumb(`artwork-${work.id}`)
+                  ? <img src={imgThumb(`artwork-${work.id}`)!} alt={work.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" decoding="async" />
                   : <img src="/work-placeholder-v2.svg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />}
                 <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-all duration-500" />
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"><ArrowUpRight size={16} className="text-foreground" /></div>
