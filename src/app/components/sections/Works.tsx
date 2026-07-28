@@ -35,8 +35,31 @@ export function Works({
   const selectedWork = artworkList.find((w) => w.id === selectedWorkId) ?? null;
   const modalRef = useModalLock<HTMLDivElement>(!!selectedWork, () => setSelectedWorkId(null));
   const [showInquiry, setShowInquiry] = useState(false);
-  const inquiryRef = useModalLock<HTMLDivElement>(showInquiry, () => setShowInquiry(false));
+  const [showOtherContacts, setShowOtherContacts] = useState(false);
+  const [inquiryName, setInquiryName] = useState("");
+  const [inquiryEmail, setInquiryEmail] = useState("");
+  const [inquiryMessage, setInquiryMessage] = useState("");
+  const [inquiryError, setInquiryError] = useState("");
+  const closeInquiry = () => { setShowInquiry(false); setShowOtherContacts(false); setInquiryName(""); setInquiryEmail(""); setInquiryMessage(""); setInquiryError(""); };
+  const inquiryRef = useModalLock<HTMLDivElement>(showInquiry, closeInquiry);
   const visibleContacts = contactItems.filter((item) => item.visible);
+  const artistEmail = contactItems.find((item) => item.type === "email")?.display ?? "";
+
+  const submitInquiry = () => {
+    if (!inquiryName.trim() || !inquiryEmail.trim()) { setInquiryError(u.inquiryRequired); return; }
+    const workTitle = selectedWork ? (lang === "ko" ? selectedWork.title : selectedWork.titleEn) : "";
+    const subjectPrefix = lang === "ko" ? "작품 문의" : "Artwork Inquiry";
+    const subject = `[${subjectPrefix}] ${workTitle}`;
+    const body = [
+      `${u.inquiryName}: ${inquiryName}`,
+      `${u.inquiryEmail}: ${inquiryEmail}`,
+      `${u.inquiryArtwork}: ${workTitle}`,
+      "",
+      inquiryMessage,
+    ].join("\n");
+    window.location.href = `mailto:${artistEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    closeInquiry();
+  };
 
   // Mobile: swipe left/right inside the artwork modal to jump straight to the
   // next/previous work's popup, within whatever series filter is currently active.
@@ -281,28 +304,47 @@ export function Works({
         </div>
       )}
 
-      {/* ── INQUIRY CONTACT PICKER ── */}
+      {/* ── INQUIRY FORM ── */}
       {showInquiry && (
-        <div ref={inquiryRef} tabIndex={-1} className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 outline-none" onClick={() => setShowInquiry(false)}>
-          <div className="w-full max-w-xs bg-card border border-border" onClick={(e) => e.stopPropagation()}>
+        <div ref={inquiryRef} tabIndex={-1} className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 outline-none" onClick={closeInquiry}>
+          <div className="w-full max-w-sm bg-card border border-border" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <span className="text-xs tracking-widest text-muted-foreground" style={MONO}>{u.contactPick}</span>
-              <button onClick={() => setShowInquiry(false)} aria-label={u.lbClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
+              <span className="text-xs tracking-widest text-muted-foreground" style={MONO}>{u.worksInquiry.replace(" →", "")}</span>
+              <button onClick={closeInquiry} aria-label={u.lbClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
             </div>
-            <div className="p-1">
-              {visibleContacts.map((item) => (
-                <a key={item.id} href={item.href} target={item.type === "email" || item.type === "phone" ? "_self" : "_blank"} rel="noopener noreferrer"
-                  onClick={() => setShowInquiry(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-secondary/40 transition-colors">
-                  <span className="text-muted-foreground shrink-0">{contactIcon(item.type)}</span>
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground" style={MONO}>{lang === "ko" ? item.labelKo : item.labelEn}</p>
-                    <p className="text-sm text-foreground font-light truncate">{item.display}</p>
-                  </div>
-                </a>
-              ))}
-              {visibleContacts.length === 0 && <p className="px-3 py-4 text-xs text-muted-foreground text-center" style={MONO}>—</p>}
-            </div>
+            {!showOtherContacts ? (
+              <div className="p-4 space-y-3">
+                {selectedWork && (
+                  <p className="text-xs text-muted-foreground">{u.inquiryArtwork}: <span className="text-foreground">{lang === "ko" ? selectedWork.title : selectedWork.titleEn}</span></p>
+                )}
+                <input value={inquiryName} onChange={(e) => { setInquiryName(e.target.value); setInquiryError(""); }} placeholder={u.inquiryNamePh} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground outline-none py-1" />
+                <input value={inquiryEmail} onChange={(e) => { setInquiryEmail(e.target.value); setInquiryError(""); }} type="email" placeholder={u.inquiryEmailPh} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground outline-none py-1" />
+                <textarea value={inquiryMessage} onChange={(e) => setInquiryMessage(e.target.value)} rows={3} placeholder={u.inquiryMessagePh} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground outline-none py-1 resize-none" />
+                {inquiryError && <p className="text-xs text-red-400">{inquiryError}</p>}
+                <button onClick={submitInquiry} className="w-full bg-accent text-accent-foreground text-xs tracking-widest py-2.5 hover:bg-accent/90 transition-colors" style={MONO}>{u.inquirySend}</button>
+                <p className="text-xs text-muted-foreground text-center">{u.inquiryHint}</p>
+                {visibleContacts.length > 0 && (
+                  <button onClick={() => setShowOtherContacts(true)} className="w-full text-xs text-muted-foreground hover:text-accent transition-colors text-center pt-1" style={MONO}>{u.inquiryOtherWays}</button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="p-1">
+                  {visibleContacts.map((item) => (
+                    <a key={item.id} href={item.href} target={item.type === "email" || item.type === "phone" ? "_self" : "_blank"} rel="noopener noreferrer"
+                      onClick={closeInquiry}
+                      className="flex items-center gap-3 px-3 py-2.5 hover:bg-secondary/40 transition-colors">
+                      <span className="text-muted-foreground shrink-0">{contactIcon(item.type)}</span>
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground" style={MONO}>{lang === "ko" ? item.labelKo : item.labelEn}</p>
+                        <p className="text-sm text-foreground font-light truncate">{item.display}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+                <button onClick={() => setShowOtherContacts(false)} className="w-full text-xs text-muted-foreground hover:text-accent transition-colors text-center py-3 border-t border-border" style={MONO}>{u.inquiryBack}</button>
+              </>
+            )}
           </div>
         </div>
       )}
