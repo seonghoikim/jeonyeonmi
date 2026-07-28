@@ -78,7 +78,12 @@ async function fetchImageAsDataUrl(url: string): Promise<{ dataUrl: string; widt
   }
 }
 
-export async function generatePortfolioPdf(data: PortfolioPdfData, filename: string): Promise<void> {
+// Returns the built document rather than saving it directly. Several mobile browsers
+// (Chrome included) silently drop a download triggered from deep inside an async chain
+// — by the time the multi-second font/image fetch resolves, the click that started it
+// is no longer "fresh" enough to count as user-initiated. Building first and letting the
+// caller trigger `pdf.save()` from an actual, synchronous click handler avoids that.
+export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> {
   const [regularBase64, boldBase64] = await Promise.all([fetchFontBase64(FONT_REGULAR_URL), fetchFontBase64(FONT_BOLD_URL)]);
   const images = await Promise.all(data.works.map((w) => (w.imageUrl ? fetchImageAsDataUrl(w.imageUrl) : Promise.resolve(null))));
 
@@ -238,5 +243,5 @@ export async function generatePortfolioPdf(data: PortfolioPdfData, filename: str
     for (const c of data.contacts) paragraph(`${c.label}: ${c.value}`, { size: 10, leading: 1.6 });
   }
 
-  pdf.save(filename);
+  return pdf;
 }
