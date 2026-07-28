@@ -192,18 +192,29 @@ export async function buildPortfolioPdf(data: PortfolioPdfData): Promise<jsPDF> 
         if (!w) return;
         const x = MARGIN_LEFT + col * (COL_WIDTH + COL_GAP);
         const imgInfo = rowImgs[col];
-        // White fill (not gray) so the box reads as one continuous card with the
-        // artwork photo's own white background instead of showing a visible seam;
-        // "FD" (fill + stroke) keeps a thin border so the card boundary is still legible.
-        pdf.setDrawColor(225, 225, 225);
+        // White fill so the box reads as one continuous card with the artwork photo's
+        // own white background. The image is inset by IMAGE_PADDING so it can never
+        // reach all the way to the box edge — otherwise a photo whose aspect ratio
+        // happens to match the box exactly would cover the border line completely on
+        // those sides ("먹히는" — the border getting swallowed by the photo). The
+        // border itself is stroked *after* the image (not combined into one "FD" fill+
+        // stroke call) so it's always painted on top, with a slightly thicker line for
+        // visibility.
         pdf.setFillColor(255, 255, 255);
-        pdf.rect(x, y, COL_WIDTH, IMAGE_BOX_HEIGHT, "FD");
+        pdf.rect(x, y, COL_WIDTH, IMAGE_BOX_HEIGHT, "F");
         if (imgInfo) {
-          const scale = Math.min(COL_WIDTH / imgInfo.width, IMAGE_BOX_HEIGHT / imgInfo.height);
+          const IMAGE_PADDING = 3;
+          const availW = COL_WIDTH - IMAGE_PADDING * 2;
+          const availH = IMAGE_BOX_HEIGHT - IMAGE_PADDING * 2;
+          const scale = Math.min(availW / imgInfo.width, availH / imgInfo.height);
           const w2 = imgInfo.width * scale;
           const h2 = imgInfo.height * scale;
           pdf.addImage(imgInfo.dataUrl, x + (COL_WIDTH - w2) / 2, y + (IMAGE_BOX_HEIGHT - h2) / 2, w2, h2);
         }
+        pdf.setDrawColor(210, 210, 210);
+        pdf.setLineWidth(0.4);
+        pdf.rect(x, y, COL_WIDTH, IMAGE_BOX_HEIGHT, "S");
+        pdf.setLineWidth(0.2); // restore the default so later section-heading underlines aren't affected
         let textY = y + IMAGE_BOX_HEIGHT + 5;
         pdf.setFont(FONT_FAMILY, "bold");
         pdf.setFontSize(10.5);
