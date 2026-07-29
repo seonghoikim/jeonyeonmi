@@ -50,7 +50,7 @@ export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCapti
         style={{ transition: "flex 0.6s cubic-bezier(0.4,0,0.2,1)" }}
         onClick={() => { if (editMode && !editingCaption) triggerUpload("hero", heroCaptionEn); }}>
         {img("hero")
-          ? <img src={img("hero")!} alt={`${c("heroName")} — ${lang === "ko" ? heroCaption : heroCaptionEn}`} fetchPriority="high" decoding="async" className="absolute inset-0 w-full h-full object-cover opacity-70 hover:opacity-80 transition-opacity duration-700" />
+          ? <img src={img("hero")!} alt={`${c("heroName")} — ${lang === "ko" ? heroCaption : heroCaptionEn}`} fetchPriority="high" decoding="async" className="absolute inset-0 w-full h-full object-contain opacity-70 hover:opacity-80 transition-opacity duration-700" />
           : <div className="absolute inset-0 img-placeholder" />}
         <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
         {editMode && !editingCaption && (
