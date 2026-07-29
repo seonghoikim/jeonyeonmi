@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>미라클 윈터 시안 A - 오로라 아이스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Noto+Serif+KR:wght@600;700;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  /* ===================== 0. RESET & TOKENS ===================== */
+  *,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  :root{
+    --navy-1:#0F172A;
+    --navy-2:#1E3A8A;
+    --ice-cyan:#00E5FF;
+    --crystal-white:#FFFFFF;
+    --aurora-purple:#6B21A8;
+    --glass-bg:rgba(255,255,255,.12);
+    --glass-border:rgba(255,255,255,.32);
+    --font-title:'Playfair Display','Noto Serif KR',serif;
+    --font-body:'Noto Sans KR',sans-serif;
+    --gnb-h:76px;
+  }
+  body{
+    font-family:var(--font-body);
+    color:#EAF3FF;
+    background:
+      radial-gradient(ellipse 900px 600px at 15% 8%, rgba(107,33,168,.35), transparent 60%),
+      radial-gradient(ellipse 800px 700px at 85% 30%, rgba(107,33,168,.28), transparent 55%),
+      radial-gradient(ellipse 900px 700px at 20% 78%, rgba(107,33,168,.30), transparent 55%),
+      linear-gradient(160deg, var(--navy-1) 0%, var(--navy-2) 100%);
+    background-attachment:fixed;
+    overflow-x:hidden;
+    position:relative;
+    min-height:100vh;
+    line-height:1.6;
+  }
+  img,svg{ display:block; max-width:100%; }
+  a{ color:inherit; text-decoration:none; }
+  ul{ list-style:none; }
+  button{ font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+  .container{ max-width:1200px; margin:0 auto; padding:0 24px; }
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+  /* frost noise overlay across whole page */
+  .frost-overlay{
+    position:fixed; inset:0; z-index:2; pointer-events:none;
+    opacity:.05; mix-blend-mode:overlay;
+  }
+
+  /* floating snow / glint particle layer */
+  .particle-layer{
+    position:fixed; inset:0; z-index:3; pointer-events:none; overflow:hidden;
+  }
+  .flake{
+    position:absolute; top:-5%; border-radius:50%;
+    background:radial-gradient(circle, #fff 0%, rgba(255,255,255,.15) 70%, transparent 100%);
+    opacity:.85; filter:blur(.2px);
+    animation-name:snow-fall; animation-timing-function:linear; animation-iteration-count:infinite;
+  }
+  .glint{
+    position:absolute; top:-5%; width:8px; height:8px; opacity:.8;
+    background:var(--ice-cyan); transform:rotate(45deg);
+    box-shadow:0 0 6px 2px rgba(0,229,255,.7);
+    animation-name:snow-fall; animation-timing-function:linear; animation-iteration-count:infinite;
+  }
+  @keyframes snow-fall{
+    0%{ transform:translate(0,0) rotate(0deg); }
+    50%{ transform:translate(24px,55vh) rotate(180deg); }
+    100%{ transform:translate(-12px,115vh) rotate(360deg); }
+  }
+
+  /* ===================== 1. GNB ===================== */
+  .gnb{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    height:var(--gnb-h);
+    background:#0A1226; /* fully opaque, never transparent */
+    border-bottom:1px solid rgba(255,255,255,.08);
+    box-shadow:0 4px 24px rgba(0,0,0,.35);
+  }
+  .gnb-inner{
+    max-width:1200px; margin:0 auto; height:100%; padding:0 24px;
+    display:flex; align-items:center; justify-content:space-between; gap:24px;
+  }
+  .gnb-logo{
+    font-family:var(--font-title); font-weight:900; letter-spacing:.06em;
+    font-size:1.15rem; color:var(--crystal-white); white-space:nowrap;
+  }
+  .gnb-logo span{ color:var(--ice-cyan); }
+  .gnb-menu{ display:flex; align-items:center; gap:36px; }
+  .gnb-menu a{
+    font-size:.95rem; font-weight:500; color:#D7E4FF; padding:8px 2px; position:relative;
+    transition:color .2s;
+  }
+  .gnb-menu a::after{
+    content:''; position:absolute; left:0; bottom:0; width:0; height:2px; background:var(--ice-cyan);
+    transition:width .25s;
+  }
+  .gnb-menu a:hover{ color:var(--crystal-white); }
+  .gnb-menu a:hover::after{ width:100%; }
+  .gnb-right{ display:flex; align-items:center; gap:16px; }
+  .gnb-cta{
+    background:var(--ice-cyan); color:#082230; font-weight:700; font-size:.9rem;
+    padding:10px 22px; border-radius:999px; white-space:nowrap;
+    box-shadow:0 0 0 rgba(0,229,255,0); transition:transform .25s, box-shadow .25s;
+  }
+  .gnb-cta:hover{ transform:translateY(-3px); box-shadow:0 10px 22px rgba(0,229,255,.35); }
+  .gnb-burger{
+    display:none; flex-direction:column; gap:5px; width:26px;
+  }
+  .gnb-burger span{ display:block; height:2px; background:#fff; border-radius:2px; }
+  .gnb-mobile-panel{
+    display:none; position:absolute; top:var(--gnb-h); left:0; right:0; background:#0A1226;
+    border-top:1px solid rgba(255,255,255,.08);
+    flex-direction:column; padding:8px 24px 20px;
+  }
+  .gnb-mobile-panel.open{ display:flex; }
+  .gnb-mobile-panel a{ padding:14px 0; border-bottom:1px solid rgba(255,255,255,.06); font-size:1rem; color:#EAF3FF; }
+
+  /* ===================== 2. KV ===================== */
+  .kv{
+    position:relative; width:100%; min-height:90vh;
+    display:flex; align-items:center; justify-content:center;
+    padding-top:var(--gnb-h);
+    overflow:hidden;
+    background:
+      radial-gradient(ellipse 60% 45% at 50% 115%, rgba(255,255,255,.16), transparent 60%),
+      radial-gradient(ellipse 40% 30% at 80% 15%, rgba(0,229,255,.28), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 15% 20%, rgba(107,33,168,.5), transparent 60%),
+      linear-gradient(150deg,#0B1530 0%, #16225C 45%, #1E3A8A 100%);
+  }
+  .kv-deco{ position:absolute; inset:0; z-index:0; }
+  .kv-moon{
+    position:absolute; top:12%; right:12%; width:130px; height:130px; border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #fff, #cdeeff 55%, rgba(205,238,255,.2) 100%);
+    box-shadow:0 0 90px 30px rgba(0,229,255,.35);
+  }
+  .kv-mountain{
+    position:absolute; bottom:0; left:0; width:100%; height:38%;
+    background:linear-gradient(180deg, transparent, rgba(255,255,255,.9) 92%);
+    clip-path:polygon(0% 100%,0% 55%,8% 40%,18% 60%,29% 30%,40% 62%,52% 22%,63% 58%,74% 35%,85% 65%,100% 45%,100% 100%);
+    opacity:.9;
+  }
+  .kv-mountain::after{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(0,229,255,.12) 100%);
+  }
+  .kv-castle{
+    position:absolute; bottom:6%; left:50%; transform:translateX(-50%);
+    width:min(60%,520px); height:180px; opacity:.85;
+  }
+  .kv-castle svg{ width:100%; height:100%; }
+  .kv-content{
+    position:relative; z-index:2; text-align:center; padding:120px 24px 80px;
+  }
+  .kv-title{
+    font-family:var(--font-title); font-weight:900; font-size:clamp(2.2rem,5vw,4rem);
+    letter-spacing:.01em; color:var(--crystal-white); line-height:1.3;
+    text-shadow:0 1px 0 rgba(255,255,255,.9), 0 0 10px rgba(255,255,255,.85), 0 0 36px rgba(0,229,255,.65);
+  }
+  .kv-sub{
+    margin-top:22px; font-size:clamp(1rem,1.6vw,1.25rem); font-weight:400; color:#DDF3FF;
+    text-shadow:0 0 18px rgba(0,229,255,.35);
+  }
+  .kv-badge{
+    display:inline-block; margin-top:32px; padding:10px 24px; border-radius:999px;
+    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.4);
+    backdrop-filter:blur(8px); font-size:.9rem; font-weight:700; letter-spacing:.03em; color:var(--ice-cyan);
+  }
+  .kv-cta{
+    display:inline-block; margin-top:36px; padding:18px 42px; border-radius:999px;
+    background:var(--ice-cyan); color:#082230; font-weight:700; font-size:1.05rem;
+    box-shadow:0 8px 30px rgba(0,229,255,.4); transition:transform .25s, box-shadow .25s;
+  }
+  .kv-cta:hover{ transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,229,255,.55); }
+  .kv-scroll{
+    position:absolute; bottom:28px; left:50%; transform:translateX(-50%); z-index:2;
+    font-size:.75rem; letter-spacing:.2em; color:rgba(255,255,255,.7); text-align:center;
+  }
+  .kv-scroll::after{
+    content:''; display:block; width:1px; height:36px; margin:8px auto 0;
+    background:linear-gradient(180deg, rgba(255,255,255,.9), transparent);
+    animation:scroll-line 1.8s ease-in-out infinite;
+  }
+  @keyframes scroll-line{ 0%{opacity:.2; transform:scaleY(.4);} 50%{opacity:1; transform:scaleY(1);} 100%{opacity:.2; transform:scaleY(.4);} }
+
+  /* ===================== divider ===================== */
+  .divider{ position:relative; width:100%; line-height:0; z-index:1; }
+  .divider svg{ width:100%; height:auto; display:block; }
+
+  /* ===================== 3. GENERIC SECTION ===================== */
+  .section{ position:relative; padding:96px 0; z-index:1; }
+  .section-tight{ padding:64px 0; }
+
+  .synopsis-section{ text-align:center; }
+  .synopsis-text{
+    max-width:840px; margin:0 auto; font-size:1.08rem; font-weight:400; color:#E7F1FF;
+    line-height:2; letter-spacing:.01em;
+  }
+
+  .ip-section{
+    background:radial-gradient(ellipse 70% 60% at 50% 40%, rgba(107,33,168,.45), transparent 70%);
+  }
+  .ip-inner{
+    display:flex; align-items:center; gap:64px;
+  }
+  .ip-illustration{
+    flex:0 0 300px; height:300px; position:relative;
+    border-radius:24px 24px 8px 8px;
+    background:linear-gradient(160deg, rgba(255,255,255,.22), rgba(0,229,255,.12));
+    border:1px solid var(--glass-border);
+    backdrop-filter:blur(10px);
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px;
+    box-shadow:0 0 60px rgba(0,229,255,.18);
+  }
+  .ip-illustration .moomin-shape{
+    width:120px; height:120px; border-radius:50%;
+    background:linear-gradient(160deg,#fff,#cdeeff);
+    position:relative; box-shadow:0 0 40px rgba(255,255,255,.5);
+  }
+  .ip-illustration .moomin-shape::before,
+  .ip-illustration .moomin-shape::after{
+    content:''; position:absolute; top:14px; width:34px; height:44px; border-radius:50%;
+    background:linear-gradient(160deg,#fff,#cdeeff);
+  }
+  .ip-illustration .moomin-shape::before{ left:-16px; }
+  .ip-illustration .moomin-shape::after{ right:-16px; }
+  .ip-illustration span{ font-size:.85rem; color:#DDEBFF; letter-spacing:.04em; }
+  .ip-text{ flex:1; }
+  .ip-label{
+    font-weight:700; color:var(--ice-cyan); letter-spacing:.02em; margin-bottom:14px; font-size:.95rem;
+  }
+  .ip-copy{
+    font-family:var(--font-title); font-weight:700; font-size:clamp(1.3rem,2.4vw,2rem); color:#fff;
+    text-shadow:0 0 20px rgba(0,229,255,.35); line-height:1.5;
+  }
+
+  /* ===================== chapter header block ===================== */
+  .chapter-head{ text-align:center; margin-bottom:56px; }
+  .chapter-label{
+    display:inline-block; font-family:var(--font-title); font-weight:700; letter-spacing:.3em;
+    font-size:.85rem; color:var(--ice-cyan); text-transform:uppercase; margin-bottom:14px;
+  }
+  .chapter-title{
+    font-family:var(--font-title); font-weight:900; font-size:clamp(1.7rem,3.4vw,2.6rem); color:#fff;
+    text-shadow:0 1px 0 rgba(255,255,255,.85), 0 0 10px rgba(255,255,255,.7), 0 0 30px rgba(0,229,255,.55);
+  }
+  .chapter-sub{ margin-top:16px; font-size:1rem; color:#CFE3FF; font-weight:400; }
+
+  .chapter-section:nth-of-type(odd){
+    background:radial-gradient(ellipse 80% 55% at 50% 0%, rgba(107,33,168,.40), transparent 65%);
+  }
+  .chapter-section:nth-of-type(even){
+    background:radial-gradient(ellipse 80% 55% at 50% 100%, rgba(107,33,168,.34), transparent 65%);
+  }
+
+  /* ===================== 4. CAROUSEL / CARDS ===================== */
+  .carousel-wrap{ position:relative; }
+  .carousel{
+    display:flex; gap:28px; overflow-x:auto; scroll-snap-type:x mandatory;
+    padding:12px 4px 28px; scrollbar-width:thin; scrollbar-color:var(--ice-cyan) transparent;
+    cursor:grab;
+  }
+  .carousel:active{ cursor:grabbing; }
+  .carousel::-webkit-scrollbar{ height:6px; }
+  .carousel::-webkit-scrollbar-thumb{ background:rgba(0,229,255,.5); border-radius:4px; }
+  .carousel::-webkit-scrollbar-track{ background:rgba(255,255,255,.08); border-radius:4px; }
+
+  .card{
+    position:relative; flex:0 0 auto; width:min(380px,82vw);
+    scroll-snap-align:start;
+    background:var(--glass-bg); border:1px solid var(--glass-border);
+    border-radius:24px 24px 8px 8px; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    box-shadow:0 0 50px rgba(0,229,255,.15), 0 20px 40px rgba(0,0,0,.25);
+    padding:28px 26px 26px; display:flex; flex-direction:column; gap:14px;
+    transition:transform .3s, box-shadow .3s;
+  }
+  .card:hover{ transform:translateY(-6px); box-shadow:0 0 70px rgba(0,229,255,.28), 0 24px 44px rgba(0,0,0,.3); }
+
+  /* icicle decoration hanging from card top corners */
+  .card::before, .card::after{
+    content:''; position:absolute; top:-2px; width:10px; height:26px;
+    background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(0,229,255,.15));
+    clip-path:polygon(0% 0%,100% 0%,60% 100%,40% 100%);
+    opacity:.85; filter:drop-shadow(0 0 6px rgba(0,229,255,.5));
+  }
+  .card::before{ left:18px; }
+  .card::after{ right:18px; height:18px; }
+
+  .card-media{
+    height:150px; border-radius:18px 18px 6px 6px; position:relative; overflow:hidden;
+    background:linear-gradient(150deg, rgba(0,229,255,.35), rgba(107,33,168,.5));
+    display:flex; align-items:center; justify-content:center;
+  }
+  .card-media svg{ width:64px; height:64px; opacity:.9; }
+  .card-media .shimmer{
+    position:absolute; inset:0;
+    background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%);
+    background-size:200% 100%; animation:shimmer 3.5s linear infinite;
+  }
+  @keyframes shimmer{ 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
+
+  .card-title{ font-family:var(--font-title); font-weight:700; font-size:1.3rem; color:#fff; }
+  .card-desc{ font-size:.92rem; color:#DDEBFF; line-height:1.7; flex:1; }
+  .card-meta{ font-size:.82rem; color:var(--ice-cyan); font-weight:500; }
+  .card-status{
+    display:inline-flex; align-items:center; gap:6px; align-self:flex-start;
+    background:rgba(0,229,255,.14); border:1px solid rgba(0,229,255,.4);
+    color:#B9F5FF; font-size:.78rem; padding:6px 12px; border-radius:999px; font-weight:500;
+  }
+  .card-status::before{ content:''; width:6px; height:6px; border-radius:50%; background:var(--ice-cyan); box-shadow:0 0 8px var(--ice-cyan); }
+
+  .card-cta-row{ display:flex; justify-content:flex-end; margin-top:6px; }
+
+  .btn{
+    display:inline-block; border-radius:999px; font-weight:700; text-align:center;
+    transition:transform .25s, box-shadow .25s, background .25s;
+  }
+  .btn-solid-sm{
+    background:var(--ice-cyan); color:#082230; font-size:.82rem; padding:10px 18px;
+    box-shadow:0 4px 14px rgba(0,229,255,.3);
+  }
+  .btn-solid-sm:hover{ transform:translateY(-3px); box-shadow:0 10px 22px rgba(0,229,255,.45); }
+  .btn-outline{
+    background:transparent; border:1px solid var(--ice-cyan); color:var(--ice-cyan);
+    font-size:.92rem; padding:14px 30px;
+  }
+  .btn-outline:hover{ transform:translateY(-3px); background:rgba(0,229,255,.12); box-shadow:0 10px 26px rgba(0,229,255,.25); }
+
+  .card-placeholder{ align-items:center; justify-content:center; text-align:center; opacity:.85; }
+  .card-placeholder .card-media{ background:linear-gradient(150deg, rgba(255,255,255,.14), rgba(107,33,168,.35)); }
+  .placeholder-badge{
+    align-self:center; font-size:.75rem; letter-spacing:.1em; color:#B9C6E6;
+    border:1px dashed rgba(255,255,255,.35); padding:6px 14px; border-radius:999px;
+  }
+  .placeholder-title{ font-family:var(--font-title); font-size:1.1rem; color:#C9D6F0; }
+
+  .carousel-btn{
+    position:absolute; top:50%; transform:translateY(-50%); z-index:5;
+    width:46px; height:46px; border-radius:50%;
+    background:rgba(10,18,38,.7); border:1px solid rgba(255,255,255,.35);
+    color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+    backdrop-filter:blur(6px); transition:background .2s, transform .2s;
+  }
+  .carousel-btn:hover{ background:rgba(0,229,255,.25); transform:translateY(-50%) scale(1.08); }
+  .carousel-prev{ left:-6px; }
+  .carousel-next{ right:-6px; }
+
+  /* ===================== chapter 3 : single feature ===================== */
+  .feature-single{ display:flex; justify-content:center; }
+  .feature-card{
+    width:100%; max-width:760px; text-align:left;
+  }
+  .feature-card .card-media{ height:220px; }
+  .feature-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:10px 24px; margin-top:6px;
+  }
+  .feature-grid dt{ color:var(--ice-cyan); font-size:.8rem; font-weight:700; letter-spacing:.03em; }
+  .feature-grid dd{ color:#EAF3FF; font-size:.92rem; margin-bottom:10px; }
+  .feature-cta-center{ display:flex; justify-content:center; margin-top:40px; }
+
+  /* ===================== 5. paid exhibit section ===================== */
+  .exhibit-section{
+    background:radial-gradient(ellipse 90% 60% at 50% 30%, rgba(107,33,168,.42), transparent 70%);
+  }
+  .exhibit-card{
+    max-width:900px; margin:0 auto;
+    background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:24px 24px 8px 8px;
+    backdrop-filter:blur(12px); box-shadow:0 0 50px rgba(0,229,255,.15);
+    padding:44px 40px; position:relative;
+  }
+  .exhibit-card::before, .exhibit-card::after{
+    content:''; position:absolute; top:-2px; width:12px; height:30px;
+    background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(0,229,255,.15));
+    clip-path:polygon(0% 0%,100% 0%,60% 100%,40% 100%); filter:drop-shadow(0 0 6px rgba(0,229,255,.5));
+  }
+  .exhibit-card::before{ left:26px; }
+  .exhibit-card::after{ right:26px; }
+  .exhibit-meta{ color:var(--ice-cyan); font-size:.9rem; font-weight:600; margin-top:8px; }
+  .exhibit-desc{ margin-top:22px; color:#E5F0FF; line-height:1.85; font-size:.98rem; }
+  .exhibit-programs{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:28px;
+  }
+  .exhibit-program{
+    text-align:center; padding:22px 12px; border-radius:16px 16px 6px 6px;
+    background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.18);
+  }
+  .exhibit-program .icon{
+    width:44px; height:44px; margin:0 auto 12px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, var(--ice-cyan), rgba(0,229,255,.15));
+    box-shadow:0 0 18px rgba(0,229,255,.4);
+  }
+  .exhibit-program p{ font-size:.88rem; color:#EAF3FF; font-weight:500; }
+  .exhibit-detail{
+    margin-top:24px; font-size:.85rem; color:#CFE3FF; background:rgba(0,229,255,.08);
+    border:1px solid rgba(0,229,255,.25); border-radius:12px; padding:14px 18px;
+  }
+  .exhibit-cta-row{ display:flex; justify-content:center; margin-top:32px; }
+
+  /* ===================== 6. F&B / goods gallery ===================== */
+  .fnb-section{ text-align:center; }
+  .fnb-disclaimer{ margin-top:14px; font-size:.8rem; color:#9FB3D9; }
+  .fnb-grid{
+    margin-top:52px; display:grid; grid-template-columns:repeat(4,1fr); gap:36px;
+    text-align:center;
+  }
+  .fnb-item{ display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .fnb-thumb{
+    width:150px; height:150px; border-radius:50%; position:relative;
+    background:linear-gradient(150deg, rgba(255,255,255,.22), rgba(0,229,255,.18));
+    border:1px solid var(--glass-border); backdrop-filter:blur(10px);
+    box-shadow:0 0 40px rgba(0,229,255,.2);
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .3s;
+  }
+  .fnb-item:hover .fnb-thumb{ transform:translateY(-6px) scale(1.03); }
+  .fnb-thumb svg{ width:56px; height:56px; opacity:.9; }
+  .fnb-tag{
+    position:absolute; top:-6px; right:2px; font-size:.65rem; font-weight:700; letter-spacing:.04em;
+    background:var(--ice-cyan); color:#082230; padding:3px 9px; border-radius:999px;
+  }
+  .fnb-caption strong{ display:block; font-size:.95rem; color:#fff; font-weight:700; margin-bottom:4px; }
+  .fnb-caption span{ font-size:.8rem; color:#B9C6E6; }
+
+  /* ===================== 7. family site (mini) ===================== */
+  .family-mini{ text-align:center; padding:56px 0 24px; }
+  .family-mini-title{ font-size:.85rem; letter-spacing:.15em; color:#9FB3D9; margin-bottom:24px; }
+  .family-icons{ display:flex; justify-content:center; gap:34px; flex-wrap:wrap; }
+  .family-icon{
+    display:flex; flex-direction:column; align-items:center; gap:10px; font-size:.78rem; color:#CFE3FF;
+  }
+  .family-icon .circle{
+    position:relative; width:58px; height:58px; border-radius:50%;
+    background:linear-gradient(160deg, rgba(0,229,255,.35), rgba(107,33,168,.55));
+    border:1px solid rgba(255,255,255,.3);
+    display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:1rem;
+    overflow:visible;
+  }
+  .family-icon .circle::before{
+    content:''; position:absolute; top:-7px; left:50%; transform:translateX(-50%);
+    width:64%; height:46%; background:#fff; opacity:.92;
+    border-radius:50% 50% 45% 45% / 65% 65% 35% 35%;
+    clip-path:polygon(10% 100%,0% 40%,20% 0%,50% 18%,80% 0%,100% 40%,90% 100%);
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.25));
+  }
+
+  /* ===================== 8. footer ===================== */
+  .footer{
+    position:relative; z-index:10; background:#080D1D; border-top:1px solid rgba(255,255,255,.08);
+    padding:48px 0 28px;
+  }
+  .footer-links{
+    display:flex; flex-wrap:wrap; gap:10px 22px; font-size:.85rem; color:#B9C6E6; margin-bottom:26px;
+  }
+  .footer-links a:hover{ color:var(--ice-cyan); }
+  .footer-bottom{
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:18px;
+    border-top:1px solid rgba(255,255,255,.08); padding-top:22px;
+  }
+  .footer-copy{ font-size:.78rem; color:#7C8BAE; }
+  .footer-social{ display:flex; gap:12px; }
+  .footer-social span{
+    width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center;
+    font-size:.8rem; color:#CFE3FF;
+  }
+
+  /* ===================== 9. RESPONSIVE — Tablet 768–1023px ===================== */
+  @media (max-width:1023px){
+    .container{ padding:0 20px; }
+    .ip-inner{ gap:40px; }
+    .ip-illustration{ flex:0 0 240px; height:240px; }
+    .fnb-grid{ grid-template-columns:repeat(2,1fr); gap:32px 24px; }
+    .exhibit-programs{ grid-template-columns:repeat(3,1fr); gap:14px; }
+    .gnb-menu{ gap:22px; }
+    .card{ width:min(340px,78vw); }
+  }
+
+  /* ===================== 10. RESPONSIVE — Mobile ≤767px ===================== */
+  @media (max-width:767px){
+    :root{ --gnb-h:64px; }
+    .container{ padding:0 18px; }
+    .section{ padding:64px 0; }
+
+    .gnb-menu{ display:none; }
+    .gnb-cta{ display:none; }
+    .gnb-burger{ display:flex; }
+    .gnb-cta{ padding:9px 16px; font-size:.82rem; }
+    .gnb-logo{ font-size:1rem; }
+
+    .kv{ min-height:74vh; }
+    .kv-content{ padding:100px 18px 60px; }
+    .kv-cta{ display:block; width:100%; padding:16px 10px; font-size:.95rem; }
+
+    .ip-inner{ flex-direction:column; text-align:center; }
+    .ip-illustration{ flex:0 0 auto; width:220px; height:220px; }
+
+    .feature-grid{ grid-template-columns:1fr; }
+    .exhibit-programs{ grid-template-columns:1fr; }
+    .exhibit-card{ padding:32px 22px; }
+
+    .fnb-grid{ grid-template-columns:1fr; gap:36px; }
+    .fnb-thumb{ width:130px; height:130px; }
+
+    .family-icons{ gap:22px; }
+    .footer-bottom{ flex-direction:column; align-items:flex-start; }
+
+    .carousel-btn{ display:none; }
+    .card{ width:82vw; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- frost noise texture -->
+  <svg class="frost-overlay" width="0" height="0">
+    <filter id="frostNoise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0"/>
+    </filter>
+  </svg>
+  <div class="frost-overlay" style="filter:url(#frostNoise); background:#000;"></div>
+
+  <!-- floating snow / glint particles -->
+  <div class="particle-layer" id="particleLayer" aria-hidden="true"></div>
+
+  <!-- ===================== GNB ===================== -->
+  <header class="gnb">
+    <div class="gnb-inner">
+      <div class="gnb-logo">LOTTE <span>WORLD</span></div>
+      <nav class="gnb-menu" aria-label="주요 메뉴">
+        <a href="#">이벤트</a>
+        <a href="#">티켓</a>
+        <a href="#">이용안내</a>
+        <a href="#">패밀리사이트</a>
+      </nav>
+      <div class="gnb-right">
+        <a href="/ticket/winter-promo" class="gnb-cta">예매하기</a>
+        <button class="gnb-burger" id="gnbBurger" aria-label="메뉴 열기" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+    <nav class="gnb-mobile-panel" id="gnbMobilePanel" aria-label="모바일 메뉴">
+      <a href="#">이벤트</a>
+      <a href="#">티켓</a>
+      <a href="#">이용안내</a>
+      <a href="#">패밀리사이트</a>
+      <a href="/ticket/winter-promo">예매하기</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ===================== KV ===================== -->
+    <section class="kv">
+      <div class="kv-deco" aria-hidden="true">
+        <div class="kv-moon"></div>
+        <div class="kv-castle">
+          <svg viewBox="0 0 400 180" fill="none">
+            <rect x="150" y="60" width="100" height="110" fill="#EAF6FF" opacity=".9"/>
+            <polygon points="150,60 200,20 250,60" fill="#fff" opacity=".95"/>
+            <rect x="90" y="90" width="50" height="80" fill="#D7ECFF" opacity=".85"/>
+            <polygon points="90,90 115,60 140,90" fill="#fff" opacity=".9"/>
+            <rect x="260" y="90" width="50" height="80" fill="#D7ECFF" opacity=".85"/>
+            <polygon points="260,90 285,60 310,90" fill="#fff" opacity=".9"/>
+            <rect x="185" y="110" width="30" height="60" fill="#9FC9E8" opacity=".7"/>
+          </svg>
+        </div>
+        <div class="kv-mountain"></div>
+      </div>
+      <div class="kv-content container">
+        <h1 class="kv-title">도심 속 하얀 기적,<br>미라클 윈터</h1>
+        <p class="kv-sub">눈꽃이 내리는 동화 속 왕국으로 여러분을 초대합니다!</p>
+        <p class="kv-badge">2026.11.20(금) ~ 2027.02.28(일)</p>
+        <div>
+          <a href="/ticket/winter-promo" class="kv-cta">종합이용권(스노우패스) 특가 예매하기</a>
+        </div>
+      </div>
+      <p class="kv-scroll">SCROLL</p>
+    </section>
+
+    <div class="divider" aria-hidden="true">
+      <svg viewBox="0 0 1440 90" preserveAspectRatio="none"><path d="M0,40 C180,90 320,0 520,30 C740,64 860,10 1080,36 C1240,54 1340,20 1440,40 L1440,90 L0,90 Z" fill="#EAF3FF" fill-opacity="0.06"/></svg>
+    </div>
+
+    <!-- ===================== 시놉시스 ===================== -->
+    <section class="section synopsis-section">
+      <div class="container">
+        <p class="synopsis-text">
+          롯데월드에 찾아온 영원의 겨울! 마법사 로티의 실수로 어드벤처 전체가 새하얀 눈과 얼음으로 뒤덮인 '스노우 캐슬'로 변해버렸다.
+          꽁꽁 얼어붙은 왕국에 따뜻한 봄을 되찾기 위해, 빛의 요정 로리와 함께 흩어진 불꽃 정령들을 찾는 모험을 떠나자!
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================== IP 콜라보 ===================== -->
+    <section class="section ip-section">
+      <div class="container ip-inner">
+        <div class="ip-illustration" aria-hidden="true">
+          <div class="moomin-shape"></div>
+          <span>무민 일러스트</span>
+        </div>
+        <div class="ip-text">
+          <p class="ip-label">[무민(Moomin) 스페셜 콜라보]</p>
+          <p class="ip-copy">핀란드 무민 골짜기 친구들이<br>롯데월드에 놀러왔어요!</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider" aria-hidden="true">
+      <svg viewBox="0 0 1440 90" preserveAspectRatio="none"><path d="M0,50 C220,10 300,80 520,44 C760,6 900,70 1120,30 C1260,6 1360,50 1440,30 L1440,90 L0,90 Z" fill="#EAF3FF" fill-opacity="0.06"/></svg>
+    </div>
+
+    <!-- ===================== Chapter 1 — 어트랙션 ===================== -->
+    <section class="section chapter-section" id="chapter1">
+      <div class="container">
+        <div class="chapter-head">
+          <span class="chapter-label">Chapter 1</span>
+          <h2 class="chapter-title">어트랙션 : 얼음 왕국 탐험</h2>
+          <p class="chapter-sub">얼어붙은 왕국 곳곳에 숨겨진 짜릿한 겨울 한정 어트랙션을 만나보세요</p>
+        </div>
+
+        <div class="carousel-wrap">
+          <button class="carousel-btn carousel-prev" data-target="carousel1" aria-label="이전 카드">‹</button>
+          <button class="carousel-btn carousel-next" data-target="carousel1" aria-label="다음 카드">›</button>
+          <div class="carousel" id="carousel1">
+
+            <article class="card">
+              <div class="card-media" aria-hidden="true">
+                <div class="shimmer"></div>
+                <svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="2.4">
+                  <path d="M6 46 C16 30 24 50 34 34 C42 22 50 40 58 26" stroke-linecap="round"/>
+                  <circle cx="14" cy="20" r="4"/>
+                  <circle cx="46" cy="14" r="3"/>
+                  <circle cx="54" cy="46" r="3"/>
+                </svg>
+              </div>
+              <span class="card-status">12월 1일 스노우 이벤트 전면 적용 (현재 야외 기온 테스트 중)</span>
+              <h3 class="card-title">스노우 아틀란티스</h3>
+              <p class="card-desc">꽁꽁 얼어붙은 수로를 따라 달리는 짜릿한 겨울 한정 롤러코스터! 중간중간 뿜어져 나오는 눈보라 특수효과(스노우 머신)를 뚫고 거침없이 질주하세요.</p>
+              <p class="card-meta">운영 장소 · 매직아일랜드 아틀란티스</p>
+              <div class="card-cta-row">
+                <a href="#" class="btn btn-solid-sm">탑승 제한 및 운휴 안내 보기</a>
+              </div>
+            </article>
+
+            <article class="card card-placeholder">
+              <div class="card-media" aria-hidden="true">
+                <svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="2" opacity=".7">
+                  <polygon points="32,8 40,26 58,26 44,38 50,56 32,45 14,56 20,38 6,26 24,26" />
+                </svg>
+              </div>
+              <span class="placeholder-badge">Coming Soon</span>
+              <h3 class="placeholder-title">추가 어트랙션</h3>
+              <p class="card-desc">추가 콘텐츠 준비중입니다. 더욱 짜릿한 얼음 왕국의 모험이 곧 공개될 예정이에요.</p>
+            </article>
+
+            <article class="card card-placeholder">
+              <div class="card-media" aria-hidden="true">
+                <svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="2" opacity=".7">
+                  <polygon points="32,8 40,26 58,26 44,38 50,56 32,45 14,56 20,38 6,26 24,26" />
+                </svg>
+              </div>
+              <span class="placeholder-badge">Coming Soon</span>
+              <h3 class="placeholder-title">추가 어트랙션</h3>
+              <p class="card-desc">추가 콘텐츠 준비중입니다. 더욱 짜릿한 얼음 왕국의 모험이 곧 공개될 예정이에요.</p>
+            </article>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider" aria-hidden="true">
+      <svg viewBox="0 0 1440 90" preserveAspectRatio="none"><path d="M0,30 C200,70 320,10 560,42 C780,72 920,14 1140,40 C1280,58 1360,24 1440,44 L1440,90 L0,90 Z" fill="#EAF3FF" fill-opacity="0.06"/></svg>
+    </div>
+
+    <!-- ===================== Chapter 2 — 포토존 ===================== -->
+    <section class="section chapter-section" id="chapter2">
+      <div class="container">
+        <div class="chapter-head">
+          <span class="chapter-label">Chapter 2</span>
+          <h2 class="chapter-title">포토존 : 눈부신 겨울의 기록</h2>
+          <p class="chapter-sub">인생샷을 남겨보세요!</p>
+        </div>
+
+        <div class="carousel-wrap">
+          <button class="carousel-btn carousel-prev" data-target="carousel2" aria-label="이전 카드">‹</button>
+          <button class="carousel-btn carousel-next" data-target="carousel2" aria-label="다음 카드">›</button>
+          <div class="carousel" id="carousel2">
+
+            <article class="card">
+              <div class="card-media" aria-hidden="true">
+                <div class="shimmer"></div>
+                <svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="2.2">
+                  <path d="M32 6 L32 58 M12 20 L52 44 M52 20 L12 44" stroke-linecap="round"/>
+                  <circle cx="32" cy="32" r="6"/>
+                </svg>
+              </div>
+              <h3 class="card-title">오로라 크리스탈 트리</h3>
+              <p class="card-desc">10m 높이의 거대한 얼음 결정 트리, 밤하늘을 수놓는 오로라 레이저 조명 연출! 얼음 왕국의 주인공이 되어 사진을 남겨보세요.</p>
+              <p class="card-meta">운영 장소 · 어드벤처 1층 만남의 광장</p>
+            </article>
+
+            <article class="card card-placeholder">
+              <div class="card-media" aria-hidden="true">
+                <svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="2" opacity=".7">
+                  <polygon points="32,8 40,26 58,26 44,38 50,56 32,45 14,56 20,38 6,26 24,26" />
+                </svg>
+              </div>
+              <span class="placeholder-badge">Coming Soon</span>
+              <h3 class="placeholder-title">추가 포토존</h3>
+              <p class="card-desc">추가 콘텐츠 준비중입니다. 더 많은 겨울 포토존이 곧 공개될 예정이에요.</p>
+            </article>
+
+            <article class="card card-placeholder">
+              <div class="card-media" aria-hidden="true">
+                <svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="2" opacity=".7">
+                  <polygon points="32,8 40,26 58,26 44,38 50,56 32,45 14,56 20,38 6,26 24,26" />
+                </svg>
+              </div>
+              <span class="placeholder-badge">Coming Soon</span>
+              <h3 class="placeholder-title">추가 포토존</h3>
+              <p class="card-desc">추가 콘텐츠 준비중입니다. 더 많은 겨울 포토존이 곧 공개될 예정이에요.</p>
+            </article>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider" aria-hidden="true">
+      <svg viewBox="0 0 1440 90" preserveAspectRatio="none"><path d="M0,44 C240,4 360,74 600,36 C820,2 940,66 1160,28 C1280,6 1360,42 1440,26 L1440,90 L0,90 Z" fill="#EAF3FF" fill-opacity="0.06"/></svg>
+    </div>
+
+    <!-- ===================== Chapter 3 — 공연 ===================== -->
+    <section class="section chapter-section" id="chapter3">
+      <div class="container">
+        <div class="chapter-head">
+          <span class="chapter-label">Chapter 3</span>
+          <h2 class="chapter-title">공연 : 빛과 눈의 하모니</h2>
+          <p class="chapter-sub">온 가족이 함께 즐기는 화려한 겨울밤의 주인공이 되어보세요</p>
+        </div>
+
+        <div class="feature-single">
+          <article class="card feature-card">
+            <div class="card-media" aria-hidden="true">
+              <div class="shimmer"></div>
+              <svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="2.2">
+                <path d="M8 40 Q20 20 32 40 T56 40" stroke-linecap="round"/>
+                <circle cx="12" cy="16" r="2.5"/><circle cx="26" cy="10" r="2"/><circle cx="40" cy="16" r="2.5"/><circle cx="52" cy="10" r="2"/>
+              </svg>
+            </div>
+            <h3 class="card-title">해피 크리스마스 윈터 퍼레이드</h3>
+            <p class="card-desc">실내에서 쏟아지는 하얀 눈송이와 함께 펼쳐지는 메인 퍼레이드! 산타클로스, 귀여운 눈사람 요정들, 그리고 무민 친구들이 함께 춤추는 환상적인 겨울 파티가 시작됩니다.</p>
+            <dl class="feature-grid">
+              <dt>장소</dt><dd>어드벤처 1층 퍼레이드 코스</dd>
+              <dt>시간</dt><dd>매일 오후 2시 00분 / 오후 8시 00분 (일 2회)</dd>
+            </dl>
+          </article>
+        </div>
+        <div class="feature-cta-center">
+          <a href="#" class="btn btn-outline">퍼레이드 명당자리 및 동선 알아보기</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider" aria-hidden="true">
+      <svg viewBox="0 0 1440 90" preserveAspectRatio="none"><path d="M0,36 C200,74 340,6 580,40 C800,72 940,10 1160,38 C1290,56 1370,20 1440,38 L1440,90 L0,90 Z" fill="#EAF3FF" fill-opacity="0.06"/></svg>
+    </div>
+
+    <!-- ===================== 유료 특별전시 ===================== -->
+    <section class="section exhibit-section">
+      <div class="container">
+        <div class="chapter-head">
+          <h2 class="chapter-title">윈터 라이트 하우스 : 얼음 미로 탈출</h2>
+          <p class="exhibit-meta">매직아일랜드 매직캐슬 3층 · 매일 12:00 ~ 21:00</p>
+        </div>
+
+        <div class="exhibit-card">
+          <div class="exhibit-programs">
+            <div class="exhibit-program">
+              <div class="icon" aria-hidden="true"></div>
+              <p>① 거울 얼음 미로</p>
+            </div>
+            <div class="exhibit-program">
+              <div class="icon" aria-hidden="true"></div>
+              <p>② 오로라 미디어 아트룸</p>
+            </div>
+            <div class="exhibit-program">
+              <div class="icon" aria-hidden="true"></div>
+              <p>③ 불꽃 정령의 방</p>
+            </div>
+          </div>
+
+          <p class="exhibit-desc">빛과 거울로 만들어진 무한한 얼음 미로 속에 갇혔습니다! 마법의 지팡이와 미디어 아트를 활용해 퀴즈를 풀고 미로를 탈출하세요.</p>
+          <p class="exhibit-detail">1회 체험 약 20분 소요 · 1인 5,000원 (현장 키오스크 결제)</p>
+
+          <div class="exhibit-cta-row">
+            <a href="#" class="btn btn-outline">얼음 미로 모바일 사전 큐패스 예약하기</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider" aria-hidden="true">
+      <svg viewBox="0 0 1440 90" preserveAspectRatio="none"><path d="M0,48 C220,8 360,78 600,40 C820,4 960,68 1180,30 C1300,6 1380,44 1440,30 L1440,90 L0,90 Z" fill="#EAF3FF" fill-opacity="0.06"/></svg>
+    </div>
+
+    <!-- ===================== F&B / 굿즈 ===================== -->
+    <section class="section fnb-section">
+      <div class="container">
+        <div class="chapter-head">
+          <h2 class="chapter-title">마법사의 겨울 상점 &amp; 스노우 다이닝</h2>
+          <p class="fnb-disclaimer">※ 겨울 한정 메뉴 및 콜라보 상품은, 일일 한정 수량 소진 시 조기 마감될 수 있습니다.</p>
+        </div>
+
+        <div class="fnb-grid">
+          <div class="fnb-item">
+            <div class="fnb-thumb">
+              <span class="fnb-tag">F&amp;B</span>
+              <svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="2.2"><path d="M18 28 h28 v18 a14 14 0 0 1 -28 0 z"/><path d="M46 30 h4 a6 6 0 0 1 0 12 h-4"/><circle cx="32" cy="16" r="6"/></svg>
+            </div>
+            <div class="fnb-caption">
+              <strong>눈사람 마시멜로 핫초코</strong>
+              <span>어드벤처 1층 아이스팩토리 (F&amp;B)</span>
+            </div>
+          </div>
+
+          <div class="fnb-item">
+            <div class="fnb-thumb">
+              <span class="fnb-tag">F&amp;B</span>
+              <svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="24" cy="24" r="5"/><circle cx="40" cy="20" r="4"/><circle cx="34" cy="34" r="5"/><circle cx="22" cy="40" r="4"/><circle cx="42" cy="40" r="4"/></svg>
+            </div>
+            <div class="fnb-caption">
+              <strong>불꽃 정령 매콤 떡볶이 세트</strong>
+              <span>매직아일랜드 스낵바 (F&amp;B)</span>
+            </div>
+          </div>
+
+          <div class="fnb-item">
+            <div class="fnb-thumb">
+              <span class="fnb-tag">굿즈</span>
+              <svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="2.2"><rect x="16" y="22" width="32" height="28" rx="6"/><path d="M24 22 v-4 a8 8 0 0 1 16 0 v4"/></svg>
+            </div>
+            <div class="fnb-caption">
+              <strong>무민 x 로티 윈터 수면잠옷 세트</strong>
+              <span>어드벤처 1층 로티스 엠포리움 (굿즈)</span>
+            </div>
+          </div>
+
+          <div class="fnb-item">
+            <div class="fnb-thumb">
+              <span class="fnb-tag">굿즈</span>
+              <svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="2.2"><path d="M18 30 a14 12 0 0 1 28 0 v10 h-28 z"/><circle cx="32" cy="14" r="4"/></svg>
+            </div>
+            <div class="fnb-caption">
+              <strong>얼음 마법사 털모자 &amp; 장갑</strong>
+              <span>매직아일랜드 기프트샵 (굿즈)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 패밀리 사이트 (미니) ===================== -->
+    <section class="family-mini">
+      <div class="container">
+        <p class="family-mini-title">FAMILY SITE</p>
+        <div class="family-icons">
+          <a class="family-icon" href="#"><span class="circle">롯</span>롯데월드 어드벤처</a>
+          <a class="family-icon" href="#"><span class="circle">부</span>롯데월드 부산</a>
+          <a class="family-icon" href="#"><span class="circle">스</span>서울스카이</a>
+          <a class="family-icon" href="#"><span class="circle">아</span>아쿠아리움</a>
+          <a class="family-icon" href="#"><span class="circle">워</span>워터파크</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-links">
+        <a href="#">롯데월드 어드벤처</a>
+        <a href="#">롯데월드 부산</a>
+        <a href="#">서울스카이</a>
+        <a href="#">아쿠아리움</a>
+        <a href="#">워터파크</a>
+        <a href="#">이용약관</a>
+        <a href="#">개인정보처리방침</a>
+      </div>
+      <div class="footer-bottom">
+        <p class="footer-copy">© Lotte World. All rights reserved.</p>
+        <div class="footer-social" aria-hidden="true">
+          <span>f</span><span>i</span><span>y</span><span>b</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ---------- GNB mobile toggle ----------
+    (function(){
+      var burger = document.getElementById('gnbBurger');
+      var panel = document.getElementById('gnbMobilePanel');
+      burger.addEventListener('click', function(){
+        var open = panel.classList.toggle('open');
+        burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      panel.querySelectorAll('a').forEach(function(a){
+        a.addEventListener('click', function(){
+          panel.classList.remove('open');
+          burger.setAttribute('aria-expanded','false');
+        });
+      });
+    })();
+
+    // ---------- carousel prev/next buttons ----------
+    (function(){
+      document.querySelectorAll('.carousel-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var track = document.getElementById(btn.dataset.target);
+          var card = track.querySelector('.card');
+          var step = card ? card.getBoundingClientRect().width + 28 : 320;
+          track.scrollBy({ left: btn.classList.contains('carousel-next') ? step : -step, behavior:'smooth' });
+        });
+      });
+    })();
+
+    // ---------- carousel drag-to-scroll (desktop mouse UX) ----------
+    (function(){
+      document.querySelectorAll('.carousel').forEach(function(track){
+        var isDown = false, startX, scrollLeft;
+        track.addEventListener('mousedown', function(e){
+          isDown = true; startX = e.pageX - track.offsetLeft; scrollLeft = track.scrollLeft;
+        });
+        ['mouseleave','mouseup'].forEach(function(evt){
+          track.addEventListener(evt, function(){ isDown = false; });
+        });
+        track.addEventListener('mousemove', function(e){
+          if(!isDown) return;
+          e.preventDefault();
+          var x = e.pageX - track.offsetLeft;
+          track.scrollLeft = scrollLeft - (x - startX) * 1.2;
+        });
+      });
+    })();
+
+    // ---------- floating snow / glint particles ----------
+    (function(){
+      var layer = document.getElementById('particleLayer');
+      var count = window.innerWidth < 767 ? 26 : 46;
+      for (var i = 0; i < count; i++) {
+        var el = document.createElement('div');
+        var isGlint = Math.random() < 0.18;
+        el.className = isGlint ? 'glint' : 'flake';
+        var size = isGlint ? (4 + Math.random() * 5) : (3 + Math.random() * 8);
+        if (!isGlint) {
+          el.style.width = size + 'px';
+          el.style.height = size + 'px';
+        }
+        el.style.left = (Math.random() * 100) + 'vw';
+        el.style.animationDuration = (10 + Math.random() * 16) + 's';
+        el.style.animationDelay = (Math.random() * -20) + 's';
+        el.style.opacity = 0.4 + Math.random() * 0.5;
+        layer.appendChild(el);
+      }
+    })();
+  </script>
+</body>
+</html>

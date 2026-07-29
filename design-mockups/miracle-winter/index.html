@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>미라클 윈터 디자인 시안 3종 비교</title>
+<style>
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Noto Sans KR","Apple SD Gothic Neo",sans-serif;
+    background:#0B0F1A;
+    color:#F1F5F9;
+    padding:56px 24px 96px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+  header{text-align:center;margin-bottom:48px;}
+  header .kicker{
+    display:inline-block;font-size:13px;letter-spacing:.18em;color:#00E5FF;
+    font-weight:700;margin-bottom:14px;text-transform:uppercase;
+  }
+  h1{font-size:clamp(28px,4vw,42px);margin:0 0 14px;font-weight:800;}
+  header p{color:#94A3B8;font-size:15px;line-height:1.7;max-width:640px;margin:0 auto;}
+  .grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:48px;
+  }
+  @media (max-width:1023px){ .grid{grid-template-columns:1fr;max-width:520px;margin-left:auto;margin-right:auto;} }
+  .card{
+    background:#121826;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;
+    display:flex;flex-direction:column;transition:transform .25s ease, box-shadow .25s ease;
+  }
+  .card:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,.4);}
+  .card .thumb{width:100%;aspect-ratio:900/620;object-fit:cover;display:block;border-bottom:1px solid rgba(255,255,255,.08);}
+  .card .body{padding:24px;display:flex;flex-direction:column;gap:12px;flex:1;}
+  .card .tag{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+  .card h2{margin:0;font-size:20px;font-weight:800;}
+  .card p{margin:0;font-size:13.5px;line-height:1.7;color:#94A3B8;flex:1;}
+  .card .tokens{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+  .card .tokens span{
+    font-size:11px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.1);color:#CBD5E1;
+  }
+  .card a.open{
+    margin-top:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:12px 18px;border-radius:999px;font-weight:700;font-size:13.5px;text-decoration:none;
+    transition:transform .2s ease;
+  }
+  .card a.open:hover{transform:translateY(-2px);}
+  .a-tag{color:#00E5FF;}
+  .a-open{background:#00E5FF;color:#082230;}
+  .b-tag{color:#7DA6FF;}
+  .b-open{background:#EAF1FF;color:#173FAE;}
+  .c-tag{color:#FF6FC1;}
+  .c-open{background:linear-gradient(90deg,#00E5FF,#FF2E93);color:#1A0B2E;}
+  footer{margin-top:64px;text-align:center;color:#64748B;font-size:12.5px;line-height:1.8;}
+  footer code{background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <span class="kicker">Design Mockup Review · 3 Variants</span>
+      <h1>미라클 윈터 : 얼어붙은 스노우 캐슬의 비밀</h1>
+      <p>롯데월드 겨울 시즌 프로모션 페이지 디자인 시안 3종입니다. 콘텐츠·구조(GNB/Footer, KV, 반응형 브레이크포인트, 섹션 위계, 캐러셀, CTA 배치 등)는 세 시안 모두 동일한 기반 가이드라인을 따르며, 컬러·타이포그래피·컴포넌트 스타일·데코레이션 톤앤매너만 다르게 적용했습니다.</p>
+    </header>
+
+    <div class="grid">
+      <article class="card">
+        <img class="thumb" src="thumbs/thumb-a.png" alt="시안 A 오로라 아이스 미리보기" loading="lazy">
+        <div class="body">
+          <span class="tag a-tag">시안 A · 기본안</span>
+          <h2>오로라 아이스</h2>
+          <p>제공된 디자인 프롬프트를 그대로 구현한 기본 방향. 다크 네이비 → 딥 블루 배경에 아이스 시안 포인트, 오로라 퍼플 섹션 글로우, 글래스모피즘 카드와 눈송이·다이아몬드 파티클로 신비로운 겨울 왕국 분위기를 표현했습니다.</p>
+          <div class="tokens">
+            <span>#0F172A → #1E3A8A</span>
+            <span>#00E5FF 포인트</span>
+            <span>글래스모피즘</span>
+            <span>세리프 타이틀</span>
+          </div>
+          <a class="open a-open" href="style-a-aurora-ice.html" target="_blank" rel="noopener">시안 A 전체화면으로 보기 →</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <img class="thumb" src="thumbs/thumb-b.png" alt="시안 B 크리스탈 화이트 미리보기" loading="lazy">
+        <div class="body">
+          <span class="tag b-tag">시안 B · 프리미엄 미니멀</span>
+          <h2>크리스탈 화이트</h2>
+          <p>백화점 윈터 캠페인을 연상시키는 밝고 절제된 라이트 럭셔리 방향. 프로스트 화이트 → 아이스 블루의 은은한 배경에 사파이어 블루 포인트, 실버 포일 타이틀, 가는 라인의 크리스탈 데코로 고급스럽고 여백감 있는 무드를 연출했습니다.</p>
+          <div class="tokens">
+            <span>#F8FAFC → #DBEAFE</span>
+            <span>#1D4ED8 포인트</span>
+            <span>얇은 실버 보더</span>
+            <span>라이트 세리프</span>
+          </div>
+          <a class="open b-open" href="style-b-crystal-white.html" target="_blank" rel="noopener">시안 B 전체화면으로 보기 →</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <img class="thumb" src="thumbs/thumb-c.png" alt="시안 C 매직 오로라 페스티벌 미리보기" loading="lazy">
+        <div class="body">
+          <span class="tag c-tag">시안 C · 비비드 페스티벌</span>
+          <h2>매직 오로라 페스티벌</h2>
+          <p>가족 단위 겨울 축제에 어울리는 가장 화려하고 에너제틱한 방향. 딥 인디고 → 비비드 바이올렛 배경에 시안·마젠타·골드 3색 포인트, 그라디언트 보더 카드와 촘촘한 파티클·반짝임 연출로 축제 같은 생동감을 강조했습니다.</p>
+          <div class="tokens">
+            <span>#1A0B2E → #7C3AED</span>
+            <span>#FF2E93 / #FFD700</span>
+            <span>그라디언트 보더</span>
+            <span>데코라티브 세리프</span>
+          </div>
+          <a class="open c-open" href="style-c-magic-festival.html" target="_blank" rel="noopener">시안 C 전체화면으로 보기 →</a>
+        </div>
+      </article>
+    </div>
+
+    <footer>
+      기반 레이아웃 규칙(GNB/Footer 고정, KV Full-bleed, PC 1024px↑ · Tablet 768–1023px · Mobile 767px↓ 브레이크포인트, PC 최대폭 1200px, 모바일 1단 스택, Chapter→타이틀→서브텍스트→콘텐츠 위계, 2개 이상 아이템 캐러셀, F&B/굿즈 썸네일 갤러리, CTA 카드 우하단/그룹 중앙하단 배치)은 3개 시안 모두 동일하게 적용되었습니다.<br>
+      실제 이미지·영상 에셋은 <code>placeholder</code>로 대체되어 있으며, 폰트는 Google Fonts 연결이 차단된 환경에서는 시스템 폰트로 대체 표시될 수 있습니다.
+    </footer>
+  </div>
+</body>
+</html>
