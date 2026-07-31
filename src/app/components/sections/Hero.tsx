@@ -15,7 +15,7 @@ export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCapti
   const { lang, u, MONO, SERIF, SANS, content, updateContent, c, editMode, img, uploadingTarget, triggerUpload, scrollTo } = usePortfolioContext();
 
   return (
-    <section id="hero" className="hero-section min-h-screen flex flex-col md:flex-row" style={{ paddingTop: 0 }}>
+    <section id="hero" className="hero-section min-h-[100svh] flex flex-col md:flex-row" style={{ paddingTop: 0 }}>
       <div className="hero-panel flex flex-col justify-end px-6 lg:px-12 pb-12 sm:pb-16 pt-16 md:pt-0 shrink-0 order-2 md:order-1"
         style={{ flex: heroAspectRatio ? `0 0 ${Math.max(28, Math.min(48, Math.round(100 / (1 + heroAspectRatio * 1.4))))}%` : "0 0 42%", transition: "flex-basis 0.6s cubic-bezier(0.4,0,0.2,1)" }}>
         <span className="text-xs tracking-[0.25em] text-accent uppercase mb-3" style={MONO}>
@@ -46,7 +46,7 @@ export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCapti
           </button>
         </div>
       </div>
-      <div className={`hero-image relative min-h-[50vh] md:min-h-screen bg-card overflow-hidden flex-1 order-1 md:order-2 ${editMode && !editingCaption ? "cursor-pointer" : ""}`}
+      <div className={`hero-image relative min-h-[50svh] md:min-h-[100svh] bg-card overflow-hidden flex-1 order-1 md:order-2 ${editMode && !editingCaption ? "cursor-pointer" : ""}`}
         style={{ transition: "flex 0.6s cubic-bezier(0.4,0,0.2,1)" }}
         onClick={() => { if (editMode && !editingCaption) triggerUpload("hero", heroCaptionEn); }}>
         {img("hero")
