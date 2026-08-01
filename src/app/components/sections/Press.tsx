@@ -22,7 +22,7 @@ export function Press({
   pressList, setPressList, editingPressId, setEditingPressId, fetchingPressId,
   addPress, updatePress, deletePress, fetchPressPreview, triggerPressUpload, uploadingPressId,
 }: PressProps) {
-  const { lang, u, MONO, SERIF, editMode, dragSrc, dragOverKey, setDragOverKey, C } = usePortfolioContext();
+  const { lang, u, MONO, SERIF, editMode, dragSrc, dragOverKey, setDragOverKey, C, openLightbox } = usePortfolioContext();
 
   if (pressList.length === 0 && !editMode) return null;
 
@@ -110,7 +110,11 @@ export function Press({
                 </>
               ) : (
                 <>
-                  <div className="shrink-0 overflow-hidden bg-secondary flex items-center justify-center" style={{ width: 56, height: 56 }}>
+                  <div
+                    className={`shrink-0 overflow-hidden bg-secondary flex items-center justify-center ${!item.url && item.image ? "cursor-pointer" : ""}`}
+                    style={{ width: 56, height: 56 }}
+                    onClick={() => { if (!item.url && item.image) { trackEvent("press_click", { outlet: lang === "ko" ? item.outlet : (item.outletEn || item.outlet), title: lang === "ko" ? item.title : item.titleEn }); openLightbox(item.image); } }}
+                  >
                     {item.image
                       ? <img src={item.image} alt={lang === "ko" ? item.title : item.titleEn} className="w-full h-full object-cover" loading="lazy" />
                       : <img src="/favicon.svg" alt="" className="w-full h-full object-cover" loading="lazy" />}
@@ -121,6 +125,10 @@ export function Press({
                       <a href={item.url} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("press_click", { outlet: lang === "ko" ? item.outlet : (item.outletEn || item.outlet), title: lang === "ko" ? item.title : item.titleEn })} className="text-sm font-light text-foreground hover:text-accent transition-colors leading-snug flex items-center gap-1" style={SERIF}>
                         {lang === "ko" ? item.title : item.titleEn} <ArrowUpRight size={12} className="shrink-0 opacity-60" />
                       </a>
+                    ) : item.image ? (
+                      <button onClick={() => { trackEvent("press_click", { outlet: lang === "ko" ? item.outlet : (item.outletEn || item.outlet), title: lang === "ko" ? item.title : item.titleEn }); openLightbox(item.image); }} className="text-sm font-light text-foreground hover:text-accent transition-colors leading-snug text-left" style={SERIF}>
+                        {lang === "ko" ? item.title : item.titleEn}
+                      </button>
                     ) : (
                       <p className="text-sm font-light text-foreground leading-snug" style={SERIF}>{lang === "ko" ? item.title : item.titleEn}</p>
                     )}
