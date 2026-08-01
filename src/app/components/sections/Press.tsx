@@ -1,4 +1,4 @@
-import { Plus, GripVertical, ArrowUpRight, Edit3, Check, Trash2, RefreshCw } from "lucide-react";
+import { Plus, GripVertical, ArrowUpRight, Edit3, Check, Trash2, RefreshCw, Upload } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, type PressEntry } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
@@ -14,11 +14,13 @@ type PressProps = {
   updatePress: (id: number, f: keyof PressEntry, v: string) => void;
   deletePress: (id: number) => void;
   fetchPressPreview: (id: number, url: string) => void;
+  triggerPressUpload: (id: number) => void;
+  uploadingPressId: number | null;
 };
 
 export function Press({
   pressList, setPressList, editingPressId, setEditingPressId, fetchingPressId,
-  addPress, updatePress, deletePress, fetchPressPreview,
+  addPress, updatePress, deletePress, fetchPressPreview, triggerPressUpload, uploadingPressId,
 }: PressProps) {
   const { lang, u, MONO, SERIF, editMode, dragSrc, dragOverKey, setDragOverKey, C } = usePortfolioContext();
 
@@ -42,6 +44,7 @@ export function Press({
         {pressList.map((item, idx) => {
           const isEditing = editMode && editingPressId === item.id;
           const isFetching = fetchingPressId === item.id;
+          const isUploading = uploadingPressId === item.id;
           return (
             <div key={item.id}
               draggable={editMode && !isEditing}
@@ -83,6 +86,18 @@ export function Press({
                     <input value={item.url} onChange={(e) => updatePress(item.id, "url", e.target.value)} className="flex-1 bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" style={MONO} placeholder={u.pressUrlPh} />
                     <button onClick={() => fetchPressPreview(item.id, item.url)} disabled={isFetching} className="flex items-center gap-1.5 text-xs border border-accent text-accent px-2.5 py-1 shrink-0 hover:bg-accent/10 transition-colors disabled:opacity-50" style={MONO}>
                       <RefreshCw size={11} className={isFetching ? "animate-spin" : ""} />{isFetching ? u.pressFetching : u.pressFetch}
+                    </button>
+                  </div>
+                  {/* Image doesn't have to come from a URL unfurl — a print-only
+                      clipping (no online article) can still have a photo attached. */}
+                  <div className="flex items-center gap-2">
+                    {item.image && (
+                      <div className="shrink-0 overflow-hidden bg-secondary" style={{ width: 32, height: 32 }}>
+                        <img src={item.image} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <button onClick={() => triggerPressUpload(item.id)} disabled={isUploading} className="flex items-center gap-1.5 text-xs border border-accent text-accent px-2.5 py-1 shrink-0 hover:bg-accent/10 transition-colors disabled:opacity-50" style={MONO}>
+                      <Upload size={11} />{isUploading ? u.pressImageUploading : u.pressImageUpload}
                     </button>
                   </div>
                   <input value={item.title} onChange={(e) => updatePress(item.id, "title", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground font-light outline-none" style={SERIF} placeholder="제목 KO" />
