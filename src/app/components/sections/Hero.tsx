@@ -17,14 +17,15 @@ type HeroProps = {
   onSelectWork: (id: number) => void;
 };
 
-// How long each work stays fully visible before the next crossfade begins.
-// Longer than a plain hard-cut interval would need since the fade itself
-// eats into how long a work reads as "settled."
+// How long each work stays fully visible before the next breath begins.
 const ROTATE_HOLD_MS = 7000;
-// Crossfade duration — both the outgoing and incoming photo animate over this.
-const ROTATE_FADE_MS = 1200;
+// Fade out, then fade in — never both partway visible at once, so two very
+// differently-shaped photos never overlap mid-transition (which looked messy
+// with a simultaneous crossfade). Each half of the "breath."
+const FADE_OUT_MS = 700;
+const FADE_IN_MS = 700;
 
-type RotateState = { slots: [Artwork | null, Artwork | null]; active: 0 | 1 };
+type RotatePhase = "hold" | "fadeOut" | "fadeIn";
 
 export function Hero({
   heroAspectRatio, heroCaption, heroCaptionEn, setHeroCaption, setHeroCaptionEn, editingCaption, setEditingCaption,
@@ -32,18 +33,17 @@ export function Hero({
 }: HeroProps) {
   const { lang, u, MONO, SERIF, SANS, content, updateContent, c, editMode, img, uploadingTarget, triggerUpload, scrollTo } = usePortfolioContext();
   const rotateActive = heroRotateEnabled && heroRotateWorks.length > 0;
-  // Two stacked image layers at fixed DOM positions (slot 0 / slot 1), alternating
-  // which one is "active" (opacity-70) vs "inactive" (opacity-0). The opacity has
-  // to flip on the *same* DOM node across renders for the CSS transition below to
-  // have anything to animate between — a "current"/"previous" naming scheme reads
-  // nicer but pins each node's opacity to a fixed role forever, which turned out
-  // to just swap the src with no transition at all (verified empirically).
-  const [rotate, setRotate] = useState<RotateState>({ slots: [null, null], active: 0 });
+  // A single image layer, breathing between fully visible and fully hidden.
+  // The next work's src is only ever swapped in while opacity is at 0 (during
+  // the pause between fadeOut and fadeIn), so nothing is ever seen mid-swap —
+  // no second layer is needed since the two photos never appear together.
+  const [displayed, setDisplayed] = useState<Artwork | null>(null);
+  const [phase, setPhase] = useState<RotatePhase>("hold");
 
   // Reset to a valid starting frame whenever rotation turns on/off or the featured pool changes size.
   useEffect(() => {
-    if (!rotateActive) { setRotate({ slots: [null, null], active: 0 }); return; }
-    setRotate({ slots: [heroRotateWorks[0] ?? null, null], active: 0 });
+    setDisplayed(rotateActive ? (heroRotateWorks[0] ?? null) : null);
+    setPhase("hold");
   }, [rotateActive, heroRotateWorks.length]);
 
   // Only the currently-displayed work's <img> triggers a fetch on its own — every
@@ -60,26 +60,31 @@ export function Hero({
     });
   }, [rotateActive, heroRotateWorks, img]);
 
-  // Random rather than sequential per request — picks a different work each tick
-  // so the same piece never repeats twice in a row.
+  // Drives the hold → fadeOut → (swap) → fadeIn → hold cycle. Each phase change
+  // reschedules the next one, so this single effect re-fires as `phase` advances.
   useEffect(() => {
     if (!rotateActive || heroRotateWorks.length < 2) return;
-    const id = setInterval(() => {
-      setRotate((prev) => {
-        const current = prev.slots[prev.active];
-        const idx = Math.floor(Math.random() * heroRotateWorks.length);
-        let next = heroRotateWorks[idx];
-        if (next.id === current?.id) next = heroRotateWorks[(idx + 1) % heroRotateWorks.length];
-        const inactive = prev.active === 0 ? 1 : 0;
-        const slots = [...prev.slots] as [Artwork | null, Artwork | null];
-        slots[inactive] = next;
-        return { slots, active: inactive };
-      });
-    }, ROTATE_HOLD_MS);
-    return () => clearInterval(id);
-  }, [rotateActive, heroRotateWorks]);
+    const duration = phase === "hold" ? ROTATE_HOLD_MS : phase === "fadeOut" ? FADE_OUT_MS : FADE_IN_MS;
+    const id = setTimeout(() => {
+      if (phase === "hold") { setPhase("fadeOut"); return; }
+      if (phase === "fadeOut") {
+        // Random rather than sequential per request — picks a different work each
+        // time so the same piece never repeats twice in a row.
+        setDisplayed((prev) => {
+          const idx = Math.floor(Math.random() * heroRotateWorks.length);
+          let next = heroRotateWorks[idx];
+          if (next.id === prev?.id) next = heroRotateWorks[(idx + 1) % heroRotateWorks.length];
+          return next;
+        });
+        setPhase("fadeIn");
+        return;
+      }
+      setPhase("hold");
+    }, duration);
+    return () => clearTimeout(id);
+  }, [rotateActive, heroRotateWorks, phase]);
 
-  const currentWork = rotateActive ? rotate.slots[rotate.active] : null;
+  const currentWork = rotateActive ? displayed : null;
   // Clicking the manual-upload trigger doesn't apply while rotating (there's no
   // single "hero" image to replace), and never applies while the caption editor
   // itself is focused (its own stopPropagation keeps clicks there from bubbling).
@@ -133,22 +138,15 @@ export function Hero({
           if (rotateActive && currentWork) onSelectWork(currentWork.id);
           else if (!rotateActive) scrollTo("current-exhibitions");
         }}>
-        {rotateActive ? (
-          ([0, 1] as const).map((slot) => {
-            const work = rotate.slots[slot];
-            if (!work) return null;
-            const isActive = rotate.active === slot;
-            return (
-              <img
-                key={slot}
-                src={(img(`artwork-${work.id}`) || work.image)!}
-                alt={`${lang === "ko" ? work.title : (work.titleEn || work.title)}, ${work.year}`}
-                decoding="async"
-                className={`absolute inset-0 w-full h-full object-contain transition-opacity ${isActive ? "opacity-70 hover:opacity-80" : "opacity-0"}`}
-                style={{ transitionDuration: `${ROTATE_FADE_MS}ms` }}
-              />
-            );
-          })
+        {currentWork ? (
+          <img
+            key="rotating"
+            src={(img(`artwork-${currentWork.id}`) || currentWork.image)!}
+            alt={`${lang === "ko" ? currentWork.title : (currentWork.titleEn || currentWork.title)}, ${currentWork.year}`}
+            decoding="async"
+            className={`absolute inset-0 w-full h-full object-contain transition-opacity ${phase === "fadeOut" ? "opacity-0" : "opacity-70 hover:opacity-80"}`}
+            style={{ transitionDuration: `${phase === "fadeOut" ? FADE_OUT_MS : FADE_IN_MS}ms` }}
+          />
         ) : img("hero") ? (
           <img src={img("hero")!} alt={`${c("heroName")} — ${lang === "ko" ? heroCaption : heroCaptionEn}`} fetchPriority="high" decoding="async" className="absolute inset-0 w-full h-full object-contain opacity-70 hover:opacity-80 transition-opacity duration-700" />
         ) : (
