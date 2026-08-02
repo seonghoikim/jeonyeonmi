@@ -14,15 +14,13 @@ type PressProps = {
   updatePress: (id: number, f: keyof PressEntry, v: string) => void;
   deletePress: (id: number) => void;
   fetchPressPreview: (id: number, url: string) => void;
-  triggerPressUpload: (id: number) => void;
-  uploadingPressId: number | null;
 };
 
 export function Press({
   pressList, setPressList, editingPressId, setEditingPressId, fetchingPressId,
-  addPress, updatePress, deletePress, fetchPressPreview, triggerPressUpload, uploadingPressId,
+  addPress, updatePress, deletePress, fetchPressPreview,
 }: PressProps) {
-  const { lang, u, MONO, SERIF, editMode, dragSrc, dragOverKey, setDragOverKey, C, openLightbox } = usePortfolioContext();
+  const { lang, u, MONO, SERIF, editMode, dragSrc, dragOverKey, setDragOverKey, C, openLightbox, img, triggerUpload, uploadingTarget } = usePortfolioContext();
 
   if (pressList.length === 0 && !editMode) return null;
 
@@ -44,7 +42,14 @@ export function Press({
         {pressList.map((item, idx) => {
           const isEditing = editMode && editingPressId === item.id;
           const isFetching = fetchingPressId === item.id;
-          const isUploading = uploadingPressId === item.id;
+          const uploadKey = `press-${item.id}`;
+          const isUploading = uploadingTarget === uploadKey;
+          // A print-only clipping (no online article) can still have a photo
+          // attached directly instead of coming from the URL og:image unfurl.
+          const displayImage = img(uploadKey) || item.image;
+          const outlet = lang === "ko" ? item.outlet : (item.outletEn || item.outlet);
+          const title = lang === "ko" ? item.title : item.titleEn;
+          const openPressImage = () => { trackEvent("press_click", { outlet, title }); openLightbox(displayImage); };
           return (
             <div key={item.id}
               draggable={editMode && !isEditing}
@@ -91,12 +96,12 @@ export function Press({
                   {/* Image doesn't have to come from a URL unfurl — a print-only
                       clipping (no online article) can still have a photo attached. */}
                   <div className="flex items-center gap-2">
-                    {item.image && (
+                    {displayImage && (
                       <div className="shrink-0 overflow-hidden bg-secondary" style={{ width: 32, height: 32 }}>
-                        <img src={item.image} alt="" className="w-full h-full object-cover" />
+                        <img src={displayImage} alt="" className="w-full h-full object-cover" />
                       </div>
                     )}
-                    <button onClick={() => triggerPressUpload(item.id)} disabled={isUploading} className="flex items-center gap-1.5 text-xs border border-accent text-accent px-2.5 py-1 shrink-0 hover:bg-accent/10 transition-colors disabled:opacity-50" style={MONO}>
+                    <button onClick={() => triggerUpload(uploadKey)} disabled={isUploading} className="flex items-center gap-1.5 text-xs border border-accent text-accent px-2.5 py-1 shrink-0 hover:bg-accent/10 transition-colors disabled:opacity-50" style={MONO}>
                       <Upload size={11} />{isUploading ? u.pressImageUploading : u.pressImageUpload}
                     </button>
                   </div>
@@ -111,26 +116,26 @@ export function Press({
               ) : (
                 <>
                   <div
-                    className={`shrink-0 overflow-hidden bg-secondary flex items-center justify-center ${!item.url && item.image ? "cursor-pointer" : ""}`}
+                    className={`shrink-0 overflow-hidden bg-secondary flex items-center justify-center ${!item.url && displayImage ? "cursor-pointer" : ""}`}
                     style={{ width: 56, height: 56 }}
-                    onClick={() => { if (!item.url && item.image) { trackEvent("press_click", { outlet: lang === "ko" ? item.outlet : (item.outletEn || item.outlet), title: lang === "ko" ? item.title : item.titleEn }); openLightbox(item.image); } }}
+                    onClick={() => { if (!item.url && displayImage) openPressImage(); }}
                   >
-                    {item.image
-                      ? <img src={item.image} alt={lang === "ko" ? item.title : item.titleEn} className="w-full h-full object-cover" loading="lazy" />
+                    {displayImage
+                      ? <img src={displayImage} alt={title} className="w-full h-full object-cover" loading="lazy" />
                       : <img src="/favicon.svg" alt="" className="w-full h-full object-cover" loading="lazy" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground/70 mb-0.5" style={MONO}>{lang === "ko" ? item.outlet : (item.outletEn || item.outlet)}{item.date && <span> · {item.date}</span>}</p>
+                    <p className="text-xs text-muted-foreground/70 mb-0.5" style={MONO}>{outlet}{item.date && <span> · {item.date}</span>}</p>
                     {item.url ? (
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("press_click", { outlet: lang === "ko" ? item.outlet : (item.outletEn || item.outlet), title: lang === "ko" ? item.title : item.titleEn })} className="text-sm font-light text-foreground hover:text-accent transition-colors leading-snug flex items-center gap-1" style={SERIF}>
-                        {lang === "ko" ? item.title : item.titleEn} <ArrowUpRight size={12} className="shrink-0 opacity-60" />
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("press_click", { outlet, title })} className="text-sm font-light text-foreground hover:text-accent transition-colors leading-snug flex items-center gap-1" style={SERIF}>
+                        {title} <ArrowUpRight size={12} className="shrink-0 opacity-60" />
                       </a>
-                    ) : item.image ? (
-                      <button onClick={() => { trackEvent("press_click", { outlet: lang === "ko" ? item.outlet : (item.outletEn || item.outlet), title: lang === "ko" ? item.title : item.titleEn }); openLightbox(item.image); }} className="text-sm font-light text-foreground hover:text-accent transition-colors leading-snug text-left" style={SERIF}>
-                        {lang === "ko" ? item.title : item.titleEn}
+                    ) : displayImage ? (
+                      <button onClick={openPressImage} className="text-sm font-light text-foreground hover:text-accent transition-colors leading-snug text-left" style={SERIF}>
+                        {title}
                       </button>
                     ) : (
-                      <p className="text-sm font-light text-foreground leading-snug" style={SERIF}>{lang === "ko" ? item.title : item.titleEn}</p>
+                      <p className="text-sm font-light text-foreground leading-snug" style={SERIF}>{title}</p>
                     )}
                   </div>
                   <span className="text-xs px-1.5 py-0.5 border border-border text-muted-foreground shrink-0" style={MONO}>{typeLabel(item.type)}</span>

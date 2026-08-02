@@ -7,6 +7,17 @@ import { ReorderButtons } from "../ReorderButtons";
 import { contactIcon } from "../contactIcon";
 import { trackEvent } from "../../analytics";
 
+// Shared by the "collected" and "hero rotation" edit-mode toggles below —
+// same pill-with-dot markup, just a different field/labels.
+function TogglePill({ active, onClick, onLabel, offLabel, mono }: { active: boolean; onClick: () => void; onLabel: string; offLabel: string; mono: React.CSSProperties }) {
+  return (
+    <button onClick={onClick} className={`flex items-center gap-2 text-xs px-3 py-1.5 border transition-all ${active ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={mono}>
+      <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-accent" : "bg-muted-foreground/40"}`} />
+      {active ? onLabel : offLabel}
+    </button>
+  );
+}
+
 type WorksProps = {
   artworkList: Artwork[];
   setArtworkList: React.Dispatch<React.SetStateAction<Artwork[]>>;
@@ -313,11 +324,7 @@ export function Works({
                   <div className="flex gap-4 sm:gap-6 items-center pt-3 border-t border-border mt-1">
                     <span className="text-xs w-20 sm:w-24 text-muted-foreground shrink-0" style={MONO}>{u.fieldCollected}</span>
                     {editMode ? (
-                      <button onClick={() => updateWork(selectedWork.id, "collected", !selectedWork.collected)}
-                        className={`flex items-center gap-2 text-xs px-3 py-1.5 border transition-all ${selectedWork.collected ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${selectedWork.collected ? "bg-accent" : "bg-muted-foreground/40"}`} />
-                        {selectedWork.collected ? u.worksCollected : u.worksNotCollected}
-                      </button>
+                      <TogglePill active={selectedWork.collected} onClick={() => updateWork(selectedWork.id, "collected", !selectedWork.collected)} onLabel={u.worksCollected} offLabel={u.worksNotCollected} mono={MONO} />
                     ) : (
                       <div className="flex items-center gap-2">
                         <span className={`w-1.5 h-1.5 rounded-full ${selectedWork.collected ? "bg-accent" : "bg-muted-foreground/20"}`} />
@@ -328,11 +335,7 @@ export function Works({
                   {editMode && (
                     <div className="flex gap-4 sm:gap-6 items-center">
                       <span className="text-xs w-20 sm:w-24 text-muted-foreground shrink-0" style={MONO}>{u.fieldHeroFeatured}</span>
-                      <button onClick={() => updateWork(selectedWork.id, "heroFeatured", !selectedWork.heroFeatured)}
-                        className={`flex items-center gap-2 text-xs px-3 py-1.5 border transition-all ${selectedWork.heroFeatured ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${selectedWork.heroFeatured ? "bg-accent" : "bg-muted-foreground/40"}`} />
-                        {selectedWork.heroFeatured ? u.heroFeaturedOn : u.heroFeaturedOff}
-                      </button>
+                      <TogglePill active={!!selectedWork.heroFeatured} onClick={() => updateWork(selectedWork.id, "heroFeatured", !selectedWork.heroFeatured)} onLabel={u.heroFeaturedOn} offLabel={u.heroFeaturedOff} mono={MONO} />
                     </div>
                   )}
                 </div>

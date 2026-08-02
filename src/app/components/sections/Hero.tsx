@@ -32,11 +32,12 @@ export function Hero({
 }: HeroProps) {
   const { lang, u, MONO, SERIF, SANS, content, updateContent, c, editMode, img, uploadingTarget, triggerUpload, scrollTo } = usePortfolioContext();
   const rotateActive = heroRotateEnabled && heroRotateWorks.length > 0;
-  // Two stacked image layers, alternating which one is "active" (opacity-70)
-  // vs "inactive" (opacity-0) — swapping the active layer with a CSS opacity
-  // transition crossfades old-out/new-in together, instead of the old
-  // approach (remounting a single <img> to replay a fade-in keyframe) which
-  // only ever faded the incoming photo in over a hard cut from the outgoing one.
+  // Two stacked image layers at fixed DOM positions (slot 0 / slot 1), alternating
+  // which one is "active" (opacity-70) vs "inactive" (opacity-0). The opacity has
+  // to flip on the *same* DOM node across renders for the CSS transition below to
+  // have anything to animate between — a "current"/"previous" naming scheme reads
+  // nicer but pins each node's opacity to a fixed role forever, which turned out
+  // to just swap the src with no transition at all (verified empirically).
   const [rotate, setRotate] = useState<RotateState>({ slots: [null, null], active: 0 });
 
   // Reset to a valid starting frame whenever rotation turns on/off or the featured pool changes size.
@@ -66,8 +67,9 @@ export function Hero({
     const id = setInterval(() => {
       setRotate((prev) => {
         const current = prev.slots[prev.active];
-        let next = heroRotateWorks[Math.floor(Math.random() * heroRotateWorks.length)];
-        if (next.id === current?.id) next = heroRotateWorks[(heroRotateWorks.indexOf(next) + 1) % heroRotateWorks.length];
+        const idx = Math.floor(Math.random() * heroRotateWorks.length);
+        let next = heroRotateWorks[idx];
+        if (next.id === current?.id) next = heroRotateWorks[(idx + 1) % heroRotateWorks.length];
         const inactive = prev.active === 0 ? 1 : 0;
         const slots = [...prev.slots] as [Artwork | null, Artwork | null];
         slots[inactive] = next;
@@ -82,11 +84,14 @@ export function Hero({
   // single "hero" image to replace), and never applies while the caption editor
   // itself is focused (its own stopPropagation keeps clicks there from bubbling).
   const clickable = !editingCaption && !(editMode && rotateActive);
+  const flexBasis = rotateActive || !heroAspectRatio
+    ? "0 0 42%"
+    : `0 0 ${Math.max(28, Math.min(48, Math.round(100 / (1 + heroAspectRatio * 1.4))))}%`;
 
   return (
     <section id="hero" className="hero-section min-h-[100svh] flex flex-col md:flex-row" style={{ paddingTop: "var(--nav-height)" }}>
       <div className="hero-panel flex flex-col justify-end px-6 lg:px-12 pb-12 sm:pb-16 pt-16 md:pt-0 shrink-0 order-2 md:order-1"
-        style={{ flex: rotateActive ? "0 0 42%" : (heroAspectRatio ? `0 0 ${Math.max(28, Math.min(48, Math.round(100 / (1 + heroAspectRatio * 1.4))))}%` : "0 0 42%"), transition: "flex-basis 0.6s cubic-bezier(0.4,0,0.2,1)" }}>
+        style={{ flex: flexBasis, transition: "flex-basis 0.6s cubic-bezier(0.4,0,0.2,1)" }}>
         {editMode && (
           <button onClick={onToggleHeroRotate} className="flex items-center gap-2 text-xs border border-dashed border-accent/50 text-accent px-3 py-1.5 mb-3 w-fit hover:border-accent transition-colors" style={MONO}>
             <span className={`w-1.5 h-1.5 rounded-full ${heroRotateEnabled ? "bg-accent" : "bg-muted-foreground/40"}`} />
