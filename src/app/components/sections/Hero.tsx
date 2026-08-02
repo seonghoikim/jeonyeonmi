@@ -46,7 +46,7 @@ export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCapti
           </button>
         </div>
       </div>
-      <div className={`hero-image relative min-h-[50svh] md:min-h-[100svh] bg-card overflow-hidden flex-1 order-1 md:order-2 ${editMode && !editingCaption ? "cursor-pointer" : ""}`}
+      <div className={`hero-image relative min-h-[50svh] md:min-h-[100svh] bg-background overflow-hidden flex-1 order-1 md:order-2 ${editMode && !editingCaption ? "cursor-pointer" : ""}`}
         style={{ transition: "flex 0.6s cubic-bezier(0.4,0,0.2,1)" }}
         onClick={() => { if (editMode && !editingCaption) triggerUpload("hero", heroCaptionEn); }}>
         {img("hero")
