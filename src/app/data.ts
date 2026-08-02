@@ -270,13 +270,10 @@ export const GLOBAL_CSS = `
 .hide-sb { scrollbar-width: none; -ms-overflow-style: none; }
 .hide-sb::-webkit-scrollbar { display: none; }
 
-/* rotating hero crossfade — each rotated work's <img> remounts with a fresh
-   key, which restarts this animation for a soft fade-in instead of a hard cut */
-/* target matches the image's resting opacity-70 class — animating to 1 would
-   look fully vivid for a frame, then visibly snap down to 0.7 once the
-   animation's fill (which overrides the class while running) lets go */
-@keyframes heroRotateFade { from { opacity: 0; } to { opacity: 0.7; } }
-.hero-rotate-img { animation: heroRotateFade 1s ease; }
+/* nav bar height — kept in a variable so the hero section can reserve the
+   exact same space below it (see App.tsx), instead of the two drifting out
+   of sync whenever one changes without the other. */
+:root { --nav-height: 64px; }
 
 /* landscape mobile: side-by-side hero and slides */
 @media (orientation: landscape) and (max-width: 1023px) {
@@ -286,7 +283,7 @@ export const GLOBAL_CSS = `
 }
 /* very short screens (landscape phones) */
 @media (max-height: 520px) {
-  .nav-bar { height: 44px !important; }
+  :root { --nav-height: 44px; }
   .slide-img-area { min-height: 200px !important; }
   .slide-img-area img { max-height: 220px !important; }
   .slide-text-area { max-height: 220px !important; overflow-y: auto !important; }

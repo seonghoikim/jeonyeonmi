@@ -17,8 +17,14 @@ type HeroProps = {
   onSelectWork: (id: number) => void;
 };
 
-// Rotation interval — long enough to read the caption, short enough to feel alive.
-const ROTATE_INTERVAL_MS = 6000;
+// How long each work stays fully visible before the next crossfade begins.
+// Longer than a plain hard-cut interval would need since the fade itself
+// eats into how long a work reads as "settled."
+const ROTATE_HOLD_MS = 7000;
+// Crossfade duration — both the outgoing and incoming photo animate over this.
+const ROTATE_FADE_MS = 1200;
+
+type RotateState = { slots: [Artwork | null, Artwork | null]; active: 0 | 1 };
 
 export function Hero({
   heroAspectRatio, heroCaption, heroCaptionEn, setHeroCaption, setHeroCaptionEn, editingCaption, setEditingCaption,
@@ -26,10 +32,18 @@ export function Hero({
 }: HeroProps) {
   const { lang, u, MONO, SERIF, SANS, content, updateContent, c, editMode, img, uploadingTarget, triggerUpload, scrollTo } = usePortfolioContext();
   const rotateActive = heroRotateEnabled && heroRotateWorks.length > 0;
-  const [rotateIdx, setRotateIdx] = useState(0);
+  // Two stacked image layers, alternating which one is "active" (opacity-70)
+  // vs "inactive" (opacity-0) — swapping the active layer with a CSS opacity
+  // transition crossfades old-out/new-in together, instead of the old
+  // approach (remounting a single <img> to replay a fade-in keyframe) which
+  // only ever faded the incoming photo in over a hard cut from the outgoing one.
+  const [rotate, setRotate] = useState<RotateState>({ slots: [null, null], active: 0 });
 
-  // Reset to a valid index whenever rotation turns on/off or the featured pool changes size.
-  useEffect(() => { setRotateIdx(0); }, [rotateActive, heroRotateWorks.length]);
+  // Reset to a valid starting frame whenever rotation turns on/off or the featured pool changes size.
+  useEffect(() => {
+    if (!rotateActive) { setRotate({ slots: [null, null], active: 0 }); return; }
+    setRotate({ slots: [heroRotateWorks[0] ?? null, null], active: 0 });
+  }, [rotateActive, heroRotateWorks.length]);
 
   // Only the currently-displayed work's <img> triggers a fetch on its own — every
   // other featured work would otherwise only start downloading the moment rotation
@@ -50,23 +64,27 @@ export function Hero({
   useEffect(() => {
     if (!rotateActive || heroRotateWorks.length < 2) return;
     const id = setInterval(() => {
-      setRotateIdx((i) => {
-        let next = Math.floor(Math.random() * heroRotateWorks.length);
-        if (next === i) next = (next + 1) % heroRotateWorks.length;
-        return next;
+      setRotate((prev) => {
+        const current = prev.slots[prev.active];
+        let next = heroRotateWorks[Math.floor(Math.random() * heroRotateWorks.length)];
+        if (next.id === current?.id) next = heroRotateWorks[(heroRotateWorks.indexOf(next) + 1) % heroRotateWorks.length];
+        const inactive = prev.active === 0 ? 1 : 0;
+        const slots = [...prev.slots] as [Artwork | null, Artwork | null];
+        slots[inactive] = next;
+        return { slots, active: inactive };
       });
-    }, ROTATE_INTERVAL_MS);
+    }, ROTATE_HOLD_MS);
     return () => clearInterval(id);
-  }, [rotateActive, heroRotateWorks.length]);
+  }, [rotateActive, heroRotateWorks]);
 
-  const currentWork = rotateActive ? heroRotateWorks[Math.min(rotateIdx, heroRotateWorks.length - 1)] : null;
+  const currentWork = rotateActive ? rotate.slots[rotate.active] : null;
   // Clicking the manual-upload trigger doesn't apply while rotating (there's no
   // single "hero" image to replace), and never applies while the caption editor
   // itself is focused (its own stopPropagation keeps clicks there from bubbling).
   const clickable = !editingCaption && !(editMode && rotateActive);
 
   return (
-    <section id="hero" className="hero-section min-h-[100svh] flex flex-col md:flex-row" style={{ paddingTop: 0 }}>
+    <section id="hero" className="hero-section min-h-[100svh] flex flex-col md:flex-row" style={{ paddingTop: "var(--nav-height)" }}>
       <div className="hero-panel flex flex-col justify-end px-6 lg:px-12 pb-12 sm:pb-16 pt-16 md:pt-0 shrink-0 order-2 md:order-1"
         style={{ flex: rotateActive ? "0 0 42%" : (heroAspectRatio ? `0 0 ${Math.max(28, Math.min(48, Math.round(100 / (1 + heroAspectRatio * 1.4))))}%` : "0 0 42%"), transition: "flex-basis 0.6s cubic-bezier(0.4,0,0.2,1)" }}>
         {editMode && (
@@ -110,14 +128,22 @@ export function Hero({
           if (rotateActive && currentWork) onSelectWork(currentWork.id);
           else if (!rotateActive) scrollTo("current-exhibitions");
         }}>
-        {rotateActive && currentWork ? (
-          <img
-            key={currentWork.id}
-            src={(img(`artwork-${currentWork.id}`) || currentWork.image)!}
-            alt={`${lang === "ko" ? currentWork.title : (currentWork.titleEn || currentWork.title)}, ${currentWork.year}`}
-            decoding="async"
-            className="hero-rotate-img absolute inset-0 w-full h-full object-contain opacity-70 hover:opacity-80 transition-opacity duration-700"
-          />
+        {rotateActive ? (
+          ([0, 1] as const).map((slot) => {
+            const work = rotate.slots[slot];
+            if (!work) return null;
+            const isActive = rotate.active === slot;
+            return (
+              <img
+                key={slot}
+                src={(img(`artwork-${work.id}`) || work.image)!}
+                alt={`${lang === "ko" ? work.title : (work.titleEn || work.title)}, ${work.year}`}
+                decoding="async"
+                className={`absolute inset-0 w-full h-full object-contain transition-opacity ${isActive ? "opacity-70 hover:opacity-80" : "opacity-0"}`}
+                style={{ transitionDuration: `${ROTATE_FADE_MS}ms` }}
+              />
+            );
+          })
         ) : img("hero") ? (
           <img src={img("hero")!} alt={`${c("heroName")} — ${lang === "ko" ? heroCaption : heroCaptionEn}`} fetchPriority="high" decoding="async" className="absolute inset-0 w-full h-full object-contain opacity-70 hover:opacity-80 transition-opacity duration-700" />
         ) : (

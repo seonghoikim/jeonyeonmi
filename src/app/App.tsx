@@ -299,7 +299,6 @@ export default function App() {
 
   const [uploadingTarget, setUploadingTarget] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   /* ── DB: keep latest save data in ref (no stale closures) ── */
@@ -392,11 +391,6 @@ export default function App() {
   useEffect(() => {
     if (!editMode) { editTokenRef.current = null; setIsAuth(false); }
   }, [editMode]);
-
-  useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 60);
-    window.addEventListener("scroll", h); return () => window.removeEventListener("scroll", h);
-  }, []);
 
   // Keep language and the open artwork (if any) in sync with browser back/forward
   // navigation between /, /en, and /(en/)works/:slug.
@@ -927,8 +921,8 @@ export default function App() {
         )}
 
         {/* ── NAV ── */}
-        <nav ref={navRef} className={`nav-bar fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled || menuOpen ? "bg-background/95 backdrop-blur-sm border-b border-border" : ""}`}
-          style={{ height: "64px" }}>
+        <nav ref={navRef} className="nav-bar fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border"
+          style={{ height: "var(--nav-height)" }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 flex items-center justify-between h-full">
             <button onClick={() => scrollTo("hero")} style={{ ...SERIF, fontWeight: 400, letterSpacing: lang === "en" ? "0.08em" : "0.05em", fontSize: lang === "en" ? "1.1rem" : "1rem" }} className="text-foreground hover:text-accent transition-colors shrink-0">
               {c("heroName")}
