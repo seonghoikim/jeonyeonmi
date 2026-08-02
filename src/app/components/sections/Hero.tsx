@@ -31,6 +31,20 @@ export function Hero({
   // Reset to a valid index whenever rotation turns on/off or the featured pool changes size.
   useEffect(() => { setRotateIdx(0); }, [rotateActive, heroRotateWorks.length]);
 
+  // Only the currently-displayed work's <img> triggers a fetch on its own — every
+  // other featured work would otherwise only start downloading the moment rotation
+  // switches to it, showing a blank/placeholder flash mid-transition on a slow
+  // connection. Warm the browser's cache for all of them up front instead.
+  useEffect(() => {
+    if (!rotateActive) return;
+    heroRotateWorks.forEach((w) => {
+      const src = img(`artwork-${w.id}`) || w.image;
+      if (!src) return;
+      const preload = new window.Image();
+      preload.src = src;
+    });
+  }, [rotateActive, heroRotateWorks, img]);
+
   // Random rather than sequential per request — picks a different work each tick
   // so the same piece never repeats twice in a row.
   useEffect(() => {
