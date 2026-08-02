@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { ArrowUpRight, Upload, Check, Edit3 } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
+import type { Artwork } from "../../data";
 
 type HeroProps = {
   heroAspectRatio: number | null;
@@ -9,15 +11,56 @@ type HeroProps = {
   setHeroCaptionEn: (v: string) => void;
   editingCaption: boolean;
   setEditingCaption: (v: boolean) => void;
+  heroRotateEnabled: boolean;
+  onToggleHeroRotate: () => void;
+  heroRotateWorks: Artwork[];
+  onSelectWork: (id: number) => void;
 };
 
-export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCaption, setHeroCaptionEn, editingCaption, setEditingCaption }: HeroProps) {
+// Rotation interval — long enough to read the caption, short enough to feel alive.
+const ROTATE_INTERVAL_MS = 6000;
+
+export function Hero({
+  heroAspectRatio, heroCaption, heroCaptionEn, setHeroCaption, setHeroCaptionEn, editingCaption, setEditingCaption,
+  heroRotateEnabled, onToggleHeroRotate, heroRotateWorks, onSelectWork,
+}: HeroProps) {
   const { lang, u, MONO, SERIF, SANS, content, updateContent, c, editMode, img, uploadingTarget, triggerUpload, scrollTo } = usePortfolioContext();
+  const rotateActive = heroRotateEnabled && heroRotateWorks.length > 0;
+  const [rotateIdx, setRotateIdx] = useState(0);
+
+  // Reset to a valid index whenever rotation turns on/off or the featured pool changes size.
+  useEffect(() => { setRotateIdx(0); }, [rotateActive, heroRotateWorks.length]);
+
+  // Random rather than sequential per request — picks a different work each tick
+  // so the same piece never repeats twice in a row.
+  useEffect(() => {
+    if (!rotateActive || heroRotateWorks.length < 2) return;
+    const id = setInterval(() => {
+      setRotateIdx((i) => {
+        let next = Math.floor(Math.random() * heroRotateWorks.length);
+        if (next === i) next = (next + 1) % heroRotateWorks.length;
+        return next;
+      });
+    }, ROTATE_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [rotateActive, heroRotateWorks.length]);
+
+  const currentWork = rotateActive ? heroRotateWorks[Math.min(rotateIdx, heroRotateWorks.length - 1)] : null;
+  // Clicking the manual-upload trigger doesn't apply while rotating (there's no
+  // single "hero" image to replace), and never applies while the caption editor
+  // itself is focused (its own stopPropagation keeps clicks there from bubbling).
+  const clickable = !editingCaption && !(editMode && rotateActive);
 
   return (
     <section id="hero" className="hero-section min-h-[100svh] flex flex-col md:flex-row" style={{ paddingTop: 0 }}>
       <div className="hero-panel flex flex-col justify-end px-6 lg:px-12 pb-12 sm:pb-16 pt-16 md:pt-0 shrink-0 order-2 md:order-1"
-        style={{ flex: heroAspectRatio ? `0 0 ${Math.max(28, Math.min(48, Math.round(100 / (1 + heroAspectRatio * 1.4))))}%` : "0 0 42%", transition: "flex-basis 0.6s cubic-bezier(0.4,0,0.2,1)" }}>
+        style={{ flex: rotateActive ? "0 0 42%" : (heroAspectRatio ? `0 0 ${Math.max(28, Math.min(48, Math.round(100 / (1 + heroAspectRatio * 1.4))))}%` : "0 0 42%"), transition: "flex-basis 0.6s cubic-bezier(0.4,0,0.2,1)" }}>
+        {editMode && (
+          <button onClick={onToggleHeroRotate} className="flex items-center gap-2 text-xs border border-dashed border-accent/50 text-accent px-3 py-1.5 mb-3 w-fit hover:border-accent transition-colors" style={MONO}>
+            <span className={`w-1.5 h-1.5 rounded-full ${heroRotateEnabled ? "bg-accent" : "bg-muted-foreground/40"}`} />
+            {u.heroRotateLabel}: {heroRotateEnabled ? u.heroRotateOn : u.heroRotateOff} ({heroRotateWorks.length})
+          </button>
+        )}
         <span className="text-xs tracking-[0.25em] text-accent uppercase mb-3" style={MONO}>
           {editMode ? (
             <div className="flex flex-col gap-1">
@@ -46,20 +89,38 @@ export function Hero({ heroAspectRatio, heroCaption, heroCaptionEn, setHeroCapti
           </button>
         </div>
       </div>
-      <div className={`hero-image relative min-h-[50svh] md:min-h-[100svh] bg-background overflow-hidden flex-1 order-1 md:order-2 ${editMode && !editingCaption ? "cursor-pointer" : ""}`}
+      <div className={`hero-image relative min-h-[50svh] md:min-h-[100svh] bg-background overflow-hidden flex-1 order-1 md:order-2 ${clickable ? "cursor-pointer" : ""}`}
         style={{ transition: "flex 0.6s cubic-bezier(0.4,0,0.2,1)" }}
-        onClick={() => { if (editMode && !editingCaption) triggerUpload("hero", heroCaptionEn); }}>
-        {img("hero")
-          ? <img src={img("hero")!} alt={`${c("heroName")} — ${lang === "ko" ? heroCaption : heroCaptionEn}`} fetchPriority="high" decoding="async" className="absolute inset-0 w-full h-full object-contain opacity-70 hover:opacity-80 transition-opacity duration-700" />
-          : <div className="absolute inset-0 img-placeholder" />}
+        onClick={() => {
+          if (editMode) { if (!editingCaption && !rotateActive) triggerUpload("hero", heroCaptionEn); return; }
+          if (rotateActive && currentWork) onSelectWork(currentWork.id);
+          else if (!rotateActive) scrollTo("current-exhibitions");
+        }}>
+        {rotateActive && currentWork ? (
+          <img
+            key={currentWork.id}
+            src={(img(`artwork-${currentWork.id}`) || currentWork.image)!}
+            alt={`${lang === "ko" ? currentWork.title : (currentWork.titleEn || currentWork.title)}, ${currentWork.year}`}
+            decoding="async"
+            className="hero-rotate-img absolute inset-0 w-full h-full object-contain opacity-70 hover:opacity-80 transition-opacity duration-700"
+          />
+        ) : img("hero") ? (
+          <img src={img("hero")!} alt={`${c("heroName")} — ${lang === "ko" ? heroCaption : heroCaptionEn}`} fetchPriority="high" decoding="async" className="absolute inset-0 w-full h-full object-contain opacity-70 hover:opacity-80 transition-opacity duration-700" />
+        ) : (
+          <div className="absolute inset-0 img-placeholder" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
-        {editMode && !editingCaption && (
+        {editMode && !editingCaption && !rotateActive && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/40 hover:bg-background/60 transition-colors">
             <div className="flex flex-col items-center gap-2 text-foreground"><Upload size={28} /><span className="text-xs tracking-widest" style={MONO}>{uploadingTarget === "hero" ? u.worksUploading : u.worksUpload}</span></div>
           </div>
         )}
         <div className="absolute bottom-6 right-6" onClick={(e) => e.stopPropagation()}>
-          {editMode && editingCaption ? (
+          {rotateActive && currentWork ? (
+            <span className="text-xs tracking-widest text-muted-foreground" style={MONO}>
+              ‹ {lang === "ko" ? currentWork.title : (currentWork.titleEn || currentWork.title)} ›, {currentWork.year}
+            </span>
+          ) : editMode && editingCaption ? (
             <div className="flex flex-col gap-1 items-end">
               <input value={heroCaption} onChange={(e) => setHeroCaption(e.target.value)} onKeyDown={(e) => e.key === "Enter" && setEditingCaption(false)} className="bg-background/80 border border-accent text-foreground text-xs tracking-widest px-2 py-1 outline-none w-52 text-right" style={MONO} placeholder="KO" autoFocus />
               <input value={heroCaptionEn} onChange={(e) => setHeroCaptionEn(e.target.value)} onKeyDown={(e) => e.key === "Enter" && setEditingCaption(false)} className="bg-background/80 border border-accent/60 text-muted-foreground text-xs tracking-widest px-2 py-1 outline-none w-52 text-right" style={MONO} placeholder="EN" />

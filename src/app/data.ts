@@ -69,7 +69,7 @@ export const EX_TAG_STYLE: Record<ExTag, string> = {
 export const exTagLabel = (tag: ExTag, u: (typeof UI)[Lang]): string =>
   ({ 개인전: u.exSolo, 단체전: u.exGroup, 아트페어: u.exFair, 공모전: u.exCompetition } as Record<ExTag, string>)[tag];
 export type CurrentExhibition = { id: number; title: string; titleEn: string; venue: string; venueEn: string; location: string; locationEn: string; startDate: string; endDate: string; status: "진행중" | "예정" | "지난전시"; tag: ExTag; visible: boolean; url?: string; openingDate?: string; mapUrl?: string; };
-export type Artwork = { id: number; title: string; titleEn: string; year: string; medium: string; mediumEn: string; size: string; image: string; category: string; categoryEn: string; series: string; collected: boolean; description?: string; descriptionEn?: string; };
+export type Artwork = { id: number; title: string; titleEn: string; year: string; medium: string; mediumEn: string; size: string; image: string; category: string; categoryEn: string; series: string; collected: boolean; description?: string; descriptionEn?: string; heroFeatured?: boolean; };
 export type Series = { id: number; name: string; nameEn: string; };
 export type Slide = { id: number; heading: string; headingEn: string; body: string; bodyEn: string; };
 export type ExhibitionEntry = { id: number; year: string; title: string; titleEn: string; venue: string; venueEn: string; location: string; tag: ExTag; award?: string; activityId?: number; };
@@ -118,6 +118,8 @@ export const UI = {
     statusOngoing: "진행중", statusUpcoming: "예정", statusPast: "지난전시", viewMore: "자세히 보기",
     showPastEx: "지난 전시 보기", hidePastEx: "접기",
     worksCollected: "컬렉션", worksNotCollected: "미수집", fieldCollected: "소장",
+    fieldHeroFeatured: "히어로 노출", heroFeaturedOn: "노출 중", heroFeaturedOff: "미노출",
+    heroRotateLabel: "롤링 히어로", heroRotateOn: "켜짐", heroRotateOff: "꺼짐",
     worksAdd: "작품 추가", worksAll: "전체", seriesAdd: "시리즈 추가",
     worksShowMore: "작품 더보기", worksShowLess: "접기",
     worksUpload: "이미지 교체", worksUploading: "업로드 중…",
@@ -164,6 +166,8 @@ export const UI = {
     statusOngoing: "Ongoing", statusUpcoming: "Upcoming", statusPast: "Past", viewMore: "View More",
     showPastEx: "Past Exhibitions", hidePastEx: "Hide",
     worksCollected: "Collected", worksNotCollected: "Available", fieldCollected: "Collection",
+    fieldHeroFeatured: "Hero Rotation", heroFeaturedOn: "Featured", heroFeaturedOff: "Not Featured",
+    heroRotateLabel: "Rotating Hero", heroRotateOn: "On", heroRotateOff: "Off",
     worksAdd: "Add Work", worksAll: "All", seriesAdd: "Add Series",
     worksShowMore: "Show More Works", worksShowLess: "Show Less",
     worksUpload: "Replace Image", worksUploading: "Uploading…",
@@ -265,6 +269,11 @@ export const GLOBAL_CSS = `
 /* scrollbar hide */
 .hide-sb { scrollbar-width: none; -ms-overflow-style: none; }
 .hide-sb::-webkit-scrollbar { display: none; }
+
+/* rotating hero crossfade — each rotated work's <img> remounts with a fresh
+   key, which restarts this animation for a soft fade-in instead of a hard cut */
+@keyframes heroRotateFade { from { opacity: 0; } to { opacity: 1; } }
+.hero-rotate-img { animation: heroRotateFade 1s ease; }
 
 /* landscape mobile: side-by-side hero and slides */
 @media (orientation: landscape) and (max-width: 1023px) {

@@ -325,6 +325,16 @@ export function Works({
                       </div>
                     )}
                   </div>
+                  {editMode && (
+                    <div className="flex gap-4 sm:gap-6 items-center">
+                      <span className="text-xs w-20 sm:w-24 text-muted-foreground shrink-0" style={MONO}>{u.fieldHeroFeatured}</span>
+                      <button onClick={() => updateWork(selectedWork.id, "heroFeatured", !selectedWork.heroFeatured)}
+                        className={`flex items-center gap-2 text-xs px-3 py-1.5 border transition-all ${selectedWork.heroFeatured ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${selectedWork.heroFeatured ? "bg-accent" : "bg-muted-foreground/40"}`} />
+                        {selectedWork.heroFeatured ? u.heroFeaturedOn : u.heroFeaturedOff}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 {(editMode || selectedWork.description || selectedWork.descriptionEn) && (
                   <div className="mt-5 sm:mt-6 pt-5 border-t border-border">
