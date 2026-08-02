@@ -246,9 +246,13 @@ export default function App() {
   const [showPastEx, setShowPastEx] = useState(true);
 
   const [artworkList, setArtworkList] = useState(initArtworks);
-  // Stable reference unless the featured set itself changes — Hero's rotation
-  // timer and image-preload effects key off this array's identity.
-  const heroRotateWorks = useMemo(() => artworkList.filter((w) => w.heroFeatured), [artworkList]);
+  // Keyed on which artworks are featured, not on artworkList itself — editing an
+  // unrelated field (title, size, ...) still produces a new artworkList array,
+  // which would otherwise invalidate this memo and, downstream, reset Hero's
+  // rotation timer and re-run the image-preload effect on every unrelated edit.
+  const heroFeaturedIds = artworkList.filter((w) => w.heroFeatured).map((w) => w.id).join(",");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const heroRotateWorks = useMemo(() => artworkList.filter((w) => w.heroFeatured), [heroFeaturedIds]);
   const [selectedWorkId, setSelectedWorkId] = useState<number | null>(
     () => (typeof window === "undefined" ? null : parseWorkIdFromPath(window.location.pathname))
   );
@@ -286,9 +290,6 @@ export default function App() {
   const [pressList, setPressList] = useState(initPress);
   const [editingPressId, setEditingPressId] = useState<number | null>(null);
   const [fetchingPressId, setFetchingPressId] = useState<number | null>(null);
-  const [uploadingPressId, setUploadingPressId] = useState<number | null>(null);
-  const pressFileInputRef = useRef<HTMLInputElement>(null);
-  const pendingPressId = useRef<number | null>(null);
   useStructuredData({ lang, artistName: content.heroName, artistNameEn: content.heroNameEn, artworkList, imageUrls, currentExList, exhibitionList });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingTarget = useRef<string | null>(null);
@@ -610,29 +611,6 @@ export default function App() {
 
   const triggerMultiUpload = (photoId: number) => { pendingMultiTarget.current = photoId; multiFileInputRef.current?.click(); };
 
-  // Press images normally come from the URL og:image unfurl, but a press item
-  // isn't required to have a URL (e.g. a print-only magazine clipping) — this
-  // lets the image be attached directly instead, stored on the entry itself
-  // rather than in the generic imageUrls map since it's not looked up by key.
-  const triggerPressUpload = (id: number) => { pendingPressId.current = id; pressFileInputRef.current?.click(); };
-  const handlePressFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    const id = pendingPressId.current;
-    e.target.value = "";
-    if (id === null) return;
-    const token = editTokenRef.current;
-    if (!token) { alert("편집 권한이 필요합니다. 다시 로그인해주세요."); return; }
-    setUploadingPressId(id);
-    try {
-      const { url } = await uploadImage(`press-${id}`, file, token);
-      updatePress(id, "image", url);
-    } catch (err) {
-      console.error("[Upload] press image failed:", err);
-      alert(`이미지 업로드 실패: ${err instanceof Error ? err.message : "알 수 없는 오류"}`);
-    }
-    setUploadingPressId(null);
-  };
-
   const handleMultiFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     const photoId = pendingMultiTarget.current;
@@ -831,7 +809,6 @@ export default function App() {
         <style>{GLOBAL_CSS}</style>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
         <input ref={multiFileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleMultiFileChange} />
-        <input ref={pressFileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePressFileChange} />
 
         {/* ── Video fullscreen overlay ── */}
         {fullscreenVideoYtId && (
@@ -1053,8 +1030,6 @@ export default function App() {
           updatePress={updatePress}
           deletePress={deletePress}
           fetchPressPreview={fetchPressPreview}
-          triggerPressUpload={triggerPressUpload}
-          uploadingPressId={uploadingPressId}
         />
 
         <Activities
