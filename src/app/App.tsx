@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { loadPortfolio, savePortfolio, uploadImage, backfillThumbnail, loginEditor, translateTexts, unfurlPress, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
 import { Menu, X, Edit3, Check, Languages } from "lucide-react";
 import {
@@ -246,6 +246,9 @@ export default function App() {
   const [showPastEx, setShowPastEx] = useState(true);
 
   const [artworkList, setArtworkList] = useState(initArtworks);
+  // Stable reference unless the featured set itself changes — Hero's rotation
+  // timer and image-preload effects key off this array's identity.
+  const heroRotateWorks = useMemo(() => artworkList.filter((w) => w.heroFeatured), [artworkList]);
   const [selectedWorkId, setSelectedWorkId] = useState<number | null>(
     () => (typeof window === "undefined" ? null : parseWorkIdFromPath(window.location.pathname))
   );
@@ -965,7 +968,7 @@ export default function App() {
           setEditingCaption={setEditingCaption}
           heroRotateEnabled={heroRotateEnabled}
           onToggleHeroRotate={() => setHeroRotateEnabled((v) => !v)}
-          heroRotateWorks={artworkList.filter((w) => w.heroFeatured)}
+          heroRotateWorks={heroRotateWorks}
           onSelectWork={setSelectedWorkId}
         />
 
