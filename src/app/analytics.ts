@@ -32,3 +32,15 @@ export function detectInAppBrowser(): string {
   }
   return "none";
 }
+
+// Rough, cheap real-vs-bot signal for GA4 segmenting — not meant to be airtight
+// (a determined scraper can fake all of this), just enough to filter out the
+// common case of cloud-hosted headless browsers and search-engine crawlers that
+// still execute JS (and so still fire page views) without wiring up anything new.
+// navigator.webdriver is set by Selenium/Playwright/Puppeteer unless the script
+// specifically patches it away, which most simple scrapers don't bother doing.
+const BOT_UA_PATTERN = /HeadlessChrome|PhantomJS|Puppeteer|Playwright|bot|crawl|spider|slurp|yeti/i;
+
+export function detectSuspectedBot(): boolean {
+  return navigator.webdriver === true || BOT_UA_PATTERN.test(navigator.userAgent);
+}
