@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { GA_ID } from "./data";
 import type { Lang } from "./data";
-import { detectInAppBrowser, setAnalyticsUserProperties } from "./analytics";
+import { detectInAppBrowser, detectSuspectedBot, setAnalyticsUserProperties } from "./analytics";
 
 export function useGoogleAnalytics(lang: Lang) {
   useEffect(() => {
@@ -18,9 +18,12 @@ export function useGoogleAnalytics(lang: Lang) {
   }, []);
 
   // Set once per load — lets every report be segmented by whether the visit came
-  // through an in-app WebView (see analytics.ts for why that matters here).
+  // through an in-app WebView (see analytics.ts for why that matters here), and
+  // by a rough real-vs-bot guess (GA4: add a Comparison on traffic_quality to
+  // exclude "bot_suspected" from a report when eyeballing real reach).
   useEffect(() => {
     setAnalyticsUserProperties({ in_app_browser: detectInAppBrowser() });
+    setAnalyticsUserProperties({ traffic_quality: detectSuspectedBot() ? "bot_suspected" : "human" });
   }, []);
 
   // Site language is a toggle, not a one-time load fact, so it's re-sent whenever it
