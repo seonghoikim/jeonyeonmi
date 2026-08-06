@@ -64,10 +64,16 @@ export const EX_TAG_STYLE: Record<ExTag, string> = {
   아트페어: "border-blue-500/60 text-blue-400",
   공모전: "border-green-600/60 text-green-500",
 };
+// A handful of older/imported exhibition entries carry a tag string that doesn't exactly
+// match one of the four known categories (stray whitespace, a pre-validation value, etc.).
+// Both helpers below fall back to the 공모전 style/label for those instead of silently
+// rendering with no border/color at all (label and style used to disagree on the fallback,
+// which is what caused a "Competition" pill with the right text but broken styling).
+export const exTagStyle = (tag: string): string => EX_TAG_STYLE[tag as ExTag] ?? EX_TAG_STYLE.공모전;
 // Localized label for an exhibition tag — takes the current language's UI strings
 // object (u) since the labels themselves live there, not in this static data module.
-export const exTagLabel = (tag: ExTag, u: (typeof UI)[Lang]): string =>
-  ({ 개인전: u.exSolo, 단체전: u.exGroup, 아트페어: u.exFair, 공모전: u.exCompetition } as Record<ExTag, string>)[tag];
+export const exTagLabel = (tag: string, u: (typeof UI)[Lang]): string =>
+  ({ 개인전: u.exSolo, 단체전: u.exGroup, 아트페어: u.exFair, 공모전: u.exCompetition } as Record<string, string>)[tag] ?? u.exCompetition;
 export type CurrentExhibition = { id: number; title: string; titleEn: string; venue: string; venueEn: string; location: string; locationEn: string; startDate: string; endDate: string; status: "진행중" | "예정" | "지난전시"; tag: ExTag; visible: boolean; url?: string; openingDate?: string; mapUrl?: string; };
 export type Artwork = { id: number; title: string; titleEn: string; year: string; medium: string; mediumEn: string; size: string; image: string; category: string; categoryEn: string; series: string; collected: boolean; description?: string; descriptionEn?: string; heroFeatured?: boolean; };
 export type Series = { id: number; name: string; nameEn: string; };
