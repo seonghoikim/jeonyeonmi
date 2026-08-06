@@ -100,7 +100,7 @@ export function CurrentExhibitions({
                     <div className="space-y-2 flex-1">
                       {/* status cycle */}
                       <div className="flex items-center gap-1.5 mb-2">
-                        <button onClick={() => { const cycle = { "진행중": "예정", "예정": "지난전시", "지난전시": "진행중" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }}
+                        <button onClick={() => { const cycle = { "예정": "진행중", "진행중": "지난전시", "지난전시": "예정" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }}
                           className={`text-xs px-2 py-0.5 border ${ex.status === "진행중" ? "border-accent text-accent" : ex.status === "예정" ? "border-border text-muted-foreground" : "border-border/40 text-muted-foreground/50"}`} style={MONO}>
                           {ex.status === "진행중" ? u.statusOngoing : ex.status === "예정" ? u.statusUpcoming : u.statusPast} ⇄
                         </button>
@@ -223,7 +223,7 @@ export function CurrentExhibitions({
                         {isEditing ? (
                           <div className="space-y-2">
                             <div className="flex items-center gap-1.5 mb-1">
-                              <button onClick={() => { const cycle = { "진행중": "예정", "예정": "지난전시", "지난전시": "진행중" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }} className="text-xs px-2 py-0.5 border border-border/40 text-muted-foreground/50" style={MONO}>{u.statusPast} ⇄</button>
+                              <button onClick={() => { const cycle = { "예정": "진행중", "진행중": "지난전시", "지난전시": "예정" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }} className="text-xs px-2 py-0.5 border border-border/40 text-muted-foreground/50" style={MONO}>{u.statusPast} ⇄</button>
                               <button onClick={() => { const next = EX_TAG_ORDER[(EX_TAG_ORDER.indexOf(ex.tag) + 1) % EX_TAG_ORDER.length]; updateCurrentEx(ex.id, "tag", next); }} className={`text-xs px-2 py-0.5 border ${EX_TAG_STYLE[ex.tag]}`} style={MONO}>{ex.tag === "개인전" ? u.exSolo : ex.tag === "단체전" ? u.exGroup : ex.tag === "아트페어" ? u.exFair : u.exCompetition} ⇄</button>
                             </div>
                             <input value={ex.title} onChange={(e) => updateCurrentEx(ex.id, "title", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground font-light outline-none" style={SERIF} />
