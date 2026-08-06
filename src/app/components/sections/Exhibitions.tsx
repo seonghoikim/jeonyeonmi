@@ -1,6 +1,6 @@
 import { Plus, GripVertical, Link2, Edit3, Check, Trash2 } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
-import { moveItem, moveInFiltered, hSize, EX_TAG_ORDER, EX_TAG_STYLE, exTagLabel, type ExhibitionEntry, type ActivityPhoto } from "../../data";
+import { moveItem, moveInFiltered, hSize, EX_TAG_ORDER, exTagStyle, exTagLabel, type ExhibitionEntry, type ActivityPhoto } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
 
 type ExFilter = "전체" | "개인전" | "단체전" | "아트페어" | "공모전";
@@ -85,7 +85,7 @@ export function Exhibitions({
                         </div>
                       )}
                       <input value={ex.year} onChange={(e) => updateEx(ex.id, "year", e.target.value)} className="w-16 shrink-0 bg-transparent border-b border-dashed border-accent/60 text-xs text-accent outline-none" style={MONO} placeholder="연도" />
-                      <button onClick={() => { const next = EX_TAG_ORDER[(EX_TAG_ORDER.indexOf(ex.tag) + 1) % EX_TAG_ORDER.length]; updateEx(ex.id, "tag", next); }} className={`text-xs px-1.5 py-0.5 border transition-colors shrink-0 ${EX_TAG_STYLE[ex.tag]}`} style={MONO}>
+                      <button onClick={() => { const next = EX_TAG_ORDER[(EX_TAG_ORDER.indexOf(ex.tag) + 1) % EX_TAG_ORDER.length]; updateEx(ex.id, "tag", next); }} className={`text-xs px-1.5 py-0.5 border transition-colors shrink-0 ${exTagStyle(ex.tag)}`} style={MONO}>
                         {exTagLabel(ex.tag, u)} ⇄
                       </button>
                       <div className="flex items-center gap-1 ml-auto shrink-0">
@@ -143,7 +143,7 @@ export function Exhibitions({
                       <p className="text-xs text-muted-foreground">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {ex.location}</p>
                     </div>
                     <div className="col-span-2 lg:col-span-1 flex justify-center">
-                      <span className={`text-xs px-1.5 py-0.5 border ${EX_TAG_STYLE[ex.tag]}`} style={MONO}>{exTagLabel(ex.tag, u)}</span>
+                      <span className={`text-xs px-1.5 py-0.5 border ${exTagStyle(ex.tag)}`} style={MONO}>{exTagLabel(ex.tag, u)}</span>
                     </div>
                     <div className="col-span-1 flex justify-end">{linkedPhoto && !exThumb && <button onClick={() => scrollToActivity(linkedPhoto.id)} className="text-muted-foreground hover:text-accent transition-colors p-1" title={lang === "ko" ? linkedPhoto.caption : linkedPhoto.captionEn} aria-label={lang === "ko" ? linkedPhoto.caption : linkedPhoto.captionEn}><Link2 size={14} /></button>}</div>
                     <div className="col-span-1 flex justify-end">{editMode && <div className="flex gap-1"><button onClick={() => setEditingExId(ex.id)} aria-label={u.editLabel} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><Edit3 size={12} /></button><button onClick={() => deleteEx(ex.id)} aria-label={u.worksDelete} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button></div>}</div>
