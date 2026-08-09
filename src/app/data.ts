@@ -333,6 +333,11 @@ export const GLOBAL_CSS = `
   background-size: 200% 100%;
   animation: img-shimmer 1.8s ease-in-out infinite;
 }
+/* activity photo gallery — slide direction matches the arrow/swipe just used */
+@keyframes gallery-in-from-right { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes gallery-in-from-left  { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: translateX(0); } }
+.gallery-slide-1  { animation: gallery-in-from-right 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.gallery-slide--1 { animation: gallery-in-from-left  0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
 `;
 
 export const GA_ID = "G-MYX4F18WM9";

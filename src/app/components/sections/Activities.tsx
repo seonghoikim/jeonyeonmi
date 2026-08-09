@@ -32,6 +32,7 @@ export function Activities({
   const managingModalRef = useModalLock<HTMLDivElement>(!!managingPhoto, () => setManagingId(null));
 
   const [gallery, setGallery] = useState<{ photoId: number; index: number } | null>(null);
+  const [galleryDir, setGalleryDir] = useState<1 | -1>(1);
   const galleryPhoto = activityPhotos.find((p) => p.id === gallery?.photoId) ?? null;
   const galleryKeys = galleryPhoto
     ? [`activity-${galleryPhoto.id}`, ...(galleryPhoto.extraPhotoIds ?? []).map((sid) => `activity-${galleryPhoto.id}-${sid}`)]
@@ -44,6 +45,7 @@ export function Activities({
       if (!g) return g;
       const next = g.index + dir;
       if (next < 0 || next >= galleryKeys.length) return g;
+      setGalleryDir(dir);
       return { ...g, index: next };
     });
   };
@@ -216,7 +218,7 @@ export function Activities({
           </div>
           <div className="relative flex-1 overflow-hidden flex items-center justify-center">
             {img(galleryKeys[gallery.index]) && (
-              <img src={img(galleryKeys[gallery.index])!} alt="" className="object-contain" style={{ maxWidth: "92vw", maxHeight: "calc(100dvh - 100px)" }} />
+              <img key={gallery.index} src={img(galleryKeys[gallery.index])!} alt="" className={`object-contain gallery-slide-${galleryDir}`} style={{ maxWidth: "92vw", maxHeight: "calc(100dvh - 100px)" }} />
             )}
             {gallery.index > 0 && (
               <button onClick={() => goGallery(-1)} aria-label={u.navPrev} className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 sm:p-2.5 rounded-full transition-colors">
