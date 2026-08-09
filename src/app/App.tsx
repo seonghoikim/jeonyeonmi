@@ -4,7 +4,7 @@ import { Menu, X, Edit3, Check, Languages } from "lucide-react";
 import {
   MONO, serifOf, sansOf, hSize, GLOBAL_CSS, artworkSlug, artworkIdFromSlug,
   initContent, UI, initCurrentEx, initSeries, initArtworks, initSlides, initExhibitions, initActivityPhotos, initVideos, initContacts, initPress,
-  normalizeExhibitionEntry,
+  normalizeExhibitionEntry, normalizeCurrentExhibition,
   type Lang, type ContentKey, type CurrentExhibition, type Artwork, type Series, type Slide, type ExhibitionEntry, type ActivityPhoto, type VideoEntry, type ContactItem, type PressEntry,
 } from "./data";
 import { useGoogleAnalytics } from "./useGoogleAnalytics";
@@ -200,7 +200,7 @@ export default function App() {
     loadPortfolio().then((row) => {
       if (!row) { setIsLoading(false); return; }
       if (row.content && Object.keys(row.content).length > 0) setContent((p) => ({ ...p, ...row.content }));
-      if ((row.current_exhibitions as CurrentExhibition[])?.length) setCurrentExList(row.current_exhibitions as CurrentExhibition[]);
+      if ((row.current_exhibitions as CurrentExhibition[])?.length) setCurrentExList((row.current_exhibitions as CurrentExhibition[]).map(normalizeCurrentExhibition));
       if ((row.artworks as Artwork[])?.length) setArtworkList(row.artworks as Artwork[]);
       if ((row.series_list as Series[])?.length) setSeriesList(row.series_list as Series[]);
       if ((row.slides as Slide[])?.length) {
@@ -659,7 +659,7 @@ export default function App() {
   const deleteEx = (id: number) => { if (!window.confirm("이 항목을 삭제하시겠습니까?")) return; setExhibitionList((p) => p.filter((e) => e.id !== id)); if (editingExId === id) setEditingExId(null); };
   const addCurrentEx = () => { const newId = Math.max(0, ...currentExList.map((e) => e.id)) + 1; setCurrentExList((p) => [...p, { id: newId, title: "새 전시", titleEn: "New Exhibition", venue: "장소", venueEn: "Venue", location: "서울", locationEn: "Seoul", startDate: "2025.01.01", endDate: "2025.02.01", status: "예정", tag: "개인전", visible: true }]); setEditingCurrentId(newId); };
   const toggleCurrentExVisible = (id: number) => setCurrentExList((p) => p.map((e) => e.id === id ? { ...e, visible: !e.visible } : e));
-  const updateCurrentEx = (id: number, f: keyof CurrentExhibition, v: string) => setCurrentExList((p) => p.map((e) => e.id === id ? { ...e, [f]: v } : e));
+  const updateCurrentEx = (id: number, f: keyof CurrentExhibition, v: string | boolean) => setCurrentExList((p) => p.map((e) => e.id === id ? { ...e, [f]: v } : e));
   const deleteCurrentEx = (id: number) => { if (!window.confirm("이 전시를 삭제하시겠습니까?")) return; setCurrentExList((p) => p.filter((e) => e.id !== id)); if (editingCurrentId === id) setEditingCurrentId(null); };
   const addActivityPhoto = () => { const newId = Math.max(0, ...activityPhotos.map((p) => p.id)) + 1; setActivityPhotos((p) => [...p, { id: newId, caption: "새 사진", captionEn: "New Photo" }]); };
   const deleteActivityPhoto = (id: number) => { if (!window.confirm("이 사진을 삭제하시겠습니까?")) return; setActivityPhotos((p) => p.filter((ph) => ph.id !== id)); };

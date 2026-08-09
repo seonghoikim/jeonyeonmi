@@ -1,6 +1,6 @@
 import { Plus, Upload, GripVertical, Eye, EyeOff, Edit3, Check, Trash2, ArrowUpRight, ChevronRight, MapPin } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
-import { moveItem, moveInFiltered, hSize, EX_TAG_ORDER, exTagStyle, exTagLabel, type CurrentExhibition } from "../../data";
+import { moveItem, moveInFiltered, hSize, EX_BASE_TAG_ORDER, exBaseTagStyle, exBaseTagLabel, EX_COMPETITION_STYLE, type CurrentExhibition } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
 import { trackEvent } from "../../analytics";
 
@@ -13,7 +13,7 @@ type CurrentExhibitionsProps = {
   setShowPastEx: React.Dispatch<React.SetStateAction<boolean>>;
   addCurrentEx: () => void;
   toggleCurrentExVisible: (id: number) => void;
-  updateCurrentEx: (id: number, f: keyof CurrentExhibition, v: string) => void;
+  updateCurrentEx: (id: number, f: keyof CurrentExhibition, v: string | boolean) => void;
   deleteCurrentEx: (id: number) => void;
 };
 
@@ -79,7 +79,8 @@ export function CurrentExhibitions({
                   {!isEditing && (
                     <div className="absolute top-3 left-3 flex gap-1.5">
                       <span className={`text-xs px-2.5 py-1 tracking-widest font-medium ${statusCls}`} style={MONO}>{statusLabel}</span>
-                      <span className={`text-xs px-2.5 py-1 tracking-widest font-medium bg-background/90 border ${exTagStyle(ex.tag)}`} style={MONO}>{exTagLabel(ex.tag, u)}</span>
+                      <span className={`text-xs px-2.5 py-1 tracking-widest font-medium bg-background/90 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
+                      {ex.isCompetition && <span className={`text-xs px-2.5 py-1 tracking-widest font-medium bg-background/90 border ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
                       {!ex.visible && editMode && <span className="text-xs px-2 py-1 bg-background/80 border border-dashed border-border text-muted-foreground" style={MONO}>숨김</span>}
                     </div>
                   )}
@@ -104,9 +105,13 @@ export function CurrentExhibitions({
                           className={`text-xs px-2 py-0.5 border ${ex.status === "진행중" ? "border-accent text-accent" : ex.status === "예정" ? "border-border text-muted-foreground" : "border-border/40 text-muted-foreground/50"}`} style={MONO}>
                           {ex.status === "진행중" ? u.statusOngoing : ex.status === "예정" ? u.statusUpcoming : u.statusPast} ⇄
                         </button>
-                        <button onClick={() => { const next = EX_TAG_ORDER[(EX_TAG_ORDER.indexOf(ex.tag) + 1) % EX_TAG_ORDER.length]; updateCurrentEx(ex.id, "tag", next); }}
-                          className={`text-xs px-2 py-0.5 border ${exTagStyle(ex.tag)}`} style={MONO}>
-                          {exTagLabel(ex.tag, u)} ⇄
+                        <button onClick={() => { const next = EX_BASE_TAG_ORDER[(EX_BASE_TAG_ORDER.indexOf(ex.tag) + 1) % EX_BASE_TAG_ORDER.length]; updateCurrentEx(ex.id, "tag", next); }}
+                          className={`text-xs px-2 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>
+                          {exBaseTagLabel(ex.tag, u)} ⇄
+                        </button>
+                        <button onClick={() => updateCurrentEx(ex.id, "isCompetition", !ex.isCompetition)}
+                          className={`text-xs px-2 py-0.5 border ${ex.isCompetition ? EX_COMPETITION_STYLE : "border-border text-muted-foreground/50"}`} style={MONO}>
+                          {u.exCompetition}
                         </button>
                       </div>
                       <input value={ex.title} onChange={(e) => updateCurrentEx(ex.id, "title", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-base font-light text-foreground outline-none" style={SERIF} placeholder="전시명 KO" />
@@ -224,7 +229,8 @@ export function CurrentExhibitions({
                           <div className="space-y-2">
                             <div className="flex items-center gap-1.5 mb-1">
                               <button onClick={() => { const cycle = { "예정": "진행중", "진행중": "지난전시", "지난전시": "예정" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }} className="text-xs px-2 py-0.5 border border-border/40 text-muted-foreground/50" style={MONO}>{u.statusPast} ⇄</button>
-                              <button onClick={() => { const next = EX_TAG_ORDER[(EX_TAG_ORDER.indexOf(ex.tag) + 1) % EX_TAG_ORDER.length]; updateCurrentEx(ex.id, "tag", next); }} className={`text-xs px-2 py-0.5 border ${exTagStyle(ex.tag)}`} style={MONO}>{exTagLabel(ex.tag, u)} ⇄</button>
+                              <button onClick={() => { const next = EX_BASE_TAG_ORDER[(EX_BASE_TAG_ORDER.indexOf(ex.tag) + 1) % EX_BASE_TAG_ORDER.length]; updateCurrentEx(ex.id, "tag", next); }} className={`text-xs px-2 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)} ⇄</button>
+                              <button onClick={() => updateCurrentEx(ex.id, "isCompetition", !ex.isCompetition)} className={`text-xs px-2 py-0.5 border ${ex.isCompetition ? EX_COMPETITION_STYLE : "border-border text-muted-foreground/50"}`} style={MONO}>{u.exCompetition}</button>
                             </div>
                             <input value={ex.title} onChange={(e) => updateCurrentEx(ex.id, "title", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground font-light outline-none" style={SERIF} />
                             <input value={ex.titleEn} onChange={(e) => updateCurrentEx(ex.id, "titleEn", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-accent outline-none" style={MONO} />
@@ -245,7 +251,8 @@ export function CurrentExhibitions({
                           <>
                             <p className="text-sm font-light text-foreground/80 leading-snug" style={SERIF}>
                               {lang === "ko" ? ex.title : ex.titleEn}{" "}
-                              <span className={`inline-block align-middle text-xs px-1.5 py-0.5 border ${exTagStyle(ex.tag)}`} style={MONO}>{exTagLabel(ex.tag, u)}</span>
+                              <span className={`inline-block align-middle text-xs px-1.5 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
+                              {ex.isCompetition && <span className={`inline-block align-middle text-xs px-1.5 py-0.5 border ml-1 ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
                             </p>
                             <p className="text-xs text-muted-foreground/50 mt-0.5">{lang === "ko" ? ex.venue : ex.venueEn} · {lang === "ko" ? ex.location : ex.locationEn}</p>
                             <p className="text-xs text-muted-foreground/30 mt-0.5" style={MONO}>{ex.startDate} — {ex.endDate}</p>

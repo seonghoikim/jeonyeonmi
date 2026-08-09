@@ -57,7 +57,7 @@ export function useStructuredData({ lang, artistName, artistNameEn, artworkList,
       "@type": "ExhibitionEvent",
       name: lang === "ko" ? ex.title : ex.titleEn,
       startDate: ex.year || undefined,
-      location: { "@type": "Place", name: lang === "ko" ? ex.venue : ex.venueEn, address: ex.location },
+      location: { "@type": "Place", name: lang === "ko" ? ex.venue : ex.venueEn, address: lang === "ko" ? ex.location : (ex.locationEn || ex.location) },
       organizer: creator,
     }));
 

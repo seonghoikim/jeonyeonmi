@@ -99,9 +99,11 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
             current: current.map((ex) => `${ex.startDate} — ${ex.endDate}   ${lang === "ko" ? ex.title : ex.titleEn} — ${lang === "ko" ? ex.venue : ex.venueEn}, ${lang === "ko" ? ex.location : ex.locationEn}`),
             historyLabel: u.cvHistory,
             history: history.map((ex) => {
-              const award = ex.award ? ` — ${ex.award}` : "";
+              const awardText = lang === "ko" ? ex.award : (ex.awardEn || ex.award);
+              const award = awardText ? ` — ${awardText}` : "";
               const tagLabel = ex.isCompetition ? `${exBaseTagLabel(ex.tag, u)} · ${u.exCompetition}` : exBaseTagLabel(ex.tag, u);
-              return `${ex.year}   ${lang === "ko" ? ex.title : ex.titleEn} — ${lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)}, ${ex.location}  [${tagLabel}]${award}`;
+              const locationText = lang === "ko" ? ex.location : (ex.locationEn || ex.location);
+              return `${ex.year}   ${lang === "ko" ? ex.title : ex.titleEn} — ${lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)}, ${locationText}  [${tagLabel}]${award}`;
             }),
             pressHeading: c("s08heading"),
             press: press.map((p) => ({
