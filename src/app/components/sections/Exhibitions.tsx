@@ -151,7 +151,7 @@ export function Exhibitions({
                     <div className="hidden lg:block col-span-3">
                       <p className="text-xs text-muted-foreground">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>
                     </div>
-                    <div className="col-span-2 lg:col-span-1 flex flex-col items-center gap-0.5">
+                    <div className="col-span-2 lg:col-span-1 flex flex-wrap items-center justify-center gap-1">
                       <span className={`text-xs px-1.5 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
                       {ex.isCompetition && <span className={`text-xs px-1.5 py-0.5 border ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
                     </div>
