@@ -148,10 +148,10 @@ export function Exhibitions({
                       <p className="text-xs sm:text-sm text-foreground font-light leading-snug" style={SERIF}>{lang === "ko" ? ex.title : ex.titleEn}</p>
                       {ex.award && <p className="text-xs text-yellow-500 mt-0.5">{lang === "ko" ? ex.award : (ex.awardEn || ex.award)}</p>}
                     </div>
-                    <div className="hidden lg:block col-span-3">
+                    <div className="hidden lg:block col-span-2">
                       <p className="text-xs text-muted-foreground">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>
                     </div>
-                    <div className="col-span-2 lg:col-span-1 flex flex-wrap items-center justify-center gap-1">
+                    <div className="col-span-2 lg:col-span-2 flex flex-nowrap items-center justify-center gap-1">
                       <span className={`text-xs px-1.5 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
                       {ex.isCompetition && <span className={`text-xs px-1.5 py-0.5 border ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
                     </div>
