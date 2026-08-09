@@ -100,10 +100,16 @@ export function Exhibitions({
                     <input value={ex.titleEn} onChange={(e) => updateEx(ex.id, "titleEn", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-accent outline-none" style={MONO} placeholder="Title EN" />
                     <div className="flex gap-2">
                       <input value={ex.venue} onChange={(e) => updateEx(ex.id, "venue", e.target.value)} className="flex-1 bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" placeholder="장소 KO" />
-                      <input value={ex.location} onChange={(e) => updateEx(ex.id, "location", e.target.value)} className="w-20 shrink-0 bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" placeholder="지역" />
+                      <input value={ex.venueEn ?? ""} onChange={(e) => updateEx(ex.id, "venueEn", e.target.value)} className="flex-1 bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" placeholder="Venue EN" />
                     </div>
-                    <input value={ex.venueEn ?? ""} onChange={(e) => updateEx(ex.id, "venueEn", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" placeholder="Venue EN" />
-                    <input value={ex.award ?? ""} onChange={(e) => updateEx(ex.id, "award", e.target.value || undefined)} className="w-full bg-transparent border-b border-dashed border-yellow-600/60 text-xs text-yellow-500 outline-none" placeholder={u.exAwardPh} />
+                    <div className="flex gap-2">
+                      <input value={ex.location} onChange={(e) => updateEx(ex.id, "location", e.target.value)} className="flex-1 bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" placeholder="지역 KO" />
+                      <input value={ex.locationEn ?? ""} onChange={(e) => updateEx(ex.id, "locationEn", e.target.value)} className="flex-1 bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground outline-none" placeholder="Location EN" />
+                    </div>
+                    <div className="flex gap-2">
+                      <input value={ex.award ?? ""} onChange={(e) => updateEx(ex.id, "award", e.target.value || undefined)} className="flex-1 bg-transparent border-b border-dashed border-yellow-600/60 text-xs text-yellow-500 outline-none" placeholder={u.exAwardPh} />
+                      <input value={ex.awardEn ?? ""} onChange={(e) => updateEx(ex.id, "awardEn", e.target.value || undefined)} className="flex-1 bg-transparent border-b border-dashed border-yellow-600/60 text-xs text-yellow-500 outline-none" placeholder="Award EN" />
+                    </div>
                     <div className="flex items-center gap-1">
                       <Link2 size={10} className="text-muted-foreground shrink-0" />
                       <select value={ex.activityId ?? ""} onChange={(e) => updateEx(ex.id, "activityId", e.target.value ? Number(e.target.value) : undefined)} className="bg-transparent text-xs text-muted-foreground outline-none flex-1 cursor-pointer" style={MONO}>
@@ -140,10 +146,10 @@ export function Exhibitions({
                     <div className={editMode ? "col-span-4 lg:col-span-4" : "col-span-5 lg:col-span-4"}>
                       <span className="text-xs text-accent block mb-0.5" style={MONO}>{ex.year}</span>
                       <p className="text-xs sm:text-sm text-foreground font-light leading-snug" style={SERIF}>{lang === "ko" ? ex.title : ex.titleEn}</p>
-                      {ex.award && <p className="text-xs text-yellow-500 mt-0.5">{ex.award}</p>}
+                      {ex.award && <p className="text-xs text-yellow-500 mt-0.5">{lang === "ko" ? ex.award : (ex.awardEn || ex.award)}</p>}
                     </div>
                     <div className="hidden lg:block col-span-3">
-                      <p className="text-xs text-muted-foreground">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {ex.location}</p>
+                      <p className="text-xs text-muted-foreground">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>
                     </div>
                     <div className="col-span-2 lg:col-span-1 flex flex-col items-center gap-0.5">
                       <span className={`text-xs px-1.5 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
