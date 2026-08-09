@@ -614,25 +614,23 @@ export default function App() {
     setUploadingTarget(null);
   };
 
-  const triggerMultiUpload = (photoId: number) => {
-    console.log("[MultiUpload] trigger clicked, photoId:", photoId);
-    pendingMultiTarget.current = photoId;
-    multiFileInputRef.current?.click();
-  };
+  const triggerMultiUpload = (photoId: number) => { pendingMultiTarget.current = photoId; multiFileInputRef.current?.click(); };
 
   const handleMultiFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+    // Files must come out of the FileList before the input is reset below —
+    // clearing e.target.value also empties the live FileList e.target.files
+    // still points to, which silently turned every multi-upload into a no-op.
+    const files = e.target.files ? Array.from(e.target.files) : [];
     const photoId = pendingMultiTarget.current;
-    console.log("[MultiUpload] change fired, fileCount:", files?.length, "photoId:", photoId);
     e.target.value = "";
-    if (!files || files.length === 0 || photoId === null) return;
+    if (files.length === 0 || photoId === null) return;
     const token = editTokenRef.current;
     if (!token) { alert("편집 권한이 필요합니다. 다시 로그인해주세요."); return; }
     const photo = activityPhotos.find((p) => p.id === photoId);
     let nextSubId = Math.max(0, ...(photo?.extraPhotoIds ?? [])) + 1;
     setUploadingExtraFor(photoId);
     const addedIds: number[] = [];
-    for (const file of Array.from(files)) {
+    for (const file of files) {
       const subId = nextSubId++;
       try {
         const { url, thumbUrl } = await uploadImage(`activity-${photoId}-${subId}`, file, token, photo?.captionEn);
