@@ -151,9 +151,9 @@ export function Exhibitions({
                     <div className="hidden lg:block col-span-2">
                       <p className="text-xs text-muted-foreground">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>
                     </div>
-                    <div className="col-span-2 lg:col-span-2 flex flex-nowrap items-center justify-center gap-1">
-                      <span className={`text-xs px-1.5 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
-                      {ex.isCompetition && <span className={`text-xs px-1.5 py-0.5 border ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
+                    <div className="col-span-2 lg:col-span-2 flex flex-wrap lg:flex-nowrap items-center justify-center gap-1">
+                      <span className={`text-xs px-1.5 py-0.5 border whitespace-nowrap ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
+                      {ex.isCompetition && <span className={`text-xs px-1.5 py-0.5 border whitespace-nowrap ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
                     </div>
                     <div className="col-span-1 flex justify-end">{linkedPhoto && !exThumb && <button onClick={() => scrollToActivity(linkedPhoto.id)} className="text-muted-foreground hover:text-accent transition-colors p-1" title={lang === "ko" ? linkedPhoto.caption : linkedPhoto.captionEn} aria-label={lang === "ko" ? linkedPhoto.caption : linkedPhoto.captionEn}><Link2 size={14} /></button>}</div>
                     <div className="col-span-1 flex justify-end">{editMode && <div className="flex gap-1"><button onClick={() => setEditingExId(ex.id)} aria-label={u.editLabel} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><Edit3 size={12} /></button><button onClick={() => deleteEx(ex.id)} aria-label={u.worksDelete} className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 size={12} /></button></div>}</div>
