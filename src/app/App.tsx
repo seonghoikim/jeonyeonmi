@@ -614,11 +614,16 @@ export default function App() {
     setUploadingTarget(null);
   };
 
-  const triggerMultiUpload = (photoId: number) => { pendingMultiTarget.current = photoId; multiFileInputRef.current?.click(); };
+  const triggerMultiUpload = (photoId: number) => {
+    console.log("[MultiUpload] trigger clicked, photoId:", photoId);
+    pendingMultiTarget.current = photoId;
+    multiFileInputRef.current?.click();
+  };
 
   const handleMultiFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     const photoId = pendingMultiTarget.current;
+    console.log("[MultiUpload] change fired, fileCount:", files?.length, "photoId:", photoId);
     e.target.value = "";
     if (!files || files.length === 0 || photoId === null) return;
     const token = editTokenRef.current;
