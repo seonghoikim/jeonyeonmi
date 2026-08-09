@@ -5,7 +5,7 @@ import jsPDF from "jspdf";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { buildPortfolioPdf } from "../../generatePortfolioPdf";
 import { useModalLock } from "../../useModalLock";
-import { exTagLabel, type Slide, type Artwork, type Series, type CurrentExhibition, type ExhibitionEntry, type PressEntry } from "../../data";
+import { exBaseTagLabel, type Slide, type Artwork, type Series, type CurrentExhibition, type ExhibitionEntry, type PressEntry } from "../../data";
 
 type PortfolioPrintViewProps = {
   show: boolean;
@@ -100,7 +100,8 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
             historyLabel: u.cvHistory,
             history: history.map((ex) => {
               const award = ex.award ? ` — ${ex.award}` : "";
-              return `${ex.year}   ${lang === "ko" ? ex.title : ex.titleEn} — ${lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)}, ${ex.location}  [${exTagLabel(ex.tag, u)}]${award}`;
+              const tagLabel = ex.isCompetition ? `${exBaseTagLabel(ex.tag, u)} · ${u.exCompetition}` : exBaseTagLabel(ex.tag, u);
+              return `${ex.year}   ${lang === "ko" ? ex.title : ex.titleEn} — ${lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)}, ${ex.location}  [${tagLabel}]${award}`;
             }),
             pressHeading: c("s08heading"),
             press: press.map((p) => ({

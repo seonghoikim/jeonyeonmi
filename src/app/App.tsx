@@ -4,6 +4,7 @@ import { Menu, X, Edit3, Check, Languages } from "lucide-react";
 import {
   MONO, serifOf, sansOf, hSize, GLOBAL_CSS, artworkSlug, artworkIdFromSlug,
   initContent, UI, initCurrentEx, initSeries, initArtworks, initSlides, initExhibitions, initActivityPhotos, initVideos, initContacts, initPress,
+  normalizeExhibitionEntry,
   type Lang, type ContentKey, type CurrentExhibition, type Artwork, type Series, type Slide, type ExhibitionEntry, type ActivityPhoto, type VideoEntry, type ContactItem, type PressEntry,
 } from "./data";
 import { useGoogleAnalytics } from "./useGoogleAnalytics";
@@ -207,7 +208,7 @@ export default function App() {
         setSlides(loadedSlides);
         setCurrentSlide(Math.floor(Math.random() * loadedSlides.length));
       }
-      if ((row.exhibitions as ExhibitionEntry[])?.length) setExhibitionList(row.exhibitions as ExhibitionEntry[]);
+      if ((row.exhibitions as ExhibitionEntry[])?.length) setExhibitionList((row.exhibitions as ExhibitionEntry[]).map(normalizeExhibitionEntry));
       if ((row.activity_photos as ActivityPhoto[])?.length) setActivityPhotos(row.activity_photos as ActivityPhoto[]);
       if ((row.videos as VideoEntry[])?.length) setVideoList(row.videos as VideoEntry[]);
       if ((row.contacts as ContactItem[])?.length) setContactItems(row.contacts as ContactItem[]);
@@ -232,6 +233,7 @@ export default function App() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const isSavingRef = useRef(false);   // lock: prevent concurrent saves
   const saveAgainRef = useRef(false);  // flag: state changed while saving
+  const hasPendingChangesRef = useRef(false); // true between an edit and its debounced save landing — blocks realtime from clobbering it
   const saveDataRef = useRef<Parameters<typeof savePortfolio>[0]>({}); // always latest
   const lastUpdatedAtRef = useRef<string | undefined>(undefined); // last known DB updated_at, for conflict checks
   const img = useCallback((key: string) => imageUrls[key] ?? null, [imageUrls]);
@@ -319,7 +321,7 @@ export default function App() {
     if ((row.artworks as Artwork[])?.length) setArtworkList(row.artworks as Artwork[]);
     if ((row.series_list as Series[])?.length) setSeriesList(row.series_list as Series[]);
     if ((row.slides as Slide[])?.length) setSlides(row.slides as Slide[]);
-    if ((row.exhibitions as ExhibitionEntry[])?.length) setExhibitionList(row.exhibitions as ExhibitionEntry[]);
+    if ((row.exhibitions as ExhibitionEntry[])?.length) setExhibitionList((row.exhibitions as ExhibitionEntry[]).map(normalizeExhibitionEntry));
     if ((row.activity_photos as ActivityPhoto[])?.length) setActivityPhotos(row.activity_photos as ActivityPhoto[]);
     if ((row.videos as VideoEntry[])?.length) setVideoList(row.videos as VideoEntry[]);
     if ((row.contacts as ContactItem[])?.length) setContactItems(row.contacts as ContactItem[]);
@@ -360,12 +362,14 @@ export default function App() {
       }
       isSavingRef.current = false;
     } while (saveAgainRef.current);
+    hasPendingChangesRef.current = false;
     setIsSaving(false);
   }, [applyRemoteRow]);
 
   /* ── DB: debounced auto-save (4 s after last change) — only while an editor session is active ── */
   useEffect(() => {
     if (isLoading || !editTokenRef.current) return;
+    hasPendingChangesRef.current = true;
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       if (editTokenRef.current) flushSave(editTokenRef.current);
@@ -379,6 +383,7 @@ export default function App() {
     if (!isSupabaseReady) return;
     const unsubscribe = subscribePortfolio((row) => {
       if (isSavingRef.current) return; // don't clobber a save in flight
+      if (hasPendingChangesRef.current) return; // don't clobber an edit that hasn't been auto-saved yet (e.g. mid-typing in another tab's shadow)
       if (row.updated_at && row.updated_at === lastUpdatedAtRef.current) return; // echo of our own save
       applyRemoteRow(row);
     });
@@ -650,7 +655,7 @@ export default function App() {
   const addSlide = () => { const newId = Math.max(0, ...slides.map((s) => s.id)) + 1; setSlides((p) => [...p, { id: newId, heading: "새 작가노트", headingEn: "New Statement", body: "내용을 입력하세요.", bodyEn: "Enter content here." }]); setCurrentSlide(slides.length); };
   const deleteSlide = (id: number) => { if (!window.confirm("이 작가노트 슬라이드를 삭제하시겠습니까?")) return; setSlides((p) => p.filter((s) => s.id !== id)); setCurrentSlide((p) => Math.max(0, p - 1)); };
   const addExhibition = () => { const newId = Math.max(0, ...exhibitionList.map((e) => e.id)) + 1; setExhibitionList((p) => [{ id: newId, year: String(new Date().getFullYear()), title: "새 항목", titleEn: "New Item", venue: "장소", venueEn: "Venue", location: "서울", tag: "개인전" }, ...p]); setEditingExId(newId); };
-  const updateEx = (id: number, f: keyof ExhibitionEntry, v: string | number | undefined) => setExhibitionList((p) => p.map((e) => e.id === id ? { ...e, [f]: v } : e));
+  const updateEx = (id: number, f: keyof ExhibitionEntry, v: string | number | boolean | undefined) => setExhibitionList((p) => p.map((e) => e.id === id ? { ...e, [f]: v } : e));
   const deleteEx = (id: number) => { if (!window.confirm("이 항목을 삭제하시겠습니까?")) return; setExhibitionList((p) => p.filter((e) => e.id !== id)); if (editingExId === id) setEditingExId(null); };
   const addCurrentEx = () => { const newId = Math.max(0, ...currentExList.map((e) => e.id)) + 1; setCurrentExList((p) => [...p, { id: newId, title: "새 전시", titleEn: "New Exhibition", venue: "장소", venueEn: "Venue", location: "서울", locationEn: "Seoul", startDate: "2025.01.01", endDate: "2025.02.01", status: "예정", tag: "개인전", visible: true }]); setEditingCurrentId(newId); };
   const toggleCurrentExVisible = (id: number) => setCurrentExList((p) => p.map((e) => e.id === id ? { ...e, visible: !e.visible } : e));
@@ -775,7 +780,7 @@ export default function App() {
   };
 
   const filteredWorks = selectedSeries === "전체" ? artworkList : artworkList.filter((a) => { const s = seriesList.find((s) => s.name === selectedSeries); return s ? a.series === s.name : false; });
-  const filteredEx = exFilter === "전체" ? exhibitionList : exhibitionList.filter((e) => e.tag === exFilter);
+  const filteredEx = exFilter === "전체" ? exhibitionList : exFilter === "공모전" ? exhibitionList.filter((e) => e.isCompetition) : exhibitionList.filter((e) => e.tag === exFilter);
 
   // Each item owns its own click behavior — most scroll to a section, but the
   // portfolio entry opens a modal instead, so the list holds real actions rather
