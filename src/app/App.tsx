@@ -759,6 +759,8 @@ export default function App() {
     exhibitionList.forEach((ex) => {
       addJob(ex.title, ex.titleEn, (en) => updateEx(ex.id, "titleEn", en));
       addJob(ex.venue, ex.venueEn, (en) => updateEx(ex.id, "venueEn", en));
+      addJob(ex.location, ex.locationEn, (en) => updateEx(ex.id, "locationEn", en));
+      addJob(ex.award, ex.awardEn, (en) => updateEx(ex.id, "awardEn", en));
     });
     activityPhotos.forEach((p) => {
       addJob(p.caption, p.captionEn, (en) => updateActivityPhoto(p.id, "captionEn", en));
@@ -770,6 +772,9 @@ export default function App() {
     pressList.forEach((p) => {
       addJob(p.title, p.titleEn, (en) => updatePress(p.id, "titleEn", en));
       addJob(p.outlet, p.outletEn, (en) => updatePress(p.id, "outletEn", en));
+    });
+    contactItems.forEach((c) => {
+      addJob(c.labelKo, c.labelEn, (en) => updateContact(c.id, { labelEn: en }));
     });
 
     if (jobs.length === 0) { alert("번역할 내용이 없습니다 — 비어있는 영문 항목이 없어요."); return; }
