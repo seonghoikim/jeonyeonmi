@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { loadPortfolio, savePortfolio, uploadImage, backfillThumbnail, loginEditor, translateTexts, unfurlPress, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
-import { Menu, X, Edit3, Check, Languages } from "lucide-react";
+import { Menu, X, Edit3, Check, Languages, Instagram } from "lucide-react";
 import {
   MONO, serifOf, sansOf, hSize, GLOBAL_CSS, artworkSlug, artworkIdFromSlug,
   initContent, UI, initCurrentEx, initSeries, initArtworks, initSlides, initExhibitions, initActivityPhotos, initVideos, initContacts, initPress,
@@ -40,7 +40,10 @@ function InlineField({ field, multi = false, rows = 3, className = "" }: { field
   const enKey = (field + "En") as ContentKey;
   const af: ContentKey = lang === "en" && enKey in content ? enKey : field;
   const val = content[af] ?? "";
-  if (!editMode) return <>{val}</>;
+  // Same untranslated-field-shows-blank issue as c() below — only for display;
+  // edit mode still shows the raw (possibly empty) field so a missing translation
+  // stays visibly obvious to whoever is editing it.
+  if (!editMode) return <>{val || (content[field] ?? "")}</>;
   if (multi) return <textarea value={val} rows={rows} onChange={(e) => updateContent(af, e.target.value)} className={`bg-transparent border-b border-dashed border-accent/60 outline-none resize-none w-full ${className}`} style={SANS} />;
   return <input value={val} onChange={(e) => updateContent(af, e.target.value)} className={`bg-transparent border-b border-dashed border-accent/60 outline-none w-full ${className}`} />;
 }
@@ -74,8 +77,12 @@ export default function App() {
   const updateContent = (field: ContentKey, value: string) => setContent((p) => ({ ...p, [field]: value }));
   const c = (field: string): string => {
     const enKey = (field + "En") as ContentKey;
-    if (lang === "en" && enKey in content) return (content as Record<string, string>)[enKey] ?? "";
-    return (content as Record<string, string>)[field] ?? "";
+    const ko = (content as Record<string, string>)[field] ?? "";
+    // An untranslated field (empty string, not just missing) used to render as
+    // blank on the English site — falling back to the Korean text at least keeps
+    // the section readable instead of looking broken until someone translates it.
+    if (lang === "en" && enKey in content) return (content as Record<string, string>)[enKey] || ko;
+    return ko;
   };
 
   /* auth */
@@ -930,6 +937,11 @@ export default function App() {
                 <button onClick={translateAll} disabled={isTranslating} title="전체 번역" aria-label="전체 번역" className="flex items-center gap-1.5 text-xs tracking-widest border border-accent text-accent px-2.5 py-1.5 hover:bg-accent/10 transition-colors disabled:opacity-50" style={MONO}>
                   <Languages size={13} /><span className="hidden sm:inline">{isTranslating ? "번역 중…" : "전체 번역"}</span>
                 </button>
+              )}
+              {!editMode && contactItems.find((item) => item.type === "instagram" && item.visible) && (
+                <a href={contactItems.find((item) => item.type === "instagram" && item.visible)!.href} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("nav_instagram_click")} aria-label="Instagram" className="text-muted-foreground hover:text-accent transition-colors p-1">
+                  <Instagram size={17} />
+                </a>
               )}
               <button onClick={handleLangClick} aria-label={u.langSwitch} className={`text-xs tracking-widest border px-2.5 py-1.5 transition-all ${editMode ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"}`} style={MONO}>{u.langLabel}</button>
               <button className="lg:hidden text-foreground p-1" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? u.menuClose : u.menuOpen}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>

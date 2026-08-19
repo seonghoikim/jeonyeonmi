@@ -48,7 +48,7 @@ export function Press({
           // attached directly instead of coming from the URL og:image unfurl.
           const displayImage = img(uploadKey) || item.image;
           const outlet = lang === "ko" ? item.outlet : (item.outletEn || item.outlet);
-          const title = lang === "ko" ? item.title : item.titleEn;
+          const title = lang === "ko" ? item.title : (item.titleEn || item.title);
           const openPressImage = () => { trackEvent("press_click", { outlet, title }); openLightbox(displayImage); };
           return (
             <div key={item.id}
