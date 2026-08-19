@@ -33,7 +33,7 @@ export const sansOf = (lang: Lang) =>
 export const hSize = (ko: string, en: string, lang: Lang) => (lang === "ko" ? ko : en);
 
 export const getYoutubeId = (url: string) =>
-  url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s?]+)/)?.[1] ?? null;
+  url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([^&\s?]+)/)?.[1] ?? null;
 
 function slugify(s: string): string {
   return s
