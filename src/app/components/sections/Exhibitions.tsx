@@ -146,7 +146,7 @@ export function Exhibitions({
                     <div className={editMode ? "col-span-8 lg:col-span-5" : "col-span-9 lg:col-span-5"}>
                       <span className="text-xs text-accent block mb-0.5" style={MONO}>{ex.year}</span>
                       <p className="text-xs sm:text-sm text-foreground font-light leading-snug" style={SERIF}>
-                        {lang === "ko" ? ex.title : ex.titleEn}{" "}
+                        {lang === "ko" ? ex.title : (ex.titleEn || ex.title)}{" "}
                         <span className={`inline-block align-middle text-xs px-1.5 py-0.5 border whitespace-nowrap ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
                         {ex.isCompetition && <span className={`inline-block align-middle text-xs px-1.5 py-0.5 border whitespace-nowrap ml-1 ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
                       </p>

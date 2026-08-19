@@ -126,7 +126,7 @@ export function Activities({
                     )}
                   </div>
                   <div className="p-2 sm:p-3">
-                    <p className="text-xs text-muted-foreground" style={MONO}>{lang === "ko" ? photo.caption : photo.captionEn}</p>
+                    <p className="text-xs text-muted-foreground" style={MONO}>{lang === "ko" ? photo.caption : (photo.captionEn || photo.caption)}</p>
                   </div>
                 </div>
               );

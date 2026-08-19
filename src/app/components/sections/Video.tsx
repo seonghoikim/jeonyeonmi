@@ -102,7 +102,7 @@ export function Video({
                       <button onClick={() => setEditingVideoId(null)} className="flex items-center gap-1.5 text-xs text-accent mt-2" style={MONO}><Check size={11} />완료</button>
                     </div>
                   ) : (
-                    <><h3 className={`font-light text-foreground leading-snug ${hSize("text-sm", "text-base", lang)}`} style={SERIF}>{lang === "ko" ? vid.title : vid.titleEn}</h3><p className="text-xs text-muted-foreground" style={MONO}>{lang === "ko" ? vid.description : vid.descriptionEn}</p>{editMode && <button onClick={() => setEditingVideoId(vid.id)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-auto pt-2" style={MONO}><Edit3 size={11} />편집</button>}</>
+                    <><h3 className={`font-light text-foreground leading-snug ${hSize("text-sm", "text-base", lang)}`} style={SERIF}>{lang === "ko" ? vid.title : (vid.titleEn || vid.title)}</h3><p className="text-xs text-muted-foreground" style={MONO}>{lang === "ko" ? vid.description : (vid.descriptionEn || vid.description)}</p>{editMode && <button onClick={() => setEditingVideoId(vid.id)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-auto pt-2" style={MONO}><Edit3 size={11} />편집</button>}</>
                   )}
                 </div>
               </div>

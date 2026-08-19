@@ -238,12 +238,12 @@ export function Works({
               <div className="p-3 sm:p-5 flex flex-col gap-1">
                 <div className="flex justify-between items-baseline gap-2">
                   <h3 className="text-xs sm:text-sm font-light text-foreground line-clamp-1 flex-1 flex items-center gap-1.5" style={SERIF}>
-                    {lang === "ko" ? work.title : work.titleEn}
+                    {lang === "ko" ? work.title : (work.titleEn || work.title)}
                     {(work.description || work.descriptionEn) && <AlignLeft size={11} className="text-accent/85 shrink-0" title={u.fieldDescription} />}
                   </h3>
                   <span className="text-xs text-accent shrink-0" style={MONO}>{work.year}</span>
                 </div>
-                <p className="text-xs text-muted-foreground hidden sm:block" style={MONO}>{lang === "ko" ? work.medium : work.mediumEn}</p>
+                <p className="text-xs text-muted-foreground hidden sm:block" style={MONO}>{lang === "ko" ? work.medium : (work.mediumEn || work.medium)}</p>
               </div>
             </div>
           );})}
@@ -288,13 +288,13 @@ export function Works({
                   {editMode ? (
                     <><input value={selectedWork.title} onChange={(e) => updateWork(selectedWork.id, "title", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-lg sm:text-xl font-light text-foreground leading-snug mb-1 outline-none" style={SERIF} /><input value={selectedWork.titleEn} onChange={(e) => updateWork(selectedWork.id, "titleEn", e.target.value)} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-accent mt-2 outline-none" style={MONO} /></>
                   ) : (
-                    <><h3 className={`font-light text-foreground mb-1 ${hSize("text-lg sm:text-xl", "text-xl sm:text-2xl", lang)}`} style={SERIF}>{lang === "ko" ? selectedWork.title : selectedWork.titleEn}</h3><p className="text-sm text-accent">{lang === "ko" ? selectedWork.titleEn : selectedWork.title}</p></>
+                    <><h3 className={`font-light text-foreground mb-1 ${hSize("text-lg sm:text-xl", "text-xl sm:text-2xl", lang)}`} style={SERIF}>{lang === "ko" ? selectedWork.title : (selectedWork.titleEn || selectedWork.title)}</h3><p className="text-sm text-accent">{lang === "ko" ? selectedWork.titleEn : selectedWork.title}</p></>
                   )}
                 </div>
                 <div className="space-y-3 sm:space-y-4 border-t border-border pt-5">
                   {([["year", u.fieldYear], ["medium", u.fieldMedium], ["size", u.fieldSize], ["category", u.fieldCategory]] as [keyof Artwork, string][]).map(([field, label]) => {
                     const displayVal = () => {
-                      if (field === "medium") return lang === "en" ? selectedWork.mediumEn : selectedWork.medium;
+                      if (field === "medium") return lang === "en" ? (selectedWork.mediumEn || selectedWork.medium) : selectedWork.medium;
                       if (field === "category") return lang === "en" ? (selectedWork.categoryEn || selectedWork.category) : selectedWork.category;
                       return String(selectedWork[field]);
                     };
@@ -348,7 +348,7 @@ export function Works({
                         <textarea value={selectedWork.descriptionEn ?? ""} onChange={(e) => updateWork(selectedWork.id, "descriptionEn", e.target.value)} rows={4} placeholder={u.descriptionPlaceholderEn} className="w-full bg-transparent border-b border-dashed border-accent/60 text-xs text-muted-foreground leading-relaxed outline-none resize-none" />
                       </div>
                     ) : (
-                      <p className="text-sm text-foreground/90 font-light leading-[1.9] whitespace-pre-wrap">{lang === "ko" ? selectedWork.description : selectedWork.descriptionEn}</p>
+                      <p className="text-sm text-foreground/90 font-light leading-[1.9] whitespace-pre-wrap">{lang === "ko" ? selectedWork.description : (selectedWork.descriptionEn || selectedWork.description)}</p>
                     )}
                   </div>
                 )}

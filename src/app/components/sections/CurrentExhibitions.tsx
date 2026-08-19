@@ -134,10 +134,10 @@ export function CurrentExhibitions({
                     </div>
                   ) : (
                     <div className="flex-1 flex flex-col justify-center">
-                      <h3 className={`font-light text-foreground mb-1 leading-snug ${hSize("text-sm sm:text-base", "text-base sm:text-lg", lang)}`} style={SERIF}>{lang === "ko" ? ex.title : ex.titleEn}</h3>
+                      <h3 className={`font-light text-foreground mb-1 leading-snug ${hSize("text-sm sm:text-base", "text-base sm:text-lg", lang)}`} style={SERIF}>{lang === "ko" ? ex.title : (ex.titleEn || ex.title)}</h3>
                       <p className="text-xs text-accent mb-3" style={MONO}>{lang === "ko" ? ex.titleEn : ex.title}</p>
-                      <p className="text-xs text-muted-foreground mb-1">{lang === "ko" ? ex.venue : ex.venueEn}</p>
-                      <p className="text-xs text-muted-foreground mb-1">{lang === "ko" ? ex.location : ex.locationEn}</p>
+                      <p className="text-xs text-muted-foreground mb-1">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)}</p>
+                      <p className="text-xs text-muted-foreground mb-1">{lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>
                       <p className="text-xs text-muted-foreground" style={MONO}>{ex.startDate} — {ex.endDate}</p>
                       {ex.openingDate && <p className="text-xs text-accent mt-1" style={MONO}>{u.openingLabel} {ex.openingDate}</p>}
                     </div>
@@ -250,11 +250,11 @@ export function CurrentExhibitions({
                         ) : (
                           <>
                             <p className="text-sm font-light text-foreground/80 leading-snug" style={SERIF}>
-                              {lang === "ko" ? ex.title : ex.titleEn}{" "}
+                              {lang === "ko" ? ex.title : (ex.titleEn || ex.title)}{" "}
                               <span className={`inline-block align-middle text-xs px-1.5 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
                               {ex.isCompetition && <span className={`inline-block align-middle text-xs px-1.5 py-0.5 border ml-1 ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
                             </p>
-                            <p className="text-xs text-muted-foreground/50 mt-0.5">{lang === "ko" ? ex.venue : ex.venueEn} · {lang === "ko" ? ex.location : ex.locationEn}</p>
+                            <p className="text-xs text-muted-foreground/50 mt-0.5">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>
                             <p className="text-xs text-muted-foreground/30 mt-0.5" style={MONO}>{ex.startDate} — {ex.endDate}</p>
                           </>
                         )}
