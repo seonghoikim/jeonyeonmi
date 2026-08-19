@@ -207,20 +207,36 @@ ${numbered}
 {"translations": ["...", "...", ...]}
 번역 배열의 길이와 순서는 입력과 정확히 같아야 합니다 (총 ${nonEmptyTexts.length}개). 다른 설명이나 안내 문구 없이 번역문만 담으세요.`;
 
+  // Gemini's free/low-tier quota returns 429 (rate limited) and occasional 503
+  // (model overloaded) under completely normal use — both are transient, not
+  // real failures, and used to surface as an immediate "번역 요청이 실패했습니다"
+  // with no retry at all, matching reports of it failing repeatedly then
+  // randomly succeeding. Retry those a couple of times with backoff before
+  // giving up; any other status is a real error and fails immediately.
+  const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+  const MAX_ATTEMPTS = 3;
+
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json" },
-        }),
-      }
-    );
-    if (!res.ok) {
-      console.error("[translate] Gemini API error:", res.status, await res.text().catch(() => ""));
+    let res: Response | null = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" },
+          }),
+        }
+      );
+      if (res.ok) break;
+      const isLastAttempt = attempt === MAX_ATTEMPTS;
+      console.error(`[translate] Gemini API error (attempt ${attempt}/${MAX_ATTEMPTS}):`, res.status, await res.text().catch(() => ""));
+      if (isLastAttempt || !RETRYABLE_STATUS.has(res.status)) break;
+      await new Promise((resolve) => setTimeout(resolve, attempt * 600));
+    }
+    if (!res!.ok) {
       return c.json({ error: "번역 요청이 실패했습니다" }, 502);
     }
     const data = await res.json();
