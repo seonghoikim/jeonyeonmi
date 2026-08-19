@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Plus, GripVertical, Maximize2, Play, Trash2, Edit3, Check } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, getYoutubeId, type VideoEntry } from "../../data";
@@ -23,11 +22,6 @@ export function Video({
   setFullscreenVideoYtId, addVideo, updateVideoField, deleteVideo,
 }: VideoProps) {
   const { lang, u, MONO, SERIF, editMode, dragSrc, dragOverKey, setDragOverKey, C } = usePortfolioContext();
-  // A vertical (Shorts-shaped) upload forced into the fixed 16:9 box below used to
-  // either get cropped (thumbnail, object-cover) or letterboxed to a thin strip
-  // (playing iframe) — YouTube's own aspect ratio is only knowable once the thumbnail
-  // image actually loads, so this measures it then and reshapes that one card's box.
-  const [aspectById, setAspectById] = useState<Record<number, number>>({});
 
   return (
     <section id="videos" className="py-16 sm:py-24 border-t border-border">
@@ -58,7 +52,7 @@ export function Video({
                 onDragEnd={() => { dragSrc.current = null; setDragOverKey(null); }}
                 className="group bg-background flex flex-col"
                 style={{ outline: dragOverKey === "vid-" + idx ? "2px solid var(--accent)" : "none" }}>
-                <div className="relative overflow-hidden bg-background" style={{ aspectRatio: aspectById[vid.id] ?? 16 / 9 }}>
+                <div className="relative aspect-video overflow-hidden bg-background">
                   {editMode && <div className="absolute top-1.5 left-1.5 z-10 text-accent/60 cursor-grab"><GripVertical size={14} /></div>}
                   {editMode && (
                     <ReorderButtons
@@ -89,11 +83,7 @@ export function Video({
                       <img
                         src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
                         alt={vid.title}
-                        onLoad={(e) => {
-                          const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
-                          if (w && h) setAspectById((prev) => ({ ...prev, [vid.id]: w / h }));
-                        }}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100"
+                        className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100"
                         loading="lazy" decoding="async"
                       />
                       <div className="absolute inset-0 bg-background/20 group-hover:bg-background/10 transition-colors" />
