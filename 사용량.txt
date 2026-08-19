@@ -1,0 +1,40 @@
+==============================================================================
+Claude token usage report
+==============================================================================
+  transcripts : 1 file(s)
+  requests    : 4 (after de-duplication)
+  range       : 2026-08-19 ~ 2026-08-19
+  timezone    : local
+  source      : all
+  sidechain   : excluded (--include-sidechain to add subagents)
+
+  Grand total
+    input       : 8
+    output      : 727
+    cache write : 69,097
+    cache read  : 170,654
+    all tokens  : 240,486
+
+[Daily]
+  Date         Input  Output  CacheWrite  CacheRead    Total    Msgs  Sessions
+  ----------  ------  ------  ----------  ---------  -------  ------  --------
+  2026-08-19       8     727      69,097    170,654  240,486       4         1
+  ------      ------  ------      ------     ------   ------  ------    ------
+  TOTAL            8     727      69,097    170,654  240,486       4         1
+
+[Weekly]
+  Week                     Input  Output  CacheWrite  CacheRead    Total    Msgs  Sessions
+  ----------------------  ------  ------  ----------  ---------  -------  ------  --------
+  2026-W34 (08/17~08/23)       8     727      69,097    170,654  240,486       4         1
+  ------                  ------  ------      ------     ------   ------  ------    ------
+  TOTAL                        8     727      69,097    170,654  240,486       4         1
+
+[By model]
+  Model            Input  Output  CacheWrite  CacheRead    Total  Msgs  Sessions
+  ---------------  -----  ------  ----------  ---------  -------  ----  --------
+  claude-sonnet-5      8     727      69,097    170,654  240,486     4         1
+
+[By source]
+  Source          Input  Output  CacheWrite  CacheRead    Total  Msgs  Sessions
+  --------------  -----  ------  ----------  ---------  -------  ----  --------
+  remote_desktop      8     727      69,097    170,654  240,486     4         1
