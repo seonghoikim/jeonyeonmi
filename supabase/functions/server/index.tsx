@@ -197,8 +197,19 @@ app.post(`${PREFIX}/portfolio/translate`, requireAuth, async (c) => {
     return c.json({ translations: texts.map(() => "") });
   }
 
+  // Long, emotionally-toned artist-statement paragraphs were previously slipping a
+  // chatty self-description ("I have maintained the reflective tone to...") in as
+  // the first sentence of the actual translation, even though the prompt already
+  // said not to — a single line of "no commentary" at the very end of a long batch
+  // wasn't enough weight against the model's learned habit of prefacing literary
+  // output with a note about its own approach. Short catalog fields never did this;
+  // only the long, "make this sound artistic" paragraphs did. Naming the exact
+  // pattern to avoid, and repeating the constraint near the actual instruction
+  // instead of only at the end, is what actually suppresses it.
   const numbered = nonEmptyTexts.map((t, i) => `${i}: ${JSON.stringify(t)}`).join("\n");
   const prompt = `다음은 한국 현대미술 작가의 포트폴리오 웹사이트에 들어가는 한국어 문장들입니다. 각 문장을 자연스러운 영어로 번역하세요. 예술적/문학적 어조를 살리고, 줄바꿈(\\n)은 그대로 유지하세요.
+
+중요: 번역문 앞이나 뒤에 절대 아무 설명도 붙이지 마세요. 예를 들어 "I have maintained the reflective tone to...", "I kept the artistic tone to convey..." 같이 스스로의 번역 방식을 설명하는 문장을 지어내지 마세요. 오직 원문을 번역한 결과 문장 자체만 출력하세요 — 번역기이지 안내자가 아닙니다.
 
 각 줄은 "인덱스: JSON 문자열" 형식입니다:
 ${numbered}
