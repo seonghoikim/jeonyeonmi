@@ -35,11 +35,19 @@ export function useSeoMeta({ name, description, imageUrl, lang }: SeoMetaInput) 
   useEffect(() => {
     document.documentElement.lang = lang;
     const isEn = lang === "en";
-    const url = `https://jeonyeonmi.com${isEn ? "/en" : "/"}`;
+    // Canonical/og:url/og:locale describe *which URL this document is* — that has to
+    // come from the actual path, not from `lang`, which on "/" is only a guess (by
+    // visitor timezone) about which language to display. A non-Seoul-timezone visitor
+    // (any crawler included — Googlebot isn't in Asia/Seoul) landing on plain "/" used
+    // to get lang="en" for display purposes, and this code declared its canonical as
+    // "/en" even though it was never on that route — Search Console caught exactly
+    // this, showing "/en" as the self-declared canonical for a "/" crawl.
+    const isEnPath = typeof window !== "undefined" && window.location.pathname.startsWith("/en");
+    const url = `https://jeonyeonmi.com${isEnPath ? "/en" : "/"}`;
     document.querySelector('link[rel="canonical"]')?.setAttribute("href", url);
     setMetaContent('meta[property="og:url"]', url);
-    setMetaContent('meta[property="og:locale"]', isEn ? "en_US" : "ko_KR");
-    setMetaContent('meta[property="og:locale:alternate"]', isEn ? "ko_KR" : "en_US");
+    setMetaContent('meta[property="og:locale"]', isEnPath ? "en_US" : "ko_KR");
+    setMetaContent('meta[property="og:locale:alternate"]', isEnPath ? "ko_KR" : "en_US");
 
     if (!name && !description) return;
     const title = name ? `${name} — ${isEn ? "Artist Portfolio" : "작가 포트폴리오"}` : document.title;
