@@ -72,7 +72,11 @@ export function CurrentExhibitions({
                 onDragEnd={() => { dragSrc.current = null; setDragOverKey(null); }}
                 className={`shrink-0 bg-background border flex flex-col overflow-hidden transition-all ${ex.visible ? "border-border" : "border-dashed border-border/40 opacity-50"}`}
                 style={{ width: "clamp(240px, 72vw, 300px)", scrollSnapAlign: "start", outline: dragOverKey === "cur-" + idx ? "2px solid var(--accent)" : "none" }}>
-                <div className={`current-ex-img relative overflow-hidden bg-card ${editMode ? "cursor-pointer" : ""}`} style={{ height: "340px" }} onClick={() => editMode && triggerUpload(`current-${ex.id}`, ex.titleEn)}>
+                {/* Most exhibition posters are printed at A-series proportions (~1:1.414,
+                    portrait) — the old fixed 340px height cropped a chunk off the top/bottom
+                    of any poster taller than that box. Sizing the box to the actual poster
+                    ratio instead lets object-cover fill it without losing the top/bottom. */}
+                <div className={`current-ex-img relative overflow-hidden bg-card ${editMode ? "cursor-pointer" : ""}`} style={{ aspectRatio: "1 / 1.414" }} onClick={() => editMode && triggerUpload(`current-${ex.id}`, ex.titleEn)}>
                   {exImg
                     ? <img src={exImg} alt={ex.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     : <img src="/poster-placeholder-v3.svg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />}
