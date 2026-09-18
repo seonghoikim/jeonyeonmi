@@ -208,7 +208,7 @@ export function CurrentExhibitions({
                         dragSrc.current = null; setDragOverKey(null);
                       }}
                       onDragEnd={() => { dragSrc.current = null; setDragOverKey(null); }}
-                      className={`group flex items-center gap-3 sm:gap-5 py-3 border-b border-border/30 hover:bg-secondary/20 transition-colors px-2 -mx-2 ${ex.visible ? "" : "opacity-40"}`}
+                      className={`group flex items-center gap-3 sm:gap-5 py-3.5 sm:py-3 border-b border-border/30 hover:bg-secondary/20 transition-colors px-2 -mx-2 ${ex.visible ? "" : "opacity-40"}`}
                       style={{ outline: dragOverKey === "past-" + pidx ? "2px solid var(--accent)" : "none" }}>
                       {editMode && <div className="text-accent/40 cursor-grab shrink-0"><GripVertical size={13} /></div>}
                       {editMode && (
@@ -253,10 +253,17 @@ export function CurrentExhibitions({
                           </div>
                         ) : (
                           <>
+                            {/* Tag badges sat inline after the title, which on narrow phone widths pushed onto
+                                a cramped, wrapping second line. Stacking them above the title on mobile (and
+                                keeping the inline layout from sm: up, where there's room for it) reads cleaner. */}
+                            <div className="flex items-center gap-1 mb-1 sm:hidden">
+                              <span className={`inline-block text-xs px-1.5 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
+                              {ex.isCompetition && <span className={`inline-block text-xs px-1.5 py-0.5 border ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
+                            </div>
                             <p className="text-sm font-light text-foreground/80 leading-snug" style={SERIF}>
                               {lang === "ko" ? ex.title : (ex.titleEn || ex.title)}{" "}
-                              <span className={`inline-block align-middle text-xs px-1.5 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
-                              {ex.isCompetition && <span className={`inline-block align-middle text-xs px-1.5 py-0.5 border ml-1 ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
+                              <span className={`hidden sm:inline-block align-middle text-xs px-1.5 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
+                              {ex.isCompetition && <span className={`hidden sm:inline-block align-middle text-xs px-1.5 py-0.5 border ml-1 ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
                             </p>
                             <p className="text-xs text-muted-foreground/50 mt-0.5">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>
                             <p className="text-xs text-muted-foreground/30 mt-0.5" style={MONO}>{ex.startDate} — {ex.endDate}</p>
