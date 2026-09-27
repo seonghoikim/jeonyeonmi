@@ -3,6 +3,7 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 import { createSessionToken, verifySessionToken, timingSafeEqual } from "./auth.tsx";
+import { buildSections, selectKnowledge, buildPrompt, getVisibleContacts, insufficientContactNote, type PortfolioRowForCurator } from "./curator-prompt.ts";
 
 const app = new Hono();
 const PREFIX = "/make-server-9c6a1cce";
@@ -343,6 +344,127 @@ app.post(`${PREFIX}/portfolio/unfurl`, requireAuth, async (c) => {
     return c.json({ error: "미리보기를 가져오지 못했습니다" }, 500);
   } finally {
     clearTimeout(timeout);
+  }
+});
+
+/* ── curator: public AI Q&A widget ──
+   Answers visitor questions about the artist/work using the live portfolio_state
+   row as the only source of truth (no separate copy to keep in sync), speaking as
+   "호이" (the artist's manager) rather than the artist herself. Logs every exchange
+   to curator_logs (service role bypasses RLS; anon can only SELECT it) so a
+   separate weekly job can report the most common questions and flag the ones
+   Gemini itself judged the knowledge base didn't cover. Persona/knowledge assembly
+   lives in ./curator-prompt.ts — this route is just request handling. */
+const curatorAttempts = new Map<string, { count: number; windowStart: number }>();
+const CURATOR_WINDOW_MS = 10 * 60 * 1000;
+const CURATOR_MAX_PER_WINDOW = 12;
+let curatorDayCount = 0;
+let curatorDayStart = Date.now();
+const CURATOR_DAY_MAX = 500;
+
+app.post(`${PREFIX}/curator/ask`, async (c) => {
+  const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const now = Date.now();
+  if (now - curatorDayStart > 24 * 60 * 60 * 1000) { curatorDayStart = now; curatorDayCount = 0; }
+  if (curatorDayCount >= CURATOR_DAY_MAX) {
+    return c.json({ error: "오늘 사용량이 많아 잠시 후 다시 시도해주세요.", code: "day_limit" }, 429);
+  }
+  const attempt = curatorAttempts.get(ip);
+  if (attempt && now - attempt.windowStart < CURATOR_WINDOW_MS && attempt.count >= CURATOR_MAX_PER_WINDOW) {
+    return c.json({ error: "잠시 요청이 많았어요. 몇 분 후 다시 시도해주세요.", code: "rate_limited" }, 429);
+  }
+  curatorAttempts.set(ip, attempt && now - attempt.windowStart < CURATOR_WINDOW_MS
+    ? { count: attempt.count + 1, windowStart: attempt.windowStart }
+    : { count: 1, windowStart: now });
+
+  const body = await c.req.json().catch(() => null);
+  const question = typeof body?.question === "string" ? body.question.trim() : "";
+  const lang: "ko" | "en" = body?.lang === "en" ? "en" : "ko";
+  const history = Array.isArray(body?.history) ? body.history.slice(-6) : [];
+  if (!question || question.length > 500) {
+    return c.json({ error: "잘못된 요청" }, 400);
+  }
+
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) {
+    console.error("[curator] GEMINI_API_KEY env var not set");
+    return c.json({ error: "안내 기능이 아직 설정되지 않았어요" }, 500);
+  }
+
+  const { data: row, error: readErr } = await supabaseAdmin
+    .from("portfolio_state").select("*").eq("id", 1).maybeSingle();
+  if (readErr) return c.json({ error: readErr.message }, 500);
+
+  // The editor can flip this off from the site itself (edit mode) if the widget
+  // ever needs to come down in a hurry — checked here too, not just client-side,
+  // so a cached/stale page can't keep calling Gemini after it's been disabled.
+  if (row?.settings?.curatorEnabled === "false") {
+    return c.json({ error: "현재 안내 기능이 꺼져 있어요", code: "disabled" }, 503);
+  }
+
+  const typedRow = (row ?? {}) as PortfolioRowForCurator;
+  const sections = buildSections(typedRow, lang);
+  const knowledge = selectKnowledge(question, sections);
+  const historyText = history.length
+    ? "\n" + (lang === "ko" ? "이전 대화:\n" : "Previous turns:\n") +
+      history.map((t: { role: string; text: string }) =>
+        `${t.role === "user" ? (lang === "ko" ? "방문자" : "Visitor") : "Hoi"}: ${String(t.text).slice(0, 500)}`
+      ).join("\n") + "\n"
+    : "";
+  const prompt = buildPrompt(question, knowledge, historyText, lang);
+
+  curatorDayCount++;
+  const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+  const MAX_ATTEMPTS = 2;
+  try {
+    let res: Response | null = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" },
+          }),
+        }
+      );
+      if (res.ok) break;
+      if (attempt === MAX_ATTEMPTS || !RETRYABLE_STATUS.has(res.status)) break;
+      await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+    }
+    if (!res!.ok) {
+      console.error("[curator] Gemini API error:", res!.status, await res!.text().catch(() => ""));
+      return c.json({ error: "답변을 만드는 중 문제가 생겼어요" }, 502);
+    }
+    const data = await res!.json();
+    const textOut: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    let answer = "";
+    let sufficient = true;
+    try {
+      const parsed = JSON.parse(textOut);
+      answer = typeof parsed?.answer === "string" ? parsed.answer : "";
+      sufficient = parsed?.sufficient !== false;
+    } catch {
+      answer = textOut;
+    }
+    if (!answer) return c.json({ error: "답변을 만드는 중 문제가 생겼어요" }, 502);
+
+    // The "please contact us" line is appended here, in code, only when Gemini
+    // itself flagged the reference material as insufficient — not left to the
+    // model's own judgment inside the answer text, which was showing up on
+    // almost every reply regardless of whether it was actually needed.
+    const finalAnswer = sufficient ? answer : answer + insufficientContactNote(getVisibleContacts(typedRow, lang), lang);
+
+    supabaseAdmin.from("curator_logs").insert({ lang, question, answer, sufficient }).then(
+      ({ error }) => { if (error) console.error("[curator] log insert error:", error.message); }
+    );
+
+    return c.json({ answer: finalAnswer });
+  } catch (err) {
+    console.error("[curator] error:", err);
+    return c.json({ error: "답변을 만드는 중 문제가 생겼어요" }, 500);
   }
 });
 
