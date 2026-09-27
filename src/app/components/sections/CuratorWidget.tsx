@@ -3,6 +3,7 @@ import { MessageCircle, X, Send } from "lucide-react";
 import { askCurator, type CuratorTurn } from "../../../lib/supabase";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { trackEvent } from "../../analytics";
+import { useModalLock } from "../../useModalLock";
 
 const SUGGESTIONS_KO = [
   "전연미 작가는 어떤 작업을 하나요?",
@@ -37,6 +38,7 @@ export function CuratorWidget({ curatorEnabled, onToggleCurator }: CuratorWidget
   const [errorNotice, setErrorNotice] = useState("");
   const logRef = useRef<HTMLDivElement>(null);
   const openedOnceRef = useRef(false);
+  const panelRef = useModalLock<HTMLDivElement>(open, () => setOpen(false));
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
@@ -88,14 +90,17 @@ export function CuratorWidget({ curatorEnabled, onToggleCurator }: CuratorWidget
     <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-3">
       {open && (
         <div
-          className="w-[92vw] max-w-[380px] h-[70vh] max-h-[560px] bg-card border border-border flex flex-col shadow-2xl"
+          ref={panelRef}
+          tabIndex={-1}
+          className="w-[92vw] max-w-[380px] h-[70vh] max-h-[560px] bg-card border border-border flex flex-col shadow-2xl outline-none"
           role="dialog"
+          aria-modal="true"
           aria-label={isKo ? "AI 안내" : "AI guide"}
         >
           <div className="shrink-0 border-b border-border px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-foreground" style={{ fontWeight: 500 }}>{isKo ? "전연미 작가 소개" : "About the Artist"}</span>
+                <span className="text-sm text-foreground" style={{ fontWeight: 500 }}>{isKo ? "전연미 작가 도슨트" : "Jeon Yeon-mi Docent"}</span>
                 <span className="text-[10px] uppercase tracking-wider border border-accent/60 text-accent px-1.5 py-0.5">BETA</span>
               </div>
               <button onClick={() => setOpen(false)} aria-label={isKo ? "닫기" : "Close"} className="text-muted-foreground hover:text-foreground p-1">
@@ -169,7 +174,10 @@ export function CuratorWidget({ curatorEnabled, onToggleCurator }: CuratorWidget
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               placeholder={isKo ? "궁금한 점을 물어보세요" : "Ask a question"}
               rows={1}
-              className="flex-1 bg-transparent border border-border px-2.5 py-2 text-[13px] text-foreground outline-none resize-none max-h-24"
+              // 16px min — iOS Safari auto-zooms the whole page on focus for any
+              // text input smaller than that, which read as a jarring, unwanted
+              // "zoom in" the instant you started typing.
+              className="flex-1 bg-transparent border border-border px-2.5 py-2 text-[16px] text-foreground outline-none resize-none max-h-24"
             />
             <button
               onClick={() => send()}
