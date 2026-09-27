@@ -133,7 +133,7 @@ export function Hero({
               it shows only the on/off switch there), so this button would be a
               dead click while editing; only show it when it can really open something. */}
           {curatorEnabled && !editMode && (
-            <button onClick={() => setCuratorOpen(true)} className="flex items-center gap-2 text-xs tracking-widest text-accent border border-accent/60 px-5 py-3 hover:border-accent hover:bg-accent/10 transition-all w-fit" style={MONO}>
+            <button onClick={() => setCuratorOpen(true)} className="flex items-center gap-2 text-xs tracking-widest text-foreground border border-border px-5 py-3 hover:border-accent hover:text-accent transition-all w-fit" style={MONO}>
               {lang === "ko" ? "도슨트" : "Docent"} <MessageCircle size={14} />
             </button>
           )}
