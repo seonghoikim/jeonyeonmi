@@ -276,6 +276,7 @@ export default function App() {
   const [editingCaption, setEditingCaption] = useState(false);
   const [heroRotateEnabled, setHeroRotateEnabled] = useState(false);
   const [curatorEnabled, setCuratorEnabled] = useState(true);
+  const [curatorOpen, setCuratorOpen] = useState(false);
   const [slides, setSlides] = useState(initSlides);
   // Random rather than always slide 0 — otherwise a visitor who never manually
   // navigates would only ever see the first artist statement, and the rest
@@ -825,6 +826,8 @@ export default function App() {
     dragSrc, dragOverKey, setDragOverKey,
     scrollTo, scrollToActivity, triggerUpload, openLightbox,
     contactItems,
+    curatorEnabled, onToggleCurator: () => setCuratorEnabled((v) => !v),
+    curatorOpen, setCuratorOpen,
   };
 
   return (
@@ -1102,7 +1105,7 @@ export default function App() {
         </Suspense>
 
         <Suspense fallback={null}>
-          <CuratorWidget curatorEnabled={curatorEnabled} onToggleCurator={() => setCuratorEnabled((v) => !v)} />
+          <CuratorWidget />
         </Suspense>
       </div>
     </PortfolioContext.Provider>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Upload, Check, Edit3 } from "lucide-react";
+import { ArrowUpRight, Upload, Check, Edit3, MessageCircle } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import type { Artwork } from "../../data";
 
@@ -31,7 +31,7 @@ export function Hero({
   heroAspectRatio, heroCaption, heroCaptionEn, setHeroCaption, setHeroCaptionEn, editingCaption, setEditingCaption,
   heroRotateEnabled, onToggleHeroRotate, heroRotateWorks, onSelectWork,
 }: HeroProps) {
-  const { lang, u, MONO, SERIF, SANS, content, updateContent, c, editMode, img, uploadingTarget, triggerUpload, scrollTo } = usePortfolioContext();
+  const { lang, u, MONO, SERIF, SANS, content, updateContent, c, editMode, img, uploadingTarget, triggerUpload, scrollTo, curatorEnabled, setCuratorOpen } = usePortfolioContext();
   const rotateActive = heroRotateEnabled && heroRotateWorks.length > 0;
   // A single image layer, breathing between fully visible and fully hidden.
   // The next work's src is only ever swapped in while opacity is at 0 (during
@@ -129,6 +129,14 @@ export function Hero({
           <button onClick={() => scrollTo("works")} className="flex items-center gap-2 text-xs tracking-widest text-foreground border border-border px-5 py-3 hover:border-accent hover:text-accent transition-all w-fit" style={MONO}>
             {c("heroCta")} <ArrowUpRight size={14} />
           </button>
+          {/* Edit mode never renders the actual chat panel (see CuratorWidget —
+              it shows only the on/off switch there), so this button would be a
+              dead click while editing; only show it when it can really open something. */}
+          {curatorEnabled && !editMode && (
+            <button onClick={() => setCuratorOpen(true)} className="flex items-center gap-2 text-xs tracking-widest text-accent border border-accent/60 px-5 py-3 hover:border-accent hover:bg-accent/10 transition-all w-fit" style={MONO}>
+              {lang === "ko" ? "도슨트" : "Docent"} <MessageCircle size={14} />
+            </button>
+          )}
         </div>
       </div>
       <div className={`hero-image relative min-h-[50svh] md:min-h-[100svh] bg-background overflow-hidden flex-1 order-1 md:order-2 ${clickable ? "cursor-pointer" : ""}`}
