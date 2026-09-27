@@ -3,6 +3,7 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 import { createSessionToken, verifySessionToken, timingSafeEqual } from "./auth.tsx";
+import { buildSections, selectKnowledge, buildPrompt, getVisibleContacts, insufficientContactNote, type PortfolioRowForCurator } from "./curator-prompt.ts";
 
 const app = new Hono();
 const PREFIX = "/make-server-9c6a1cce";
@@ -349,108 +350,11 @@ app.post(`${PREFIX}/portfolio/unfurl`, requireAuth, async (c) => {
 /* ── curator: public AI Q&A widget ──
    Answers visitor questions about the artist/work using the live portfolio_state
    row as the only source of truth (no separate copy to keep in sync), speaking as
-   "호이" (the artist's husband/manager) rather than the artist herself or a neutral
-   docent. Logs every exchange to curator_logs (service role bypasses RLS; anon can
-   only SELECT it) so a separate weekly job can report the most common questions and
-   flag the ones Gemini itself judged the knowledge base didn't cover. */
-type PortfolioRowForCurator = {
-  content?: Record<string, string>;
-  slides?: { heading: string; headingEn?: string; body: string; bodyEn?: string }[];
-  artworks?: { title: string; titleEn?: string; year: string; medium: string; mediumEn?: string; size: string; category: string; categoryEn?: string; series?: string; collected?: boolean; description?: string; descriptionEn?: string }[];
-  current_exhibitions?: { title: string; titleEn?: string; venue: string; venueEn?: string; location: string; locationEn?: string; startDate: string; endDate: string; tag: string; visible?: boolean }[];
-  exhibitions?: { year: string; title: string; titleEn?: string; venue: string; venueEn?: string; location: string; locationEn?: string; tag: string; award?: string; awardEn?: string }[];
-  press?: { date: string; outlet: string; outletEn?: string; title: string; titleEn?: string }[];
-  contacts?: { type: string; labelKo: string; labelEn: string; display: string; visible: boolean }[];
-};
-
-function buildCuratorKnowledge(row: PortfolioRowForCurator, lang: "ko" | "en"): string {
-  const isKo = lang === "ko";
-  const t = (ko?: string, en?: string) => (isKo ? ko : en || ko) ?? "";
-  const lines: string[] = [];
-
-  lines.push(`${t("작가명", "Artist")}: ${t(row.content?.heroName, row.content?.heroNameEn) || "전연미 (Jeon Yeon-mi)"}`);
-  const desc = t(row.content?.heroDesc, row.content?.heroDescEn);
-  if (desc) lines.push(`${t("소개", "Description")}: ${desc}`);
-
-  if (row.slides?.length) {
-    lines.push(`\n## ${t("작가노트", "Artist Statement")}`);
-    for (const s of row.slides) {
-      const heading = t(s.heading, s.headingEn).replace(/\n/g, " ");
-      const body = t(s.body, s.bodyEn);
-      if (heading || body) lines.push(`### ${heading}\n${body}`);
-    }
-  }
-
-  if (row.artworks?.length) {
-    lines.push(`\n## ${t("작품 목록", "Selected Works")}`);
-    for (const a of row.artworks) {
-      const title = t(a.title, a.titleEn);
-      const medium = t(a.medium, a.mediumEn);
-      const category = t(a.category, a.categoryEn);
-      const collected = a.collected ? ` · ${t("컬렉션", "Collected")}` : "";
-      const d = t(a.description, a.descriptionEn);
-      lines.push(`- ${title} (${a.year}) · ${medium} · ${a.size} · ${category}${collected}${d ? `\n  ${d}` : ""}`);
-    }
-  }
-
-  if (row.current_exhibitions?.filter((e) => e.visible !== false).length) {
-    lines.push(`\n## ${t("현재·예정 전시", "Current & Upcoming Exhibitions")}`);
-    for (const e of row.current_exhibitions.filter((e) => e.visible !== false)) {
-      lines.push(`- ${e.startDate}–${e.endDate} ${t(e.title, e.titleEn)} — ${t(e.venue, e.venueEn)}, ${t(e.location, e.locationEn)} [${e.tag}]`);
-    }
-  }
-
-  if (row.exhibitions?.length) {
-    lines.push(`\n## ${t("전시 및 수상 이력", "Exhibition & Award History")}`);
-    for (const e of row.exhibitions) {
-      const award = t(e.award, e.awardEn);
-      lines.push(`- ${e.year} ${t(e.title, e.titleEn)} — ${t(e.venue, e.venueEn)}, ${t(e.location, e.locationEn)} [${e.tag}]${award ? ` — ${award}` : ""}`);
-    }
-  }
-
-  if (row.press?.length) {
-    lines.push(`\n## ${t("언론 보도", "Press")}`);
-    for (const p of row.press) lines.push(`- ${p.date} ${t(p.outlet, p.outletEn)} — ${t(p.title, p.titleEn)}`);
-  }
-
-  const visibleContacts = row.contacts?.filter((c) => c.visible) ?? [];
-  if (visibleContacts.length) {
-    lines.push(`\n## ${t("연락처", "Contact")}`);
-    for (const ct of visibleContacts) lines.push(`- ${isKo ? ct.labelKo : ct.labelEn}: ${ct.display}`);
-  }
-
-  return lines.join("\n");
-}
-
-const curatorPersonaKo = (knowledge: string) => `당신은 전연미 작가의 남편이자 매니저인 '호이'입니다. 방문자에게 아내인 전연미 작가와 그 작품 세계 전반을 소개하는 역할을 합니다. "저는", "저희 집사람은", "제가 보기엔" 같은 1인칭으로, 아내의 작업을 옆에서 지켜본 사람의 다정하고 자연스러운 어투로 답하세요.
-
-답변 원칙:
-1. 아래 [참고 자료]에 있는 내용에만 근거해 답하세요. 자료에 없는 내용(가격, 판매처, 정확한 생년월일, 출신지 등 사적인 정보)은 지어내지 말고, "그 부분은 제가 정확히 알려드리기는 어렵네요"처럼 솔직하게 답하세요.
-2. 친절하고 자연스러운 한국어 존댓말을 쓰되, 너무 딱딱한 보도자료 톤은 피하고 실제 대화하듯 답하세요.
-3. 답변은 3~6문장 정도로, 너무 길지 않게 핵심만 전달하세요.
-4. 관련된 작품이 있으면 작품명을 〈 〉로 표기해 언급하세요.
-
-[참고 자료 시작]
-${knowledge}
-[참고 자료 끝]
-
-아래 JSON 형식으로만 응답하세요: {"answer": "...", "sufficient": true 또는 false}
-"sufficient"는 위 참고 자료만으로 충분히 답할 수 있었는지를 뜻합니다 (자료에 없어서 추측하거나 모른다고 답했다면 false).`;
-
-const curatorPersonaEn = (knowledge: string) => `You are 'Hoi', the husband and manager of the artist Jeon Yeon-mi. You introduce the artist and her work to visitors, speaking in first person ("I", "my wife") the way someone close to her would — warm and natural, not like a press release.
-
-Rules:
-1. Answer only from the [Reference] below. Never invent facts not in it (price, buyers, exact birth year, hometown, etc.) — say honestly you can't say for sure.
-2. Keep it natural, friendly English, 3-6 sentences.
-3. Name specific works with 〈 〉 when relevant.
-
-[Reference start]
-${knowledge}
-[Reference end]
-
-Respond ONLY in this JSON shape: {"answer": "...", "sufficient": true or false}
-"sufficient" means whether the reference above was enough to answer properly (false if you had to say you don't know or guess).`;
-
+   "호이" (the artist's manager) rather than the artist herself. Logs every exchange
+   to curator_logs (service role bypasses RLS; anon can only SELECT it) so a
+   separate weekly job can report the most common questions and flag the ones
+   Gemini itself judged the knowledge base didn't cover. Persona/knowledge assembly
+   lives in ./curator-prompt.ts — this route is just request handling. */
 const curatorAttempts = new Map<string, { count: number; windowStart: number }>();
 const CURATOR_WINDOW_MS = 10 * 60 * 1000;
 const CURATOR_MAX_PER_WINDOW = 12;
@@ -491,15 +395,23 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
     .from("portfolio_state").select("*").eq("id", 1).maybeSingle();
   if (readErr) return c.json({ error: readErr.message }, 500);
 
-  const knowledge = buildCuratorKnowledge((row ?? {}) as PortfolioRowForCurator, lang);
-  const persona = lang === "ko" ? curatorPersonaKo(knowledge) : curatorPersonaEn(knowledge);
+  // The editor can flip this off from the site itself (edit mode) if the widget
+  // ever needs to come down in a hurry — checked here too, not just client-side,
+  // so a cached/stale page can't keep calling Gemini after it's been disabled.
+  if (row?.settings?.curatorEnabled === "false") {
+    return c.json({ error: "현재 안내 기능이 꺼져 있어요", code: "disabled" }, 503);
+  }
+
+  const typedRow = (row ?? {}) as PortfolioRowForCurator;
+  const sections = buildSections(typedRow, lang);
+  const knowledge = selectKnowledge(question, sections);
   const historyText = history.length
     ? "\n" + (lang === "ko" ? "이전 대화:\n" : "Previous turns:\n") +
       history.map((t: { role: string; text: string }) =>
         `${t.role === "user" ? (lang === "ko" ? "방문자" : "Visitor") : "Hoi"}: ${String(t.text).slice(0, 500)}`
       ).join("\n") + "\n"
     : "";
-  const prompt = `${persona}${historyText}\n${lang === "ko" ? "방문자의 새 질문" : "New question"}: ${question}`;
+  const prompt = buildPrompt(question, knowledge, historyText, lang);
 
   curatorDayCount++;
   const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
@@ -539,11 +451,17 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
     }
     if (!answer) return c.json({ error: "답변을 만드는 중 문제가 생겼어요" }, 502);
 
+    // The "please contact us" line is appended here, in code, only when Gemini
+    // itself flagged the reference material as insufficient — not left to the
+    // model's own judgment inside the answer text, which was showing up on
+    // almost every reply regardless of whether it was actually needed.
+    const finalAnswer = sufficient ? answer : answer + insufficientContactNote(getVisibleContacts(typedRow, lang), lang);
+
     supabaseAdmin.from("curator_logs").insert({ lang, question, answer, sufficient }).then(
       ({ error }) => { if (error) console.error("[curator] log insert error:", error.message); }
     );
 
-    return c.json({ answer });
+    return c.json({ answer: finalAnswer });
   } catch (err) {
     console.error("[curator] error:", err);
     return c.json({ error: "답변을 만드는 중 문제가 생겼어요" }, 500);

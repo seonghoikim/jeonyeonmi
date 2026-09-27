@@ -224,6 +224,7 @@ export default function App() {
       if (row.settings?.heroCaption) setHeroCaption(row.settings.heroCaption);
       if (row.settings?.heroCaptionEn) setHeroCaptionEn(row.settings.heroCaptionEn);
       if (row.settings?.heroRotate) setHeroRotateEnabled(row.settings.heroRotate === "true");
+      if (row.settings?.curatorEnabled) setCuratorEnabled(row.settings.curatorEnabled === "true");
       if (row.image_urls && Object.keys(row.image_urls).length > 0) {
         setImageUrls(row.image_urls);
         const heroUrl = row.image_urls.hero;
@@ -274,6 +275,7 @@ export default function App() {
   const [heroCaptionEn, setHeroCaptionEn] = useState("Floating Memory I, 2024");
   const [editingCaption, setEditingCaption] = useState(false);
   const [heroRotateEnabled, setHeroRotateEnabled] = useState(false);
+  const [curatorEnabled, setCuratorEnabled] = useState(true);
   const [slides, setSlides] = useState(initSlides);
   // Random rather than always slide 0 — otherwise a visitor who never manually
   // navigates would only ever see the first artist statement, and the rest
@@ -319,7 +321,7 @@ export default function App() {
     content, current_exhibitions: currentExList, artworks: artworkList,
     series_list: seriesList, slides, exhibitions: exhibitionList,
     activity_photos: activityPhotos, videos: videoList, contacts: contactItems, press: pressList,
-    settings: { heroCaption, heroCaptionEn, heroRotate: heroRotateEnabled ? "true" : "false" }, image_urls: imageUrls,
+    settings: { heroCaption, heroCaptionEn, heroRotate: heroRotateEnabled ? "true" : "false", curatorEnabled: curatorEnabled ? "true" : "false" }, image_urls: imageUrls,
   };
 
   /* ── DB: apply a row fetched remotely (initial 409-conflict reload or Realtime push) ── */
@@ -337,6 +339,7 @@ export default function App() {
     if (row.settings?.heroCaption) setHeroCaption(row.settings.heroCaption);
     if (row.settings?.heroCaptionEn) setHeroCaptionEn(row.settings.heroCaptionEn);
     if (row.settings?.heroRotate) setHeroRotateEnabled(row.settings.heroRotate === "true");
+    if (row.settings?.curatorEnabled) setCuratorEnabled(row.settings.curatorEnabled === "true");
     if (row.image_urls && Object.keys(row.image_urls).length > 0) {
       setImageUrls(row.image_urls);
       const heroUrl = row.image_urls.hero;
@@ -1099,7 +1102,7 @@ export default function App() {
         </Suspense>
 
         <Suspense fallback={null}>
-          <CuratorWidget />
+          <CuratorWidget curatorEnabled={curatorEnabled} onToggleCurator={() => setCuratorEnabled((v) => !v)} />
         </Suspense>
       </div>
     </PortfolioContext.Provider>

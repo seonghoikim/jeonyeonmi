@@ -19,11 +19,16 @@ const SUGGESTIONS_EN = [
   "What materials and techniques does she use?",
 ];
 
-const GREETING_KO = "안녕하세요, 저는 전연미 작가의 남편이자 매니저인 호이입니다. 아내의 작업이나 작품에 대해 궁금한 점을 편하게 물어보세요. 다만 이 답변은 AI가 정리된 자료를 바탕으로 자동 생성한 것이라 오류가 있거나 다소 부족할 수 있어요.";
-const GREETING_EN = "Hi, I'm Hoi — Jeon Yeon-mi's husband and manager. Feel free to ask me anything about my wife's work. Just so you know, these answers are generated automatically by AI from our reference material, so they may be incomplete or slightly off.";
+const GREETING_KO = "안녕하세요, 전연미 작가의 활동을 함께하는 호이입니다. 작가와 작품에 대해 궁금한 점을 편하게 물어보세요. 이 답변은 AI가 정리된 자료를 바탕으로 자동 생성한 것이라 오류가 있거나 다소 부족할 수 있어요.";
+const GREETING_EN = "Hi, I'm Hoi — I work alongside artist Jeon Yeon-mi. Feel free to ask about the artist and her work. These answers are generated automatically by AI from curated material, so they may be incomplete or slightly off.";
 
-export function CuratorWidget() {
-  const { lang, editMode, contactItems } = usePortfolioContext();
+type CuratorWidgetProps = {
+  curatorEnabled: boolean;
+  onToggleCurator: () => void;
+};
+
+export function CuratorWidget({ curatorEnabled, onToggleCurator }: CuratorWidgetProps) {
+  const { lang, editMode, contactItems, u, MONO } = usePortfolioContext();
   const isKo = lang === "ko";
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<CuratorTurn[]>([{ role: "guide", text: isKo ? GREETING_KO : GREETING_EN }]);
@@ -37,7 +42,25 @@ export function CuratorWidget() {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
   }, [turns, busy]);
 
-  if (editMode) return null;
+  // In edit mode we always show at least the on/off switch, even while
+  // disabled, so turning it back on doesn't require leaving edit mode first.
+  // Outside edit mode, a disabled widget is fully hidden from visitors.
+  if (!editMode && !curatorEnabled) return null;
+
+  if (editMode) {
+    return (
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
+        <button
+          onClick={onToggleCurator}
+          className="flex items-center gap-2 text-xs border border-dashed border-accent/50 text-accent bg-card px-3 py-1.5 hover:border-accent transition-colors"
+          style={MONO}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${curatorEnabled ? "bg-accent" : "bg-muted-foreground/40"}`} />
+          {isKo ? "AI 안내 위젯" : "AI Guide Widget"}: {curatorEnabled ? u.heroRotateOn : u.heroRotateOff}
+        </button>
+      </div>
+    );
+  }
 
   const instagram = contactItems.find((c) => c.type === "instagram" && c.visible);
   const blog = contactItems.find((c) => c.type === "blog" && c.visible);
@@ -72,7 +95,7 @@ export function CuratorWidget() {
           <div className="shrink-0 border-b border-border px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-foreground" style={{ fontWeight: 500 }}>{isKo ? "호이에게 물어보기" : "Ask Hoi"}</span>
+                <span className="text-sm text-foreground" style={{ fontWeight: 500 }}>{isKo ? "전연미 작가 소개" : "About the Artist"}</span>
                 <span className="text-[10px] uppercase tracking-wider border border-accent/60 text-accent px-1.5 py-0.5">BETA</span>
               </div>
               <button onClick={() => setOpen(false)} aria-label={isKo ? "닫기" : "Close"} className="text-muted-foreground hover:text-foreground p-1">
