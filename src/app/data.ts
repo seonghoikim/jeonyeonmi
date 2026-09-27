@@ -308,7 +308,6 @@ export const GLOBAL_CSS = `
   .slide-img-area { min-height: 200px !important; }
   .slide-img-area img { max-height: 220px !important; }
   .slide-text-area { max-height: 220px !important; overflow-y: auto !important; }
-  .current-ex-img { height: 260px !important; }
   .hero-panel { padding-bottom: 2rem !important; }
 }
 /* lightbox smooth */
