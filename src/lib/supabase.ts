@@ -144,6 +144,21 @@ export async function translateTexts(texts: string[], token: string): Promise<st
   return body.translations as string[];
 }
 
+/* ── Curator widget: public AI Q&A about the artist/work (no editor token — anyone
+   can ask). Server builds the knowledge base from the live portfolio_state row. ── */
+export type CuratorTurn = { role: "user" | "guide"; text: string };
+
+export async function askCurator(question: string, history: CuratorTurn[], lang: "ko" | "en"): Promise<string> {
+  const res = await fetch(`${FUNCTIONS_URL}/curator/ask`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...gatewayHeaders() },
+    body: JSON.stringify({ question, history, lang }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error ?? `curator request failed (${res.status})`);
+  return body.answer as string;
+}
+
 /* ── Press link preview: server-side og:title/og:image/og:site_name extraction ──
    Avoids CORS (fetching another site's HTML from the browser is blocked) and lets the
    editor paste a URL instead of manually cropping/uploading a logo for every article. */

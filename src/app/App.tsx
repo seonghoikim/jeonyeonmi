@@ -29,6 +29,7 @@ const Footer = lazy(() => import("./components/sections/Footer").then((m) => ({ 
 const Lightbox = lazy(() => import("./components/sections/Lightbox").then((m) => ({ default: m.Lightbox })));
 const PasswordModal = lazy(() => import("./components/sections/PasswordModal").then((m) => ({ default: m.PasswordModal })));
 const PortfolioPrintView = lazy(() => import("./components/sections/PortfolioPrintView").then((m) => ({ default: m.PortfolioPrintView })));
+const CuratorWidget = lazy(() => import("./components/sections/CuratorWidget").then((m) => ({ default: m.CuratorWidget })));
 
 // Module-scope (not defined inside App's render) so its identity is stable across
 // re-renders. It used to be a closure defined inline in App() and handed out via
@@ -1095,6 +1096,10 @@ export default function App() {
         />
 
         <Footer />
+        </Suspense>
+
+        <Suspense fallback={null}>
+          <CuratorWidget />
         </Suspense>
       </div>
     </PortfolioContext.Provider>
