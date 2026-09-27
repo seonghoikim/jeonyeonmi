@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactElement } from "react";
+import { createContext, useContext, type ReactElement, type Dispatch, type SetStateAction } from "react";
 import { UI } from "./data";
 import type { Lang, ContentKey, ContactItem } from "./data";
 
@@ -25,6 +25,10 @@ export type PortfolioContextValue = {
   triggerUpload: (target: string, label?: string) => void;
   openLightbox: (src: string, showZoom?: boolean) => void;
   contactItems: ContactItem[];
+  curatorEnabled: boolean;
+  onToggleCurator: () => void;
+  curatorOpen: boolean;
+  setCuratorOpen: Dispatch<SetStateAction<boolean>>;
 };
 
 export const PortfolioContext = createContext<PortfolioContextValue | null>(null);
