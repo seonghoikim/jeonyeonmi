@@ -23,6 +23,19 @@ const SUGGESTIONS_EN = [
 const GREETING_KO = "안녕하세요, 전연미 작가의 활동을 함께하는 호이입니다. 작가와 작품에 대해 궁금한 점을 편하게 물어보세요. 이 답변은 AI가 정리된 자료를 바탕으로 자동 생성한 것이라 오류가 있거나 다소 부족할 수 있어요.";
 const GREETING_EN = "Hi, I'm Hoi — I work alongside artist Jeon Yeon-mi. Feel free to ask about the artist and her work. These answers are generated automatically by AI from curated material, so they may be incomplete or slightly off.";
 
+// Preview bubble duration: long enough to actually read the answer, short
+// enough not to linger forever — scales with how much text there is to read,
+// clamped so a very long answer still doesn't camp on screen indefinitely.
+const PREVIEW_MAX_CHARS = 220;
+const PREVIEW_MIN_MS = 4000;
+const PREVIEW_MAX_MS = 12000;
+function previewDurationMs(text: string): number {
+  return Math.min(PREVIEW_MAX_MS, PREVIEW_MIN_MS + Math.floor(text.length / 100) * 1000);
+}
+function truncateForPreview(text: string): string {
+  return text.length <= PREVIEW_MAX_CHARS ? text : text.slice(0, PREVIEW_MAX_CHARS).trimEnd() + "…";
+}
+
 export function CuratorWidget() {
   const { lang, editMode, contactItems, u, MONO, curatorEnabled, onToggleCurator, curatorOpen, setCuratorOpen } = usePortfolioContext();
   const isKo = lang === "ko";
@@ -30,8 +43,11 @@ export function CuratorWidget() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [errorNotice, setErrorNotice] = useState("");
+  const [preview, setPreview] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const openedOnceRef = useRef(false);
+  const wasOpenRef = useRef(curatorOpen);
+  const previewRef = useRef<HTMLDivElement>(null);
   const panelRef = useModalLock<HTMLDivElement>(curatorOpen, () => setCuratorOpen(false));
 
   useEffect(() => {
@@ -41,6 +57,43 @@ export function CuratorWidget() {
   useEffect(() => {
     if (curatorOpen && !openedOnceRef.current) { openedOnceRef.current = true; trackEvent("curator_open", { lang }); }
   }, [curatorOpen, lang]);
+
+  // Panel just closed — surface the last answer as a speech bubble off the
+  // docent button, but only if there was an actual exchange (not just the
+  // greeting) and it wasn't left mid-answer.
+  useEffect(() => {
+    if (wasOpenRef.current && !curatorOpen) {
+      const last = turns[turns.length - 1];
+      if (turns.length > 1 && last?.role === "guide" && !busy) {
+        setPreview(truncateForPreview(last.text));
+      }
+    }
+    wasOpenRef.current = curatorOpen;
+  }, [curatorOpen, turns, busy]);
+
+  // Auto-dismiss on a text-length-scaled timer...
+  useEffect(() => {
+    if (!preview) return;
+    const t = setTimeout(() => setPreview(null), previewDurationMs(preview));
+    return () => clearTimeout(t);
+  }, [preview]);
+
+  // ...or immediately on any interaction elsewhere (click/tap/scroll), so it
+  // never lingers in the way of whatever the visitor does next. Clicking the
+  // bubble itself reopens the panel instead (handled by its own onClick).
+  useEffect(() => {
+    if (!preview) return;
+    const dismiss = (e: Event) => {
+      if (previewRef.current && e.target instanceof Node && previewRef.current.contains(e.target)) return;
+      setPreview(null);
+    };
+    window.addEventListener("pointerdown", dismiss);
+    window.addEventListener("scroll", dismiss, { passive: true });
+    return () => {
+      window.removeEventListener("pointerdown", dismiss);
+      window.removeEventListener("scroll", dismiss);
+    };
+  }, [preview]);
 
   // In edit mode we always show at least the on/off switch, even while
   // disabled, so turning it back on doesn't require leaving edit mode first.
@@ -128,7 +181,7 @@ export function CuratorWidget() {
               </p>
               {(instagram || blog) && (
                 <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-                  {isKo ? "더 자세한 문의는 " : "For more, reach out via "}
+                  {isKo ? "AI 답변이 충분하지 않다면 " : "If the AI's answer isn't quite enough, reach out directly via "}
                   {instagram && (
                     <a href={instagram.href} target="_blank" rel="noopener noreferrer" className="text-accent underline decoration-accent/40 hover:decoration-accent">
                       {isKo ? "인스타그램" : "Instagram"}
@@ -140,7 +193,7 @@ export function CuratorWidget() {
                       {isKo ? "블로그" : "the blog"}
                     </a>
                   )}
-                  {isKo ? "로 연락해주세요." : "."}
+                  {isKo ? "로 직접 문의해주세요." : "."}
                 </p>
               )}
             </div>
@@ -205,8 +258,22 @@ export function CuratorWidget() {
           </div>
         )}
 
+        {!curatorOpen && preview && (
+          <div
+            ref={previewRef}
+            onClick={() => { setCuratorOpen(true); setPreview(null); }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter") { setCuratorOpen(true); setPreview(null); } }}
+            className="relative max-w-[260px] bg-card border border-border shadow-2xl px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground cursor-pointer"
+          >
+            {preview}
+            <span className="absolute -bottom-[7px] right-6 w-3 h-3 bg-card border-r border-b border-border rotate-45" />
+          </div>
+        )}
+
         <button
-          onClick={() => setCuratorOpen((v) => !v)}
+          onClick={() => { setCuratorOpen((v) => !v); setPreview(null); }}
           aria-label={isKo ? "AI 안내 열기" : "Open AI guide"}
           className="relative w-14 h-14 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow-lg hover:brightness-110"
         >
