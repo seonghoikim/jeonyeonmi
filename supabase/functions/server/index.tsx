@@ -376,8 +376,13 @@ const CURATOR_DAY_MAX = 500;
 // (404 "no longer available to new users") not long after this list was
 // written — exactly the versioned-model-churn risk called out for the
 // translate endpoint's own model choice. Google's own 404 body named their
-// replacements; use those literally rather than guessing at names.
-const CURATOR_MODELS = ["gemini-flash-latest", "gemini-3.8-flash", "gemini-3.5-flash-lite"];
+// replacements. gemini-3.8-flash is deliberately left out here even though
+// it was the named replacement: live 429 quota errors showed its
+// quotaDimensions.model is "gemini-3.8-flash" even when we called it via
+// the "gemini-flash-latest" alias — same free-tier daily quota pool, so
+// listing both just burns two failed attempts on one exhausted quota
+// before ever reaching the one model below that's actually independent.
+const CURATOR_MODELS = ["gemini-flash-latest", "gemini-3.5-flash-lite"];
 const CURATOR_RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const CURATOR_ATTEMPTS_PER_MODEL = 2;
 
