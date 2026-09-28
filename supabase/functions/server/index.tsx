@@ -372,7 +372,12 @@ const CURATOR_DAY_MAX = 500;
    fix it. gemini-flash-latest stays first for response quality/consistency
    with the translate endpoint; the pinned models behind it are simply
    whatever's still standing when it isn't. */
-const CURATOR_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+// gemini-2.5-flash / gemini-2.5-flash-lite were retired for new callers
+// (404 "no longer available to new users") not long after this list was
+// written — exactly the versioned-model-churn risk called out for the
+// translate endpoint's own model choice. Google's own 404 body named their
+// replacements; use those literally rather than guessing at names.
+const CURATOR_MODELS = ["gemini-flash-latest", "gemini-3.8-flash", "gemini-3.5-flash-lite"];
 const CURATOR_RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const CURATOR_ATTEMPTS_PER_MODEL = 2;
 
