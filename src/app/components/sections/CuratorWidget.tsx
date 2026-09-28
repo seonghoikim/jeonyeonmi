@@ -43,6 +43,7 @@ export function CuratorWidget() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [errorNotice, setErrorNotice] = useState("");
+  const [failedQuestion, setFailedQuestion] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const openedOnceRef = useRef(false);
@@ -118,23 +119,38 @@ export function CuratorWidget() {
   const instagram = contactItems.find((c) => c.type === "instagram" && c.visible);
   const blog = contactItems.find((c) => c.type === "blog" && c.visible);
 
+  // Shared by a fresh send and a retry — a retry reuses the turns array as it
+  // already stands (the failed question is already its last entry) instead
+  // of appending the question a second time, which would double it up.
+  async function askAndAppend(question: string, turnsForRequest: CuratorTurn[]) {
+    setBusy(true);
+    setErrorNotice("");
+    try {
+      const answer = await askCurator(question, turnsForRequest.slice(-8), lang);
+      setTurns((p) => [...p, { role: "guide", text: answer }]);
+      setFailedQuestion(null);
+    } catch {
+      setErrorNotice(isKo ? "답변을 가져오지 못했어요." : "Couldn't get an answer.");
+      setFailedQuestion(question);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function send(text?: string) {
     const q = (text ?? input).trim();
     if (!q || busy) return;
     setInput("");
-    setErrorNotice("");
     const nextTurns: CuratorTurn[] = [...turns, { role: "user", text: q }];
     setTurns(nextTurns);
-    setBusy(true);
     trackEvent("curator_question", { lang });
-    try {
-      const answer = await askCurator(q, nextTurns.slice(-8), lang);
-      setTurns((p) => [...p, { role: "guide", text: answer }]);
-    } catch {
-      setErrorNotice(isKo ? "답변을 가져오지 못했어요. 잠시 후 다시 시도해주세요." : "Couldn't get an answer. Please try again in a moment.");
-    } finally {
-      setBusy(false);
-    }
+    await askAndAppend(q, nextTurns);
+  }
+
+  function retry() {
+    if (!failedQuestion || busy) return;
+    trackEvent("curator_question_retry", { lang });
+    askAndAppend(failedQuestion, turns);
   }
 
   return (
@@ -217,7 +233,21 @@ export function CuratorWidget() {
                   </div>
                 </div>
               )}
-              {errorNotice && <p className="text-[11px] text-destructive">{errorNotice}</p>}
+              {errorNotice && (
+                <div className="flex items-center gap-2">
+                  <p className="text-[11px] text-destructive">{errorNotice}</p>
+                  {failedQuestion && (
+                    <button
+                      type="button"
+                      onClick={retry}
+                      disabled={busy}
+                      className="text-[11px] underline text-foreground shrink-0 disabled:opacity-50"
+                    >
+                      {isKo ? "다시 시도" : "Retry"}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {turns.length <= 1 && (

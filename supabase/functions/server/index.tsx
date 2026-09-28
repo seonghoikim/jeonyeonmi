@@ -362,6 +362,49 @@ let curatorDayCount = 0;
 let curatorDayStart = Date.now();
 const CURATOR_DAY_MAX = 500;
 
+/* Visitors are actively waiting on this one (unlike the editor-only translate
+   batch job), and Gemini's shared "-latest" pool turned out to 503 ("high
+   demand") often enough in practice that two quick retries against a single
+   model weren't enough to hide it. Retries within a model, then falls
+   through to the next model in the list on repeated failure — a pinned
+   model's quota pool is independent of the "-latest" alias's, so this
+   survives that alias having a bad afternoon without waiting for Google to
+   fix it. gemini-flash-latest stays first for response quality/consistency
+   with the translate endpoint; the pinned models behind it are simply
+   whatever's still standing when it isn't. */
+const CURATOR_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+const CURATOR_RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+const CURATOR_ATTEMPTS_PER_MODEL = 2;
+
+async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<Response | null> {
+  for (const model of CURATOR_MODELS) {
+    for (let attempt = 1; attempt <= CURATOR_ATTEMPTS_PER_MODEL; attempt++) {
+      let res: Response;
+      try {
+        res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: "application/json" },
+            }),
+          }
+        );
+      } catch (err) {
+        console.error(`[curator] Gemini fetch threw (model=${model}, attempt=${attempt}):`, err);
+        continue;
+      }
+      if (res.ok) return res;
+      console.error(`[curator] Gemini API error (model=${model}, attempt=${attempt}):`, res.status, await res.text().catch(() => ""));
+      if (!CURATOR_RETRYABLE_STATUS.has(res.status)) break; // not transient — move to the next model, not worth retrying this one
+      if (attempt < CURATOR_ATTEMPTS_PER_MODEL) await new Promise((resolve) => setTimeout(resolve, attempt * 700));
+    }
+  }
+  return null;
+}
+
 app.post(`${PREFIX}/curator/ask`, async (c) => {
   const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const now = Date.now();
@@ -414,31 +457,12 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
   const prompt = buildPrompt(question, knowledge, historyText, lang);
 
   curatorDayCount++;
-  const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
-  const MAX_ATTEMPTS = 2;
   try {
-    let res: Response | null = null;
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: "application/json" },
-          }),
-        }
-      );
-      if (res.ok) break;
-      if (attempt === MAX_ATTEMPTS || !RETRYABLE_STATUS.has(res.status)) break;
-      await new Promise((resolve) => setTimeout(resolve, attempt * 500));
-    }
-    if (!res!.ok) {
-      console.error("[curator] Gemini API error:", res!.status, await res!.text().catch(() => ""));
+    const res = await callGeminiWithFallback(prompt, apiKey);
+    if (!res) {
       return c.json({ error: "답변을 만드는 중 문제가 생겼어요" }, 502);
     }
-    const data = await res!.json();
+    const data = await res.json();
     const textOut: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     let answer = "";
     let sufficient = true;
