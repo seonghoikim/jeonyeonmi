@@ -1,4 +1,10 @@
 project_id = "tkbfgxxwsfxhdhjnrdqv"
 
-[functions.server]
+# The deployed function slug ("make-server-9c6a1cce") doesn't match its local
+# folder name ("server") — this project's Edge Function was originally
+# deployed some other way (it started life on the Figma Make platform, per
+# package.json's name), not via this CLI, so the slug the live frontend
+# actually calls predates any local config.toml. The Hono app's own PREFIX
+# constant in index.tsx is hardcoded to match.
+[functions.make-server-9c6a1cce]
 entrypoint = "./functions/server/index.tsx"
