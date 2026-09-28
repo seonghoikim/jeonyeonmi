@@ -1,0 +1,4 @@
+project_id = "tkbfgxxwsfxhdhjnrdqv"
+
+[functions.server]
+entrypoint = "./functions/server/index.tsx"
