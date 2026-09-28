@@ -165,8 +165,8 @@ Rules:
 export function buildPrompt(question: string, knowledge: string, historyText: string, lang: "ko" | "en"): string {
   const persona = personaPrelude(lang);
   const refBlock = lang === "ko"
-    ? `\n[참고 자료 시작]\n${knowledge}\n[참고 자료 끝]\n\n아래 JSON 형식으로만 응답하세요: {"answer": "...", "sufficient": true 또는 false}\n"sufficient"는 위 참고 자료만으로 충분히 답할 수 있었는지를 뜻합니다 (자료에 없어서 추측하거나 모른다고 답했다면 false).`
-    : `\n[Reference start]\n${knowledge}\n[Reference end]\n\nRespond ONLY in this JSON shape: {"answer": "...", "sufficient": true or false}\n"sufficient" means whether the reference above was enough to answer properly (false if you had to say you don't know or guess).`;
+    ? `\n[참고 자료 시작]\n${knowledge}\n[참고 자료 끝]\n\n아래 JSON 형식으로만 응답하세요: {"answer": "...", "sufficient": true 또는 false}\n"sufficient"는 방문자의 질문에 실질적으로 도움이 되는 답을 줄 수 있었는지를 뜻합니다. 관련 있는 내용으로 답했다면 일부 세부사항(정확한 날짜, 순서 등)까지는 몰라도 true로 표시하세요. 참고 자료에 질문과 관련된 내용이 전혀 없어 거의 답을 하지 못했을 때만 false로 표시하세요.`
+    : `\n[Reference start]\n${knowledge}\n[Reference end]\n\nRespond ONLY in this JSON shape: {"answer": "...", "sufficient": true or false}\n"sufficient" means whether you were able to give a substantively useful answer. Mark it true if you answered with genuinely relevant information, even if some minor details (exact dates, precise order, etc.) remain uncertain. Only mark it false when the reference had nothing relevant at all, so you could barely answer the question.`;
   const questionLine = lang === "ko" ? `방문자의 새 질문: ${question}` : `New question: ${question}`;
   return `${persona}${refBlock}${historyText}\n${questionLine}`;
 }
