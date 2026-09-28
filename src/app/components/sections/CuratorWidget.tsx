@@ -55,6 +55,13 @@ export function CuratorWidget() {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
   }, [turns, busy]);
 
+  // The panel unmounts on close, so logRef is a fresh node each time it
+  // reopens and starts scrolled to the top — jump straight to the latest
+  // message instead of leaving the oldest one showing.
+  useEffect(() => {
+    if (curatorOpen) logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
+  }, [curatorOpen]);
+
   useEffect(() => {
     if (curatorOpen && !openedOnceRef.current) { openedOnceRef.current = true; trackEvent("curator_open", { lang }); }
   }, [curatorOpen, lang]);
@@ -79,9 +86,12 @@ export function CuratorWidget() {
     return () => clearTimeout(t);
   }, [preview]);
 
-  // ...or immediately on any interaction elsewhere (click/tap/scroll), so it
-  // never lingers in the way of whatever the visitor does next. Clicking the
-  // bubble itself reopens the panel instead (handled by its own onClick).
+  // ...or immediately on a click/tap elsewhere, so it never lingers in the way
+  // of whatever the visitor does next. Clicking the bubble itself reopens the
+  // panel instead (handled by its own onClick). Scrolling is deliberately NOT
+  // a dismiss trigger — page scroll (including momentum scroll right after
+  // closing the panel) fires so easily that the bubble was closing almost
+  // instantly.
   useEffect(() => {
     if (!preview) return;
     const dismiss = (e: Event) => {
@@ -89,11 +99,7 @@ export function CuratorWidget() {
       setPreview(null);
     };
     window.addEventListener("pointerdown", dismiss);
-    window.addEventListener("scroll", dismiss, { passive: true });
-    return () => {
-      window.removeEventListener("pointerdown", dismiss);
-      window.removeEventListener("scroll", dismiss);
-    };
+    return () => window.removeEventListener("pointerdown", dismiss);
   }, [preview]);
 
   // In edit mode we always show at least the on/off switch, even while
