@@ -44,6 +44,7 @@ export function CuratorWidget() {
   const [busy, setBusy] = useState(false);
   const [errorNotice, setErrorNotice] = useState("");
   const [failedQuestion, setFailedQuestion] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [preview, setPreview] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const openedOnceRef = useRef(false);
@@ -125,15 +126,22 @@ export function CuratorWidget() {
   const instagram = contactItems.find((c) => c.type === "instagram" && c.visible);
   const blog = contactItems.find((c) => c.type === "blog" && c.visible);
 
+  // Before the first real exchange there's no answer to base suggestions on,
+  // so the static starter list is shown; after that, each answer comes with
+  // its own 3 follow-ups grounded in what it actually covered.
+  const chips = turns.length <= 1 ? (isKo ? SUGGESTIONS_KO : SUGGESTIONS_EN) : suggestions;
+
   // Shared by a fresh send and a retry — a retry reuses the turns array as it
   // already stands (the failed question is already its last entry) instead
   // of appending the question a second time, which would double it up.
   async function askAndAppend(question: string, turnsForRequest: CuratorTurn[]) {
     setBusy(true);
     setErrorNotice("");
+    setSuggestions([]);
     try {
-      const answer = await askCurator(question, turnsForRequest.slice(-8), lang);
+      const { answer, suggestions: next } = await askCurator(question, turnsForRequest.slice(-8), lang);
       setTurns((p) => [...p, { role: "guide", text: answer }]);
+      setSuggestions(next);
       setFailedQuestion(null);
     } catch {
       setErrorNotice(isKo ? "답변을 가져오지 못했어요." : "Couldn't get an answer.");
@@ -256,7 +264,7 @@ export function CuratorWidget() {
               )}
             </div>
 
-            {turns.length <= 1 && (
+            {!busy && chips.length > 0 && (
               <div
                 className="shrink-0 px-3 pb-2 flex gap-1.5 overflow-x-auto hide-sb"
                 // Desktop mice only send vertical wheel deltas — without this,
@@ -268,7 +276,7 @@ export function CuratorWidget() {
                   e.preventDefault();
                 }}
               >
-                {(isKo ? SUGGESTIONS_KO : SUGGESTIONS_EN).map((s) => (
+                {chips.map((s) => (
                   <button
                     key={s}
                     onClick={() => send(s)}

@@ -476,10 +476,14 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
     const textOut: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     let answer = "";
     let sufficient = true;
+    let suggestions: string[] = [];
     try {
       const parsed = JSON.parse(textOut);
       answer = typeof parsed?.answer === "string" ? parsed.answer : "";
       sufficient = parsed?.sufficient !== false;
+      suggestions = Array.isArray(parsed?.suggestions)
+        ? parsed.suggestions.filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0).slice(0, 3)
+        : [];
     } catch {
       answer = textOut;
     }
@@ -495,7 +499,7 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
       ({ error }) => { if (error) console.error("[curator] log insert error:", error.message); }
     );
 
-    return c.json({ answer: finalAnswer });
+    return c.json({ answer: finalAnswer, suggestions });
   } catch (err) {
     console.error("[curator] error:", err);
     return c.json({ error: "답변을 만드는 중 문제가 생겼어요" }, 500);
