@@ -148,7 +148,7 @@ export async function translateTexts(texts: string[], token: string): Promise<st
    can ask). Server builds the knowledge base from the live portfolio_state row. ── */
 export type CuratorTurn = { role: "user" | "guide"; text: string };
 
-export async function askCurator(question: string, history: CuratorTurn[], lang: "ko" | "en"): Promise<string> {
+export async function askCurator(question: string, history: CuratorTurn[], lang: "ko" | "en"): Promise<{ answer: string; suggestions: string[] }> {
   const res = await fetch(`${FUNCTIONS_URL}/curator/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...gatewayHeaders() },
@@ -156,7 +156,7 @@ export async function askCurator(question: string, history: CuratorTurn[], lang:
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body?.error ?? `curator request failed (${res.status})`);
-  return body.answer as string;
+  return { answer: body.answer as string, suggestions: Array.isArray(body.suggestions) ? body.suggestions : [] };
 }
 
 /* ── Press link preview: server-side og:title/og:image/og:site_name extraction ──
