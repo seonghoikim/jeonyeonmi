@@ -133,7 +133,7 @@ export const initContent = {
 /* ─── UI labels ──────────────────────────────────────── */
 export const UI = {
   ko: {
-    langLabel: "EN",
+    langLabel: "KR",
     navHome: "홈", navCurrent: "현재 전시", navWorks: "작품", navStatement: "작가노트", navExhibitions: "전시이력", navPress: "보도자료", navActivities: "활동", navVideo: "영상", navContact: "연락처", navPortfolio: "포트폴리오",
     currentAdd: "전시 추가", currentUpload: "포스터 교체", currentUploading: "업로드 중…",
     statusOngoing: "진행중", statusUpcoming: "예정", statusPast: "지난전시", viewMore: "자세히 보기",
@@ -181,7 +181,7 @@ export const UI = {
     openingLabel: "오프닝", openingPh: "오프닝 리셉션 일시 (선택, 예: 2026.11.15 18:00)", mapLabel: "지도", mapPh: "지도 링크 (선택)",
   },
   en: {
-    langLabel: "KO",
+    langLabel: "EN",
     navHome: "Home", navCurrent: "Now", navWorks: "Works", navStatement: "Statement", navExhibitions: "Exhibitions", navPress: "Press", navActivities: "Activities", navVideo: "Video", navContact: "Contact", navPortfolio: "Portfolio",
     currentAdd: "Add Exhibition", currentUpload: "Replace Poster", currentUploading: "Uploading…",
     statusOngoing: "Ongoing", statusUpcoming: "Upcoming", statusPast: "Past", viewMore: "View More",
