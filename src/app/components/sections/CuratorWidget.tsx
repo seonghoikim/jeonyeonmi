@@ -257,7 +257,17 @@ export function CuratorWidget() {
             </div>
 
             {turns.length <= 1 && (
-              <div className="shrink-0 px-3 pb-2 flex gap-1.5 overflow-x-auto hide-sb">
+              <div
+                className="shrink-0 px-3 pb-2 flex gap-1.5 overflow-x-auto hide-sb"
+                // Desktop mice only send vertical wheel deltas — without this,
+                // a row that scrolls horizontally is only reachable by touch
+                // drag or a trackpad's horizontal gesture, not a plain wheel.
+                onWheel={(e) => {
+                  if (e.deltaY === 0) return;
+                  e.currentTarget.scrollLeft += e.deltaY;
+                  e.preventDefault();
+                }}
+              >
                 {(isKo ? SUGGESTIONS_KO : SUGGESTIONS_EN).map((s) => (
                   <button
                     key={s}
