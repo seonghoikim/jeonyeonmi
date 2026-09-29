@@ -298,13 +298,13 @@ export function CuratorWidget() {
                 // 16px min — iOS Safari auto-zooms the whole page on focus for any
                 // text input smaller than that, which read as a jarring, unwanted
                 // "zoom in" the instant you started typing.
-                className="flex-1 bg-transparent border border-border px-2.5 py-2 text-[16px] text-foreground outline-none resize-none max-h-24"
+                className="flex-1 min-h-10 bg-transparent border border-border px-2.5 py-2 text-[16px] text-foreground outline-none resize-none max-h-24"
               />
               <button
                 onClick={() => send()}
                 disabled={busy || !input.trim()}
                 aria-label={isKo ? "전송" : "Send"}
-                className="shrink-0 bg-accent text-accent-foreground p-2 disabled:opacity-40"
+                className="shrink-0 h-10 w-10 flex items-center justify-center bg-accent text-accent-foreground disabled:opacity-40"
               >
                 <Send size={15} />
               </button>
