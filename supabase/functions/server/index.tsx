@@ -570,9 +570,17 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
     return c.json({ error: "안내 기능이 아직 설정되지 않았어요" }, 500);
   }
 
+  // Only the columns the prompt is built from — image_urls (a URL per uploaded image,
+  // growing with the site) is never used here, so don't pull it on every question.
   const { data: row, error: readErr } = await supabaseAdmin
-    .from("portfolio_state").select("*").eq("id", 1).maybeSingle();
-  if (readErr) return c.json({ error: readErr.message }, 500);
+    .from("portfolio_state")
+    .select("content,slides,artworks,current_exhibitions,exhibitions,press,contacts,settings")
+    .eq("id", 1)
+    .maybeSingle();
+  if (readErr) {
+    console.error("[curator] portfolio read error:", readErr.message);
+    return c.json({ error: "답변을 만드는 중 문제가 생겼어요" }, 500);
+  }
 
   // The editor can flip this off from the site itself (edit mode) if the widget
   // ever needs to come down in a hurry — checked here too, not just client-side,

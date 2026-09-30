@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { projectId, publicAnonKey } from "../../utils/supabase/info";
 
 const SUPABASE_URL = `https://${projectId}.supabase.co`;
@@ -7,12 +7,20 @@ const SUPABASE_URL = `https://${projectId}.supabase.co`;
 // deployed function's name ("make-server-9c6a1cce" — see supabase/functions/server).
 const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1/make-server-9c6a1cce`;
 
-// Singleton — prevent multiple GoTrueClient instances in the same browser context
+// supabase-js (auth + realtime + storage clients, the bulk of the main bundle) is only
+// needed for the realtime channel, which only editors use — so it is loaded on demand
+// there, and the one public read every visitor needs goes through plain fetch instead.
+// Singleton — prevent multiple GoTrueClient instances in the same browser context.
 const key = "__portfolio_supabase__";
-declare global { interface Window { [key]: ReturnType<typeof createClient> | undefined } }
-export const supabase: ReturnType<typeof createClient> =
-  (window[key] as ReturnType<typeof createClient>) ??
-  (() => { const c = createClient(SUPABASE_URL, publicAnonKey); window[key] = c; return c; })();
+declare global { interface Window { [key]: SupabaseClient | undefined } }
+async function getSupabaseClient(): Promise<SupabaseClient> {
+  const existing = window[key];
+  if (existing) return existing;
+  const { createClient } = await import("@supabase/supabase-js");
+  const client = window[key] ?? createClient(SUPABASE_URL, publicAnonKey);
+  window[key] = client;
+  return client;
+}
 export const isSupabaseReady = true;
 
 /* ── Resize + WebP conversion (client-side via Canvas) ── */
@@ -194,15 +202,13 @@ export type PortfolioRow = {
 // null means the load itself failed (network/DB error) — distinct from {} (no row yet),
 // so the app can refuse to edit/save over real content with its built-in sample data.
 export async function loadPortfolio(): Promise<Partial<PortfolioRow> | null> {
-  if (!supabase) return null;
   try {
-    const { data, error } = await supabase
-      .from("portfolio_state")
-      .select("*")
-      .eq("id", 1)
-      .maybeSingle();
-    if (error) { console.error("[DB] load error:", error.message); return null; }
-    return data ?? {};
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/portfolio_state?id=eq.1&select=*`, {
+      headers: { apikey: publicAnonKey, Authorization: `Bearer ${publicAnonKey}` },
+    });
+    if (!res.ok) { console.error("[DB] load error:", res.status); return null; }
+    const rows = (await res.json()) as PortfolioRow[];
+    return rows[0] ?? {};
   } catch (err) {
     console.error("[DB] load threw:", err);
     return null;
@@ -239,13 +245,21 @@ export async function savePortfolio(
 
 /* ── Realtime: notify other open tabs/devices when the shared row changes ── */
 export function subscribePortfolio(onChange: (row: PortfolioRow) => void): () => void {
-  const channel = supabase
-    .channel("portfolio_state_changes")
-    .on(
-      "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "portfolio_state", filter: "id=eq.1" },
-      (payload) => onChange(payload.new as PortfolioRow)
-    )
-    .subscribe();
-  return () => { supabase.removeChannel(channel); };
+  let cancelled = false;
+  let cleanup: (() => void) | null = null;
+  getSupabaseClient()
+    .then((client) => {
+      if (cancelled) return; // unsubscribed before the library finished loading
+      const channel = client
+        .channel("portfolio_state_changes")
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "portfolio_state", filter: "id=eq.1" },
+          (payload) => onChange(payload.new as PortfolioRow)
+        )
+        .subscribe();
+      cleanup = () => { client.removeChannel(channel); };
+    })
+    .catch((err) => console.error("[DB] realtime unavailable:", err));
+  return () => { cancelled = true; cleanup?.(); };
 }

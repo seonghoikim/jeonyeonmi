@@ -1,11 +1,13 @@
 {
-  "name": "@figma/my-make-file",
+  "name": "jeonyeonmi-portfolio",
   "private": true,
   "version": "0.0.1",
   "type": "module",
   "scripts": {
     "build": "vite build && node scripts/inject-seo-defaults.mjs && node scripts/build-en-html.mjs",
-    "dev": "vite"
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.2",
@@ -16,13 +18,12 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
+    "@types/react": "18.3",
+    "@types/react-dom": "18.3",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
-    "vite": "6.3.5"
-  },
-  "pnpm": {
-    "overrides": {
-      "vite": "6.3.5"
-    }
+    "typescript": "5.9",
+    "vite": "6.3.5",
+    "vitest": "^3.2.7"
   }
 }
