@@ -280,7 +280,7 @@ export function CuratorWidget() {
                 {chips.map((s) => (
                   <button
                     key={s}
-                    onClick={() => send(s)}
+                    onClick={() => { if (turns.length > 1) trackEvent("curator_suggestion_click", { lang }); send(s); }}
                     className="shrink-0 whitespace-nowrap text-[11px] border border-border text-foreground/80 px-2.5 py-1 hover:border-accent/60"
                   >
                     {s}

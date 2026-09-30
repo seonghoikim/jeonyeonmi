@@ -23,7 +23,7 @@ type WorksProps = {
   artworkList: Artwork[];
   setArtworkList: React.Dispatch<React.SetStateAction<Artwork[]>>;
   selectedWorkId: number | null;
-  setSelectedWorkId: (id: number | null) => void;
+  setSelectedWorkId: (id: number | null, source?: string) => void;
   seriesList: Series[];
   setSeriesList: React.Dispatch<React.SetStateAction<Series[]>>;
   selectedSeries: string;
@@ -124,7 +124,7 @@ export function Works({
     if (idx === -1) return;
     const nextIdx = idx + (dx < 0 ? 1 : -1);
     if (nextIdx < 0 || nextIdx >= filteredWorks.length) return;
-    setSelectedWorkId(filteredWorks[nextIdx].id);
+    setSelectedWorkId(filteredWorks[nextIdx].id, "swipe");
   };
 
   return (
@@ -224,7 +224,7 @@ export function Works({
               }}
               onDragEnd={() => { dragSrc.current = null; setDragOverKey(null); }}
               style={{ outline: dragOverKey === "work-" + idx ? "2px solid var(--accent)" : "none" }}
-              onClick={() => { track("work_view", { title: lang === "ko" ? work.title : work.titleEn, series: work.series || "(none)" }); setSelectedWorkId(work.id); }}>
+              onClick={() => setSelectedWorkId(work.id, "grid")}>
               <div className="relative aspect-[4/5] overflow-hidden bg-background shrink-0">
                 {editMode && <div className="absolute top-1.5 left-1.5 z-10 text-accent/60 cursor-grab"><GripVertical size={14} /></div>}
                 {editMode && (
@@ -237,7 +237,7 @@ export function Works({
                   />
                 )}
                 {imgThumb(`artwork-${work.id}`)
-                  ? <img src={imgThumb(`artwork-${work.id}`)!} alt={work.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" decoding="async" />
+                  ? <img src={imgThumb(`artwork-${work.id}`)!} alt={lang === "ko" ? work.title : (work.titleEn || work.title)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" decoding="async" />
                   : <img src="/work-placeholder-v2.svg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />}
                 <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-all duration-500" />
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"><ArrowUpRight size={16} className="text-foreground" /></div>
@@ -281,7 +281,7 @@ export function Works({
             {/* image panel */}
             <div className={`relative bg-background overflow-hidden flex items-center justify-center ${editMode ? "cursor-pointer" : ""}`} style={{ minHeight: "260px", maxHeight: "min(60vh, 560px)" }} onClick={() => editMode && triggerUpload(`artwork-${selectedWork.id}`, selectedWork.titleEn)}>
               {img(`artwork-${selectedWork.id}`) || selectedWork.image
-                ? <img src={img(`artwork-${selectedWork.id}`)!} alt={selectedWork.title} className="w-full h-full object-contain" style={{ maxHeight: "min(60vh, 560px)" }} decoding="async" />
+                ? <img src={img(`artwork-${selectedWork.id}`)!} alt={lang === "ko" ? selectedWork.title : (selectedWork.titleEn || selectedWork.title)} className="w-full h-full object-contain" style={{ maxHeight: "min(60vh, 560px)" }} decoding="async" />
                 : <img src="/work-placeholder-v2.svg" alt="" className="w-full h-full object-cover" style={{ minHeight: "260px" }} decoding="async" />}
               {editMode && <div className="absolute inset-0 flex items-center justify-center bg-background/50 hover:bg-background/65 transition-colors"><div className="flex flex-col items-center gap-2 text-foreground"><Upload size={22} /><span className="text-xs tracking-widest" style={MONO}>{uploadingTarget === `artwork-${selectedWork.id}` ? u.worksUploading : u.worksUpload}</span></div></div>}
               {!editMode && (img(`artwork-${selectedWork.id}`) || selectedWork.image) && (

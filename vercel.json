@@ -7,9 +7,14 @@
       "permanent": true
     }
   ],
+  "functions": {
+    "api/seo.js": { "includeFiles": "dist/{index.html,en/index.html}" }
+  },
   "rewrites": [
+    { "source": "/sitemap.xml", "destination": "/api/seo?type=sitemap" },
     { "source": "/en", "destination": "/en/index.html" },
+    { "source": "/en/works/:slug", "destination": "/api/seo?lang=en&slug=:slug" },
     { "source": "/en/(.*)", "destination": "/en/index.html" },
-    { "source": "/works/(.*)", "destination": "/index.html" }
+    { "source": "/works/:slug", "destination": "/api/seo?lang=ko&slug=:slug" }
   ]
 }

@@ -279,9 +279,16 @@ export default function App() {
   const heroFeaturedIds = artworkList.filter((w) => w.heroFeatured).map((w) => w.id).join(",");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const heroRotateWorks = useMemo(() => artworkList.filter((w) => w.heroFeatured), [heroFeaturedIds]);
-  const [selectedWorkId, setSelectedWorkId] = useState<number | null>(
+  const [selectedWorkId, setSelectedWorkIdState] = useState<number | null>(
     () => (typeof window === "undefined" ? null : parseWorkIdFromPath(window.location.pathname))
   );
+  // Where the currently open artwork was opened from — a deep link is the default (the
+  // initial state comes from the URL); every in-app opener says which surface it was.
+  const workOpenSourceRef = useRef("deeplink");
+  const setSelectedWorkId = useCallback((id: number | null, source?: string) => {
+    if (id != null) workOpenSourceRef.current = source ?? "other";
+    setSelectedWorkIdState(id);
+  }, []);
   const [seriesList, setSeriesList] = useState(initSeries);
   const [selectedSeries, setSelectedSeries] = useState("전체");
   const [editingSeriesId, setEditingSeriesId] = useState<number | null>(null);
@@ -466,7 +473,7 @@ export default function App() {
     const onPopState = () => {
       const path = window.location.pathname;
       setLang(path.startsWith("/en") ? "en" : "ko");
-      setSelectedWorkId(parseWorkIdFromPath(path));
+      setSelectedWorkId(parseWorkIdFromPath(path), "history");
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -513,7 +520,25 @@ export default function App() {
     setMeta('meta[name="twitter:description"]', description);
     const workImg = img(`artwork-${work.id}`);
     if (workImg) { setMeta('meta[property="og:image"]', workImg); setMeta('meta[name="twitter:image"]', workImg); }
+    // Which URL this document is: the artwork's own, not the home page. (api/seo.js
+    // serves the same values statically for crawlers that never run this.)
+    const setHref = (selector: string, value: string) => document.querySelector(selector)?.setAttribute("href", value);
+    const slug = artworkSlug(work);
+    const koUrl = `https://jeonyeonmi.com/works/${slug}`;
+    const enUrl = `https://jeonyeonmi.com/en/works/${slug}`;
+    const selfUrl = lang === "en" ? enUrl : koUrl;
+    setHref('link[rel="canonical"]', selfUrl);
+    setMeta('meta[property="og:url"]', selfUrl);
+    setHref('link[rel="alternate"][hreflang="ko"]', koUrl);
+    setHref('link[rel="alternate"][hreflang="en"]', enUrl);
+    setHref('link[rel="alternate"][hreflang="x-default"]', koUrl);
     return () => {
+      const baseUrl = lang === "en" ? "https://jeonyeonmi.com/en" : "https://jeonyeonmi.com/";
+      setHref('link[rel="canonical"]', baseUrl);
+      setMeta('meta[property="og:url"]', baseUrl);
+      setHref('link[rel="alternate"][hreflang="ko"]', "https://jeonyeonmi.com/");
+      setHref('link[rel="alternate"][hreflang="en"]', "https://jeonyeonmi.com/en");
+      setHref('link[rel="alternate"][hreflang="x-default"]', "https://jeonyeonmi.com/");
       const siteTitle = `${c("heroName")} — ${lang === "en" ? "Artist Portfolio" : "작가 포트폴리오"}`;
       document.title = siteTitle;
       setMeta('meta[name="description"]', c("heroDesc"));
@@ -525,6 +550,20 @@ export default function App() {
       if (heroImg) { setMeta('meta[property="og:image"]', heroImg); setMeta('meta[name="twitter:image"]', heroImg); }
     };
   }, [selectedWorkId, artworkList, lang]);
+
+  // One work_view per opened artwork, whichever surface opened it (grid, hero,
+  // swipe, browser history, or a shared deep link) — previously only grid clicks were
+  // counted, so shared-link landings, the most valuable signal, never showed up.
+  // Deduped by id so later artworkList/lang changes don't re-fire it.
+  const trackedWorkIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (selectedWorkId == null) { trackedWorkIdRef.current = null; return; }
+    if (editMode || trackedWorkIdRef.current === selectedWorkId) return;
+    const work = artworkList.find((w) => w.id === selectedWorkId);
+    if (!work) return; // fresh deep link: data still loading; runs again once it arrives
+    trackedWorkIdRef.current = selectedWorkId;
+    trackEvent("work_view", { title: lang === "ko" ? work.title : work.titleEn, series: work.series || "(none)", source: workOpenSourceRef.current });
+  }, [selectedWorkId, artworkList, editMode, lang]);
 
   /* mobile nav menu: close on outside click or on scroll */
   const navRef = useRef<HTMLElement>(null);
@@ -564,6 +603,7 @@ export default function App() {
     setShowPwModal(true);
   };
   const handleLangClick = () => {
+    if (!editMode) trackEvent("language_switch", { from: lang, to: lang === "ko" ? "en" : "ko" });
     setLang((l) => {
       const next = l === "ko" ? "en" : "ko";
       // Keep the URL in sync with the displayed language (/ = ko, /en = en) so the
