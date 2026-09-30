@@ -647,4 +647,38 @@ app.get(`${PREFIX}/curator/report`, async (c) => {
   return c.json({ days, count: data?.length ?? 0, rows: data ?? [] });
 });
 
+/* ── curator usage: read-only view of the rate-limit counters + what the function
+   sees of the caller's network identity (same X-Report-Key as the report). Lets the
+   owner check spend/traffic and verify the per-IP limiter is keyed on something a
+   visitor can't just spoof. ── */
+app.get(`${PREFIX}/curator/usage`, async (c) => {
+  const expected = Deno.env.get("CURATOR_REPORT_KEY");
+  if (!expected) return c.json({ error: "리포트 키가 설정되지 않았습니다" }, 503);
+  if (!timingSafeEqual(c.req.header("X-Report-Key") ?? "", expected)) {
+    return c.json({ error: "인증이 필요합니다" }, 401);
+  }
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabaseAdmin
+    .from("curator_usage")
+    .select("bucket,count,updated_at")
+    .gte("updated_at", since)
+    .order("updated_at", { ascending: false })
+    .limit(200);
+  const days = (data ?? []).filter((r) => r.bucket.startsWith("day:"));
+  const ipBuckets = (data ?? []).filter((r) => r.bucket.startsWith("ip:"));
+  return c.json({
+    usageQueryError: error?.message ?? null,
+    days,
+    distinctIpBucketsLast24h: ipBuckets.length,
+    topIpBuckets: ipBuckets.sort((x, y) => y.count - x.count).slice(0, 5),
+    seenByFunction: {
+      clientIp: clientIp(c.req.raw.headers),
+      cfConnectingIp: c.req.header("cf-connecting-ip") ?? null,
+      xForwardedFor: c.req.header("x-forwarded-for") ?? null,
+      xRealIp: c.req.header("x-real-ip") ?? null,
+    },
+    limits: { perIpPerWindow: CURATOR_MAX_PER_WINDOW, windowMinutes: CURATOR_WINDOW_MS / 60000, perDay: CURATOR_DAY_MAX },
+  });
+});
+
 Deno.serve(app.fetch);
