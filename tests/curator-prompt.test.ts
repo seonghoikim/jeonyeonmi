@@ -67,6 +67,22 @@ describe("selectKnowledge", () => {
   });
 });
 
+describe("selectKnowledge at the site's real size", () => {
+  // ~50 works plus statement/exhibitions came to ~11K chars — over the old 9000 budget,
+  // which silently sent only statement+works and left exhibition history out.
+  const realistic: PortfolioRowForCurator = {
+    ...row,
+    artworks: Array.from({ length: 54 }, (_, i) => ({ title: `작품 ${i}`, titleEn: `Work ${i}`, year: "2026", medium: "한지와 아크릴", size: "10F", category: "회화", description: "작품 설명 문장입니다. ".repeat(12) })),
+    exhibitions: [{ year: "2025", title: "단체전 하나", venue: "갤러리", location: "서울", tag: "단체전" }],
+  };
+  it("still sends every section, so an exhibition question can see the exhibition history", () => {
+    const sections = buildSections(realistic, "ko");
+    const full = [sections.profile, sections.statement, sections.works, sections.currentExhibitions, sections.history, sections.press, sections.contact].join("").length;
+    expect(full).toBeGreaterThan(9000);
+    expect(selectKnowledge("어떤 전시를 했나요?", sections)).toContain("단체전 하나");
+  });
+});
+
 describe("buildPrompt", () => {
   it("asks for the JSON shape including sufficient and suggestions, and carries the question", () => {
     const p = buildPrompt("재료가 뭔가요?", "REF", "", "ko");

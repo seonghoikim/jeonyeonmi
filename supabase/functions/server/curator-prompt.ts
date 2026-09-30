@@ -104,14 +104,17 @@ export function buildSections(row: PortfolioRowForCurator, lang: "ko" | "en"): C
 const KEYWORDS: Record<"works" | "statement" | "currentExhibitions" | "history" | "press", RegExp> = {
   works: /작품|작열|코르셋|꿈\s*결|봄\s*결|묵\s*결|숨\s*결|흰\s*결|연\s*결|결연|재료|기법|한지|태우|찢|크기|cm|시리즈|컬렉션|소장|가격|work|piece|material|technique|size|series|collect|price/i,
   statement: /작가노트|철학|영감|의미|컨셉|콘셉트|작업\s*방식|스타일|왜\s*이런|statement|philosophy|inspir|concept|meaning|why/i,
-  currentExhibitions: /지금|현재|예정|어디서|언제|가볼|방문|이번\s*전시|now|current|upcoming|where|when|visit/i,
-  history: /이력|경력|수상|선정|공모전|아트페어|연혁|약력|award|history|competition|fair|career/i,
+  currentExhibitions: /전시|지금|현재|예정|어디서|언제|가볼|방문|now|current|upcoming|exhibit|where|when|visit/i,
+  history: /전시|이력|경력|수상|선정|공모전|아트페어|연혁|약력|exhibit|award|history|competition|fair|career/i,
   press: /기사|보도|언론|인터뷰|뉴스|press|article|interview|news/i,
 };
 
 // Below this, just send every section — simpler and more accurate than
-// guessing, and small enough that the extra tokens don't matter.
-const FULL_SEND_CHAR_BUDGET = 9000;
+// guessing, and small enough that the extra tokens don't matter. (It was 9000, which the
+// site outgrew once it had ~50 works: the works section alone is ~6.5K chars, so every
+// question silently fell into keyword-picking and e.g. "어떤 전시를 했나요?" never got
+// the exhibition history. A full send is ~14K chars, well within what one call handles.)
+const FULL_SEND_CHAR_BUDGET = 40000;
 
 export function selectKnowledge(question: string, sections: CuratorSections): string {
   const always = [sections.profile, sections.contact].filter(Boolean);
