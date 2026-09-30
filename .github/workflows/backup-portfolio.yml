@@ -1,0 +1,57 @@
+name: Backup portfolio data
+
+# The whole site lives in one database row that autosaves over itself, so a slip (a deleted
+# work, a bad edit) has no undo. This snapshots that row every 6 hours to the data-backups
+# branch — only when it actually changed, so the branch's history is a change log you can
+# diff and restore from. See README (Backup & restore).
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: portfolio-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Snapshot the live row
+        id: snap
+        run: node scripts/snapshot-portfolio.mjs "$RUNNER_TEMP/portfolio_state.json"
+
+      - name: Commit to data-backups if it changed
+        env:
+          SUMMARY: ${{ steps.snap.outputs.summary }}
+          UPDATED_AT: ${{ steps.snap.outputs.updated_at }}
+        run: |
+          git config user.name "portfolio-backup"
+          git config user.email "portfolio-backup@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin data-backups >/dev/null 2>&1; then
+            git fetch --depth=1 origin data-backups
+            git checkout -B data-backups FETCH_HEAD
+          else
+            git checkout --orphan data-backups
+            git rm -rf --quiet .
+            # Vercel must not try to build this branch.
+            printf '{ "git": { "deploymentEnabled": false } }\n' > vercel.json
+            git add vercel.json
+          fi
+          cp "$RUNNER_TEMP/portfolio_state.json" portfolio_state.json
+          git add portfolio_state.json
+          if git diff --cached --quiet; then
+            echo "No change since the last backup."
+            exit 0
+          fi
+          git commit -m "backup: $SUMMARY (row updated $UPDATED_AT) [skip ci] [vercel skip]"
+          git push origin data-backups
