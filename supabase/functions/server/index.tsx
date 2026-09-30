@@ -3,6 +3,7 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 import { createSessionToken, verifySessionToken, timingSafeEqual } from "./auth.tsx";
+import { isSafeHref, clientIp, sha256Hex, assertPublicHttpUrl } from "./safety.ts";
 import { buildSections, selectKnowledge, buildPrompt, getVisibleContacts, insufficientContactNote, type PortfolioRowForCurator } from "./curator-prompt.ts";
 
 const app = new Hono();
@@ -41,7 +42,7 @@ const LOGIN_WINDOW_MS = 5 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 10;
 
 app.post(`${PREFIX}/auth/login`, async (c) => {
-  const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ip = clientIp(c.req.raw.headers);
   const now = Date.now();
   const attempt = loginAttempts.get(ip);
   if (attempt && now - attempt.windowStart < LOGIN_WINDOW_MS && attempt.count >= LOGIN_MAX_ATTEMPTS) {
@@ -82,12 +83,42 @@ async function requireAuth(c: any, next: any) {
 }
 
 /* ── save: authenticated write, with optimistic-concurrency conflict check ── */
+const SAVEABLE_COLUMNS = [
+  "content", "current_exhibitions", "artworks", "series_list", "slides", "exhibitions",
+  "activity_photos", "videos", "contacts", "press", "settings", "image_urls",
+] as const;
+
+// [column, link field] pairs whose values become hrefs/iframes on the public site.
+const LINK_FIELDS: [string, string][] = [
+  ["press", "url"], ["current_exhibitions", "url"], ["current_exhibitions", "mapUrl"],
+  ["contacts", "href"], ["videos", "youtubeUrl"],
+];
+
+function findUnsafeLink(patch: Record<string, unknown>): string | null {
+  for (const [col, field] of LINK_FIELDS) {
+    const rows = patch[col];
+    if (!Array.isArray(rows)) continue;
+    for (const row of rows) {
+      const v = (row as Record<string, unknown> | null)?.[field];
+      if (!isSafeHref(v)) return `${col}.${field}`;
+    }
+  }
+  return null;
+}
 app.post(`${PREFIX}/portfolio/save`, requireAuth, async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!body || typeof body !== "object" || !body.patch || typeof body.patch !== "object") {
     return c.json({ error: "잘못된 요청" }, 400);
   }
-  const { patch, expectedUpdatedAt } = body as { patch: Record<string, unknown>; expectedUpdatedAt?: string };
+  const { patch: rawPatch, expectedUpdatedAt } = body as { patch: Record<string, unknown>; expectedUpdatedAt?: string };
+
+  // Only the known content columns may be written — never id/updated_at or anything
+  // added to the table later — and every editor-entered link must be a web/mail/tel
+  // URL, since these render as hrefs on the public site.
+  const patch: Record<string, unknown> = {};
+  for (const col of SAVEABLE_COLUMNS) if (col in rawPatch) patch[col] = rawPatch[col];
+  const badLink = findUnsafeLink(patch);
+  if (badLink) return c.json({ error: `허용되지 않는 링크입니다: ${badLink}` }, 400);
 
   const { data: current, error: readErr } = await supabaseAdmin
     .from("portfolio_state").select("*").eq("id", 1).maybeSingle();
@@ -132,7 +163,9 @@ app.post(`${PREFIX}/portfolio/upload`, requireAuth, async (c) => {
   const file = form?.get("file");
   const key = form?.get("key");
   const label = form?.get("label");
-  if (!(file instanceof File) || typeof key !== "string" || !key) {
+  // Keys are things like "artwork-12", "activity-3-2-thumb", "hero" — nothing that
+  // could add path segments or escape the intended folder.
+  if (!(file instanceof File) || typeof key !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(key)) {
     return c.json({ error: "잘못된 요청" }, 400);
   }
   if (file.size > MAX_UPLOAD_BYTES) {
@@ -142,9 +175,16 @@ app.post(`${PREFIX}/portfolio/upload`, requireAuth, async (c) => {
   const namePart = typeof label === "string" && label.trim() ? `${slugify(label)}-${Date.now()}` : `${Date.now()}`;
   const path = `${key}/${namePart}.webp`;
   const bytes = new Uint8Array(await file.arrayBuffer());
+  // The client always converts to WebP before uploading; check the real bytes
+  // (RIFF....WEBP) instead of trusting the declared type, and store as image/webp,
+  // so this bucket can't be used to host HTML/SVG/anything else.
+  const isWebp = bytes.length > 12
+    && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF"
+    && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
+  if (!isWebp) return c.json({ error: "WebP 이미지만 업로드할 수 있습니다" }, 415);
   const { error } = await supabaseAdmin.storage
     .from("portfolio")
-    .upload(path, bytes, { upsert: true, contentType: file.type || "image/webp" });
+    .upload(path, bytes, { upsert: false, contentType: "image/webp" });
   if (error) return c.json({ error: error.message }, 500);
 
   const { data } = supabaseAdmin.storage.from("portfolio").getPublicUrl(path);
@@ -292,26 +332,37 @@ function decodeHtmlEntities(s: string): string {
 const UNFURL_MAX_BYTES = 300_000;
 const UNFURL_TIMEOUT_MS = 8000;
 
+const UNFURL_MAX_REDIRECTS = 3;
+
 app.post(`${PREFIX}/portfolio/unfurl`, requireAuth, async (c) => {
   const body = await c.req.json().catch(() => null);
   const url = body?.url;
   if (typeof url !== "string" || !/^https?:\/\//i.test(url)) {
     return c.json({ error: "올바른 URL이 아닙니다" }, 400);
   }
-  let parsed: URL;
-  try { parsed = new URL(url); } catch { return c.json({ error: "올바른 URL이 아닙니다" }, 400); }
-  if (["localhost", "127.0.0.1", "0.0.0.0", "::1"].includes(parsed.hostname) || parsed.hostname.endsWith(".local")) {
-    return c.json({ error: "허용되지 않는 주소입니다" }, 400);
-  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), UNFURL_TIMEOUT_MS);
   try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      redirect: "follow",
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; JeonYeonmiBot/1.0; +https://jeonyeonmi.vercel.app)" },
-    });
+    // Follow redirects by hand so every hop is re-checked against the private-address
+    // rules — "redirect: follow" would let a public URL bounce the fetch to an internal one.
+    let current = await assertPublicHttpUrl(url);
+    let res: Response | null = null;
+    for (let hop = 0; hop <= UNFURL_MAX_REDIRECTS; hop++) {
+      res = await fetch(current, {
+        signal: controller.signal,
+        redirect: "manual",
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; JeonYeonmiBot/1.0; +https://jeonyeonmi.vercel.app)" },
+      });
+      const location = res.headers.get("location");
+      if (res.status >= 300 && res.status < 400 && location) {
+        current = await assertPublicHttpUrl(new URL(location, current).toString());
+        res = null;
+        continue;
+      }
+      break;
+    }
+    if (!res) return c.json({ error: "리다이렉트가 너무 많습니다" }, 502);
     if (!res.ok) return c.json({ error: `페이지를 가져올 수 없습니다 (${res.status})` }, 502);
 
     let html = "";
@@ -332,14 +383,28 @@ app.post(`${PREFIX}/portfolio/unfurl`, requireAuth, async (c) => {
 
     const rawTitle = extractMeta(html, "og:title") ?? html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? "";
     const rawImage = extractMeta(html, "og:image") ?? "";
-    const rawSite = extractMeta(html, "og:site_name") ?? parsed.hostname.replace(/^www\./, "");
+    const rawSite = extractMeta(html, "og:site_name") ?? current.hostname.replace(/^www\./, "");
+
+    // The image URL is only ever displayed/stored, never fetched here — but still
+    // limit it to web URLs so a data:/javascript: value can't ride along into the row.
+    let image = "";
+    if (rawImage) {
+      try {
+        const resolved = new URL(decodeHtmlEntities(rawImage), current);
+        if (resolved.protocol === "http:" || resolved.protocol === "https:") image = resolved.toString();
+      } catch { /* ignore an unparseable og:image */ }
+    }
 
     return c.json({
       title: decodeHtmlEntities(rawTitle).trim(),
-      image: rawImage ? new URL(rawImage, url).toString() : "",
+      image,
       siteName: decodeHtmlEntities(rawSite).trim(),
     });
   } catch (err) {
+    const reason = err instanceof Error ? err.message : "";
+    if (["invalid_url", "invalid_scheme", "credentials_in_url", "port_not_allowed", "host_not_allowed"].includes(reason)) {
+      return c.json({ error: "허용되지 않는 주소입니다" }, 400);
+    }
     console.error("[unfurl] error:", err);
     return c.json({ error: "미리보기를 가져오지 못했습니다" }, 500);
   } finally {
@@ -351,7 +416,7 @@ app.post(`${PREFIX}/portfolio/unfurl`, requireAuth, async (c) => {
    Answers visitor questions about the artist/work using the live portfolio_state
    row as the only source of truth (no separate copy to keep in sync), speaking as
    "호이" (the artist's manager) rather than the artist herself. Logs every exchange
-   to curator_logs (service role bypasses RLS; anon can only SELECT it) so a
+   to curator_logs (service role bypasses RLS; anon has no access — see supabase/curator_security.sql) so a
    separate weekly job can report the most common questions and flag the ones
    Gemini itself judged the knowledge base didn't cover. Persona/knowledge assembly
    lives in ./curator-prompt.ts — this route is just request handling. */
@@ -385,6 +450,7 @@ const CURATOR_DAY_MAX = 500;
 const CURATOR_MODELS = ["gemini-flash-latest", "gemini-3.5-flash-lite"];
 const CURATOR_RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const CURATOR_ATTEMPTS_PER_MODEL = 2;
+const CURATOR_CALL_TIMEOUT_MS = 20_000;
 
 async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<Response | null> {
   for (const model of CURATOR_MODELS) {
@@ -398,8 +464,12 @@ async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<R
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { responseMimeType: "application/json" },
+              // Answer (3-6 sentences) + 3 suggestions fits well inside this; the cap keeps
+              // a prompt-injected "write an essay" from turning into real token spend.
+              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 1024 },
             }),
+            // A hung upstream call would otherwise hold the instance until the platform kills it.
+            signal: AbortSignal.timeout(CURATOR_CALL_TIMEOUT_MS),
           }
         );
       } catch (err) {
@@ -415,25 +485,75 @@ async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<R
   return null;
 }
 
-app.post(`${PREFIX}/curator/ask`, async (c) => {
-  const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+/* Rate limits live in Postgres (curator_usage + curator_hit RPC) rather than in
+   function memory: serverless instances come and go and each keeps its own Map, so
+   in-memory counters reset on every cold start and don't add up across instances.
+   If the table/RPC isn't there (or errors), fall back to the in-memory counters
+   so the widget keeps working instead of failing closed. */
+async function bumpCuratorBucket(bucket: string): Promise<number | null> {
+  const { data, error } = await supabaseAdmin.rpc("curator_hit", { p_bucket: bucket });
+  if (error || typeof data !== "number") return null;
+  return data;
+}
+
+async function checkCuratorLimits(rawIp: string): Promise<{ body: { error: string; code: string } } | null> {
   const now = Date.now();
+  // Raw IPs never reach the database — only a salted hash, bucketed per 10-minute window.
+  const ipHash = (await sha256Hex(`${Deno.env.get("SESSION_SECRET") ?? ""}:${rawIp}`)).slice(0, 24);
+  const dayBucket = `day:${new Date(now).toISOString().slice(0, 10)}`;
+  const ipBucket = `ip:${ipHash}:${Math.floor(now / CURATOR_WINDOW_MS)}`;
+  const [dayHits, ipHits] = await Promise.all([bumpCuratorBucket(dayBucket), bumpCuratorBucket(ipBucket)]);
+
+  const dayLimited = { error: "오늘 사용량이 많아 잠시 후 다시 시도해주세요.", code: "day_limit" };
+  const ipLimited = { error: "잠시 요청이 많았어요. 몇 분 후 다시 시도해주세요.", code: "rate_limited" };
+
+  if (dayHits !== null && ipHits !== null) {
+    if (dayHits > CURATOR_DAY_MAX) return { body: dayLimited };
+    if (ipHits > CURATOR_MAX_PER_WINDOW) return { body: ipLimited };
+    return null;
+  }
+
+  console.error("[curator] curator_hit RPC unavailable — using in-memory limits");
   if (now - curatorDayStart > 24 * 60 * 60 * 1000) { curatorDayStart = now; curatorDayCount = 0; }
-  if (curatorDayCount >= CURATOR_DAY_MAX) {
-    return c.json({ error: "오늘 사용량이 많아 잠시 후 다시 시도해주세요.", code: "day_limit" }, 429);
-  }
-  const attempt = curatorAttempts.get(ip);
+  if (curatorDayCount >= CURATOR_DAY_MAX) return { body: dayLimited };
+  const attempt = curatorAttempts.get(rawIp);
   if (attempt && now - attempt.windowStart < CURATOR_WINDOW_MS && attempt.count >= CURATOR_MAX_PER_WINDOW) {
-    return c.json({ error: "잠시 요청이 많았어요. 몇 분 후 다시 시도해주세요.", code: "rate_limited" }, 429);
+    return { body: ipLimited };
   }
-  curatorAttempts.set(ip, attempt && now - attempt.windowStart < CURATOR_WINDOW_MS
+  curatorAttempts.set(rawIp, attempt && now - attempt.windowStart < CURATOR_WINDOW_MS
     ? { count: attempt.count + 1, windowStart: attempt.windowStart }
     : { count: 1, windowStart: now });
+  curatorDayCount++;
+  return null;
+}
+
+// Housekeeping without a scheduler: now and then, drop old usage counters and
+// curator_logs rows past the retention window (visitors' free-text questions
+// shouldn't be kept forever).
+const CURATOR_LOG_RETENTION_DAYS = 90;
+function maybeCleanupCuratorData() {
+  if (Math.random() > 0.02) return;
+  const day = 24 * 60 * 60 * 1000;
+  supabaseAdmin.from("curator_usage").delete().lt("updated_at", new Date(Date.now() - 3 * day).toISOString()).then(() => {});
+  supabaseAdmin.from("curator_logs").delete().lt("created_at", new Date(Date.now() - CURATOR_LOG_RETENTION_DAYS * day).toISOString()).then(() => {});
+}
+
+app.post(`${PREFIX}/curator/ask`, async (c) => {
+  const limited = await checkCuratorLimits(clientIp(c.req.raw.headers));
+  if (limited) return c.json(limited.body, 429);
+  maybeCleanupCuratorData();
 
   const body = await c.req.json().catch(() => null);
   const question = typeof body?.question === "string" ? body.question.trim() : "";
   const lang: "ko" | "en" = body?.lang === "en" ? "en" : "ko";
-  const history = Array.isArray(body?.history) ? body.history.slice(-6) : [];
+  // Only well-formed turns get into the prompt — an arbitrary "role" (e.g. a forged
+  // "guide" turn) or non-string text from a hand-built request is dropped.
+  const history: { role: "user" | "guide"; text: string }[] = (Array.isArray(body?.history) ? body.history : [])
+    .filter((t: unknown): t is { role: "user" | "guide"; text: string } => {
+      const turn = t as { role?: unknown; text?: unknown } | null;
+      return !!turn && (turn.role === "user" || turn.role === "guide") && typeof turn.text === "string";
+    })
+    .slice(-6);
   if (!question || question.length > 500) {
     return c.json({ error: "잘못된 요청" }, 400);
   }
@@ -466,7 +586,6 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
     : "";
   const prompt = buildPrompt(question, knowledge, historyText, lang);
 
-  curatorDayCount++;
   try {
     const res = await callGeminiWithFallback(prompt, apiKey);
     if (!res) {
@@ -504,6 +623,28 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
     console.error("[curator] error:", err);
     return c.json({ error: "답변을 만드는 중 문제가 생겼어요" }, 500);
   }
+});
+
+/* ── curator report: read-only log access for the weekly summary job ──
+   curator_logs is not readable with the public anon key (visitors' questions are
+   private), so the report job authenticates with its own key instead. Grants read
+   access to the logs and nothing else. Set with: supabase secrets set CURATOR_REPORT_KEY=... */
+app.get(`${PREFIX}/curator/report`, async (c) => {
+  const expected = Deno.env.get("CURATOR_REPORT_KEY");
+  if (!expected) return c.json({ error: "리포트 키가 설정되지 않았습니다" }, 503);
+  if (!timingSafeEqual(c.req.header("X-Report-Key") ?? "", expected)) {
+    return c.json({ error: "인증이 필요합니다" }, 401);
+  }
+  const days = Math.min(90, Math.max(1, Number(c.req.query("days")) || 7));
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabaseAdmin
+    .from("curator_logs")
+    .select("id,created_at,lang,question,answer,sufficient")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(2000);
+  if (error) return c.json({ error: "로그를 읽지 못했습니다" }, 500);
+  return c.json({ days, count: data?.length ?? 0, rows: data ?? [] });
 });
 
 Deno.serve(app.fetch);

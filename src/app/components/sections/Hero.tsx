@@ -173,8 +173,8 @@ export function Hero({
             </span>
           ) : editMode && editingCaption ? (
             <div className="flex flex-col gap-1 items-end">
-              <input value={heroCaption} onChange={(e) => setHeroCaption(e.target.value)} onKeyDown={(e) => e.key === "Enter" && setEditingCaption(false)} className="bg-background/80 border border-accent text-foreground text-xs tracking-widest px-2 py-1 outline-none w-52 text-right" style={MONO} placeholder="KO" autoFocus />
-              <input value={heroCaptionEn} onChange={(e) => setHeroCaptionEn(e.target.value)} onKeyDown={(e) => e.key === "Enter" && setEditingCaption(false)} className="bg-background/80 border border-accent/60 text-muted-foreground text-xs tracking-widest px-2 py-1 outline-none w-52 text-right" style={MONO} placeholder="EN" />
+              <input value={heroCaption} onChange={(e) => setHeroCaption(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && setEditingCaption(false)} className="bg-background/80 border border-accent text-foreground text-xs tracking-widest px-2 py-1 outline-none w-52 text-right" style={MONO} placeholder="KO" autoFocus />
+              <input value={heroCaptionEn} onChange={(e) => setHeroCaptionEn(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && setEditingCaption(false)} className="bg-background/80 border border-accent/60 text-muted-foreground text-xs tracking-widest px-2 py-1 outline-none w-52 text-right" style={MONO} placeholder="EN" />
               <button onClick={() => setEditingCaption(false)} className="text-xs text-accent/60 hover:text-accent mt-0.5" style={MONO}><Check size={11} className="inline" /> 완료</button>
             </div>
           ) : (

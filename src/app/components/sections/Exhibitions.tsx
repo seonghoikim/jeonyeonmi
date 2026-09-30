@@ -150,6 +150,7 @@ export function Exhibitions({
                         <span className={`inline-block align-middle text-xs px-1.5 py-0.5 border whitespace-nowrap ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
                         {ex.isCompetition && <span className={`inline-block align-middle text-xs px-1.5 py-0.5 border whitespace-nowrap ml-1 ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
                       </p>
+                      <p className="lg:hidden text-xs text-muted-foreground mt-0.5">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>
                       {ex.award && <p className="text-xs text-yellow-500 mt-0.5">{lang === "ko" ? ex.award : (ex.awardEn || ex.award)}</p>}
                     </div>
                     <div className="hidden lg:block col-span-3">

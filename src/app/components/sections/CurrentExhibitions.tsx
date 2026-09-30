@@ -3,6 +3,7 @@ import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, moveInFiltered, hSize, EX_BASE_TAG_ORDER, exBaseTagStyle, exBaseTagLabel, EX_COMPETITION_STYLE, type CurrentExhibition } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
 import { trackEvent } from "../../analytics";
+import { safeHref } from "../../safeHref";
 
 type CurrentExhibitionsProps = {
   currentExList: CurrentExhibition[];
@@ -153,10 +154,10 @@ export function CurrentExhibitions({
                     {!isEditing && (
                       <div className="flex items-center gap-3">
                         {ex.url
-                          ? <a href={ex.url} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("exhibition_link_click", { type: "detail", exhibition: lang === "ko" ? ex.title : ex.titleEn })} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}>{u.viewMore} <ArrowUpRight size={11} /></a>
+                          ? <a href={safeHref(ex.url)} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("exhibition_link_click", { type: "detail", exhibition: lang === "ko" ? ex.title : ex.titleEn })} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}>{u.viewMore} <ArrowUpRight size={11} /></a>
                           : <button onClick={() => scrollTo("works")} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}>{u.viewMore} <ArrowUpRight size={11} /></button>
                         }
-                        {ex.mapUrl && <a href={ex.mapUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("exhibition_link_click", { type: "map", exhibition: lang === "ko" ? ex.title : ex.titleEn })} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}><MapPin size={11} />{u.mapLabel}</a>}
+                        {ex.mapUrl && <a href={safeHref(ex.mapUrl)} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("exhibition_link_click", { type: "map", exhibition: lang === "ko" ? ex.title : ex.titleEn })} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-accent transition-colors" style={MONO}><MapPin size={11} />{u.mapLabel}</a>}
                       </div>
                     )}
                     {editMode && (
