@@ -225,6 +225,8 @@ export default function App() {
       if (row.settings?.heroCaptionEn) setHeroCaptionEn(row.settings.heroCaptionEn);
       if (row.settings?.heroRotate) setHeroRotateEnabled(row.settings.heroRotate === "true");
       if (row.settings?.curatorEnabled) setCuratorEnabled(row.settings.curatorEnabled === "true");
+      if (row.settings?.pastExDefaultExpanded) setPastExDefaultExpanded(row.settings.pastExDefaultExpanded === "true");
+      if (row.settings?.worksDefaultExpanded) setWorksDefaultExpanded(row.settings.worksDefaultExpanded === "true");
       if (row.image_urls && Object.keys(row.image_urls).length > 0) {
         setImageUrls(row.image_urls);
         const heroUrl = row.image_urls.hero;
@@ -255,6 +257,12 @@ export default function App() {
   const [currentExList, setCurrentExList] = useState(initCurrentEx);
   const [editingCurrentId, setEditingCurrentId] = useState<number | null>(null);
   const [showPastEx, setShowPastEx] = useState(true);
+  // Editor-configurable defaults for the past-exhibitions and works-list
+  // collapse state — showPastEx/worksExpanded stay live, per-visit toggles;
+  // these just decide what they start at, synced below whenever they change.
+  const [pastExDefaultExpanded, setPastExDefaultExpanded] = useState(true);
+  const [worksDefaultExpanded, setWorksDefaultExpanded] = useState(false);
+  useEffect(() => { setShowPastEx(pastExDefaultExpanded); }, [pastExDefaultExpanded]);
 
   const [artworkList, setArtworkList] = useState(initArtworks);
   // Keyed on which artworks are featured, not on artworkList itself — editing an
@@ -322,7 +330,10 @@ export default function App() {
     content, current_exhibitions: currentExList, artworks: artworkList,
     series_list: seriesList, slides, exhibitions: exhibitionList,
     activity_photos: activityPhotos, videos: videoList, contacts: contactItems, press: pressList,
-    settings: { heroCaption, heroCaptionEn, heroRotate: heroRotateEnabled ? "true" : "false", curatorEnabled: curatorEnabled ? "true" : "false" }, image_urls: imageUrls,
+    settings: {
+      heroCaption, heroCaptionEn, heroRotate: heroRotateEnabled ? "true" : "false", curatorEnabled: curatorEnabled ? "true" : "false",
+      pastExDefaultExpanded: pastExDefaultExpanded ? "true" : "false", worksDefaultExpanded: worksDefaultExpanded ? "true" : "false",
+    }, image_urls: imageUrls,
   };
 
   /* ── DB: apply a row fetched remotely (initial 409-conflict reload or Realtime push) ── */
@@ -341,6 +352,8 @@ export default function App() {
     if (row.settings?.heroCaptionEn) setHeroCaptionEn(row.settings.heroCaptionEn);
     if (row.settings?.heroRotate) setHeroRotateEnabled(row.settings.heroRotate === "true");
     if (row.settings?.curatorEnabled) setCuratorEnabled(row.settings.curatorEnabled === "true");
+    if (row.settings?.pastExDefaultExpanded) setPastExDefaultExpanded(row.settings.pastExDefaultExpanded === "true");
+    if (row.settings?.worksDefaultExpanded) setWorksDefaultExpanded(row.settings.worksDefaultExpanded === "true");
     if (row.image_urls && Object.keys(row.image_urls).length > 0) {
       setImageUrls(row.image_urls);
       const heroUrl = row.image_urls.hero;
@@ -661,22 +674,22 @@ export default function App() {
 
   /* CRUD */
   const updateWork = (id: number, f: keyof Artwork, v: string | boolean) => setArtworkList((p) => p.map((w) => w.id === id ? { ...w, [f]: v } : w));
-  const addArtwork = () => { const newId = Math.max(0, ...artworkList.map((w) => w.id)) + 1; setArtworkList((p) => [...p, { id: newId, title: "새 작품", titleEn: "New Work", year: String(new Date().getFullYear()), medium: "재료", mediumEn: "Medium", size: "크기", image: "", category: "회화", categoryEn: "Painting", series: "", collected: false }]); setSelectedWorkId(newId); };
+  const addArtwork = () => { const newId = Math.max(0, ...artworkList.map((w) => w.id)) + 1; setArtworkList((p) => [{ id: newId, title: "새 작품", titleEn: "New Work", year: String(new Date().getFullYear()), medium: "재료", mediumEn: "Medium", size: "크기", image: "", category: "회화", categoryEn: "Painting", series: "", collected: false }, ...p]); setSelectedWorkId(newId); };
   const deleteWork = (id: number) => { if (!window.confirm("이 작품을 삭제하시겠습니까?")) return; setArtworkList((p) => p.filter((w) => w.id !== id)); if (selectedWorkId === id) setSelectedWorkId(null); };
-  const addSeries = () => { const newId = Math.max(0, ...seriesList.map((s) => s.id)) + 1; setSeriesList((p) => [...p, { id: newId, name: "새 시리즈", nameEn: "New Series" }]); setEditingSeriesId(newId); };
+  const addSeries = () => { const newId = Math.max(0, ...seriesList.map((s) => s.id)) + 1; setSeriesList((p) => [{ id: newId, name: "새 시리즈", nameEn: "New Series" }, ...p]); setEditingSeriesId(newId); };
   const updateSeries = (id: number, f: keyof Series, v: string) => setSeriesList((p) => p.map((s) => s.id === id ? { ...s, [f]: v } : s));
   const deleteSeries = (id: number) => { if (!window.confirm("이 시리즈를 삭제하시겠습니까?")) return; const s = seriesList.find((s) => s.id === id); setSeriesList((p) => p.filter((s) => s.id !== id)); if (selectedSeries === s?.name) setSelectedSeries("전체"); };
   const updateSlide = (id: number, f: keyof Slide, v: string) => setSlides((p) => p.map((s) => s.id === id ? { ...s, [f]: v } : s));
-  const addSlide = () => { const newId = Math.max(0, ...slides.map((s) => s.id)) + 1; setSlides((p) => [...p, { id: newId, heading: "새 작가노트", headingEn: "New Statement", body: "내용을 입력하세요.", bodyEn: "Enter content here." }]); setCurrentSlide(slides.length); };
+  const addSlide = () => { const newId = Math.max(0, ...slides.map((s) => s.id)) + 1; setSlides((p) => [{ id: newId, heading: "새 작가노트", headingEn: "New Statement", body: "내용을 입력하세요.", bodyEn: "Enter content here." }, ...p]); setCurrentSlide(0); };
   const deleteSlide = (id: number) => { if (!window.confirm("이 작가노트 슬라이드를 삭제하시겠습니까?")) return; setSlides((p) => p.filter((s) => s.id !== id)); setCurrentSlide((p) => Math.max(0, p - 1)); };
   const addExhibition = () => { const newId = Math.max(0, ...exhibitionList.map((e) => e.id)) + 1; setExhibitionList((p) => [{ id: newId, year: String(new Date().getFullYear()), title: "새 항목", titleEn: "New Item", venue: "장소", venueEn: "Venue", location: "서울", tag: "개인전" }, ...p]); setEditingExId(newId); };
   const updateEx = (id: number, f: keyof ExhibitionEntry, v: string | number | boolean | undefined) => setExhibitionList((p) => p.map((e) => e.id === id ? { ...e, [f]: v } : e));
   const deleteEx = (id: number) => { if (!window.confirm("이 항목을 삭제하시겠습니까?")) return; setExhibitionList((p) => p.filter((e) => e.id !== id)); if (editingExId === id) setEditingExId(null); };
-  const addCurrentEx = () => { const newId = Math.max(0, ...currentExList.map((e) => e.id)) + 1; setCurrentExList((p) => [...p, { id: newId, title: "새 전시", titleEn: "New Exhibition", venue: "장소", venueEn: "Venue", location: "서울", locationEn: "Seoul", startDate: "2025.01.01", endDate: "2025.02.01", status: "예정", tag: "개인전", visible: true }]); setEditingCurrentId(newId); };
+  const addCurrentEx = () => { const newId = Math.max(0, ...currentExList.map((e) => e.id)) + 1; setCurrentExList((p) => [{ id: newId, title: "새 전시", titleEn: "New Exhibition", venue: "장소", venueEn: "Venue", location: "서울", locationEn: "Seoul", startDate: "2025.01.01", endDate: "2025.02.01", status: "예정", tag: "개인전", visible: true }, ...p]); setEditingCurrentId(newId); };
   const toggleCurrentExVisible = (id: number) => setCurrentExList((p) => p.map((e) => e.id === id ? { ...e, visible: !e.visible } : e));
   const updateCurrentEx = (id: number, f: keyof CurrentExhibition, v: string | boolean) => setCurrentExList((p) => p.map((e) => e.id === id ? { ...e, [f]: v } : e));
   const deleteCurrentEx = (id: number) => { if (!window.confirm("이 전시를 삭제하시겠습니까?")) return; setCurrentExList((p) => p.filter((e) => e.id !== id)); if (editingCurrentId === id) setEditingCurrentId(null); };
-  const addActivityPhoto = () => { const newId = Math.max(0, ...activityPhotos.map((p) => p.id)) + 1; setActivityPhotos((p) => [...p, { id: newId, caption: "새 사진", captionEn: "New Photo" }]); };
+  const addActivityPhoto = () => { const newId = Math.max(0, ...activityPhotos.map((p) => p.id)) + 1; setActivityPhotos((p) => [{ id: newId, caption: "새 사진", captionEn: "New Photo" }, ...p]); };
   const deleteActivityPhoto = (id: number) => { if (!window.confirm("이 사진을 삭제하시겠습니까?")) return; setActivityPhotos((p) => p.filter((ph) => ph.id !== id)); };
   const updateActivityPhoto = (id: number, f: keyof ActivityPhoto, v: string) => setActivityPhotos((p) => p.map((ph) => ph.id === id ? { ...ph, [f]: v } : ph));
   // Swaps just the two underlying image URLs so no re-upload is needed — the
@@ -698,7 +711,7 @@ export default function App() {
     setActivityPhotos((p) => p.map((ph) => ph.id === photoId ? { ...ph, extraPhotoIds: (ph.extraPhotoIds ?? []).filter((id) => id !== subId) } : ph));
   };
   const reorderExtraPhotos = (photoId: number, newIds: number[]) => setActivityPhotos((p) => p.map((ph) => ph.id === photoId ? { ...ph, extraPhotoIds: newIds } : ph));
-  const addVideo = () => { const newId = Math.max(0, ...videoList.map((v) => v.id)) + 1; setVideoList((p) => [...p, { id: newId, youtubeUrl: "", title: "새 영상", titleEn: "New Video", description: "설명", descriptionEn: "Description" }]); setEditingVideoId(newId); };
+  const addVideo = () => { const newId = Math.max(0, ...videoList.map((v) => v.id)) + 1; setVideoList((p) => [{ id: newId, youtubeUrl: "", title: "새 영상", titleEn: "New Video", description: "설명", descriptionEn: "Description" }, ...p]); setEditingVideoId(newId); };
   const updateVideoField = (id: number, f: keyof VideoEntry, v: string) => setVideoList((p) => p.map((vid) => vid.id === id ? { ...vid, [f]: v } : vid));
   const deleteVideo = (id: number) => { if (!window.confirm("이 영상을 삭제하시겠습니까?")) return; setVideoList((p) => p.filter((v) => v.id !== id)); if (editingVideoId === id) setEditingVideoId(null); };
   const updateContact = (id: string, patch: Partial<ContactItem>) => setContactItems((p) => p.map((c) => c.id === id ? { ...c, ...patch } : c));
@@ -997,6 +1010,8 @@ export default function App() {
           setEditingCurrentId={setEditingCurrentId}
           showPastEx={showPastEx}
           setShowPastEx={setShowPastEx}
+          pastExDefaultExpanded={pastExDefaultExpanded}
+          onTogglePastExDefault={() => setPastExDefaultExpanded((v) => !v)}
           addCurrentEx={addCurrentEx}
           toggleCurrentExVisible={toggleCurrentExVisible}
           updateCurrentEx={updateCurrentEx}
@@ -1034,6 +1049,8 @@ export default function App() {
           addSeries={addSeries}
           updateSeries={updateSeries}
           deleteSeries={deleteSeries}
+          worksDefaultExpanded={worksDefaultExpanded}
+          onToggleWorksDefault={() => setWorksDefaultExpanded((v) => !v)}
         />
 
         <Suspense fallback={null}>

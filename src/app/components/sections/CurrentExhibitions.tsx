@@ -11,6 +11,8 @@ type CurrentExhibitionsProps = {
   setEditingCurrentId: (id: number | null) => void;
   showPastEx: boolean;
   setShowPastEx: React.Dispatch<React.SetStateAction<boolean>>;
+  pastExDefaultExpanded: boolean;
+  onTogglePastExDefault: () => void;
   addCurrentEx: () => void;
   toggleCurrentExVisible: (id: number) => void;
   updateCurrentEx: (id: number, f: keyof CurrentExhibition, v: string | boolean) => void;
@@ -19,6 +21,7 @@ type CurrentExhibitionsProps = {
 
 export function CurrentExhibitions({
   currentExList, setCurrentExList, editingCurrentId, setEditingCurrentId, showPastEx, setShowPastEx,
+  pastExDefaultExpanded, onTogglePastExDefault,
   addCurrentEx, toggleCurrentExVisible, updateCurrentEx, deleteCurrentEx,
 }: CurrentExhibitionsProps) {
   const { lang, u, MONO, SERIF, editMode, imgThumb, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, scrollTo, triggerUpload, C } = usePortfolioContext();
@@ -177,12 +180,20 @@ export function CurrentExhibitions({
         {/* past exhibitions */}
         {(pastList.length > 0 || editMode) && (
           <div className="px-4 sm:px-6 lg:px-12 mt-8">
-            <button onClick={() => setShowPastEx((p) => !p)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-0" style={MONO}>
-              <span className="w-4 h-px bg-muted-foreground/40" />
-              {showPastEx ? u.hidePastEx : u.showPastEx}
-              <span className="text-muted-foreground/40">({pastList.length})</span>
-              <ChevronRight size={12} className={`transition-transform duration-200 ${showPastEx ? "rotate-90" : ""}`} />
-            </button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <button onClick={() => setShowPastEx((p) => !p)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-0" style={MONO}>
+                <span className="w-4 h-px bg-muted-foreground/40" />
+                {showPastEx ? u.hidePastEx : u.showPastEx}
+                <span className="text-muted-foreground/40">({pastList.length})</span>
+                <ChevronRight size={12} className={`transition-transform duration-200 ${showPastEx ? "rotate-90" : ""}`} />
+              </button>
+              {editMode && (
+                <button onClick={onTogglePastExDefault} className={`flex items-center gap-1.5 text-xs border border-dashed px-2 py-1 transition-colors ${pastExDefaultExpanded ? "border-accent text-accent" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${pastExDefaultExpanded ? "bg-accent" : "bg-muted-foreground/40"}`} />
+                  {u.pastExDefaultLabel}: {pastExDefaultExpanded ? u.defaultExpanded : u.defaultCollapsed}
+                </button>
+              )}
+            </div>
             {showPastEx && (
               <div className="mt-4 border-t border-border/40">
                 {pastList.map((ex, pidx) => {
