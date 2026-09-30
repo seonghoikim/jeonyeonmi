@@ -456,10 +456,18 @@ const CURATOR_CALL_TIMEOUT_MS = 20_000;
 // ~1000 observed). A 1024 cap once truncated a visible answer mid-JSON; 4096 leaves room for
 // the largest thinking spikes plus the answer, while still bounding a worst-case call.
 const CURATOR_MAX_OUTPUT_TOKENS = 4096;
+// The docent answers from a short, fully-supplied reference, so extended reasoning adds
+// cost and latency, not quality. Measured through /curator/lab on questions that had
+// drawn 400-900 thinking tokens by default: "low" gave 0 thinking tokens, ~2.5s instead of
+// ~5.5s per answer, identical answer quality, 100% parseable. (thinkingLevel "minimal" is
+// rejected by these models.) If a future model rejects the setting, the call retries
+// without it — see callGeminiWithFallback.
+const CURATOR_THINKING_CONFIG = { thinkingLevel: "low" };
 
 type GeminiResult = { data: Record<string, any>; model: string; parsed: CuratorOutput };
 
 async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<GeminiResult | null> {
+  let thinkingConfigAccepted = true;
   for (const model of CURATOR_MODELS) {
     for (let attempt = 1; attempt <= CURATOR_ATTEMPTS_PER_MODEL; attempt++) {
       let res: Response;
@@ -471,7 +479,11 @@ async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<G
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { responseMimeType: "application/json", maxOutputTokens: CURATOR_MAX_OUTPUT_TOKENS },
+              generationConfig: {
+                responseMimeType: "application/json",
+                maxOutputTokens: CURATOR_MAX_OUTPUT_TOKENS,
+                ...(thinkingConfigAccepted ? { thinkingConfig: CURATOR_THINKING_CONFIG } : {}),
+              },
             }),
             // A hung upstream call would otherwise hold the instance until the platform kills it.
             signal: AbortSignal.timeout(CURATOR_CALL_TIMEOUT_MS),
@@ -490,7 +502,14 @@ async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<G
         console.error(`[curator] unusable Gemini output (model=${model}, attempt=${attempt}): finishReason=${candidate?.finishReason} usage=${JSON.stringify(data?.usageMetadata ?? {})}`);
         continue;
       }
-      console.error(`[curator] Gemini API error (model=${model}, attempt=${attempt}):`, res.status, await res.text().catch(() => ""));
+      const errorBody = await res.text().catch(() => "");
+      console.error(`[curator] Gemini API error (model=${model}, attempt=${attempt}):`, res.status, errorBody);
+      if (res.status === 400 && thinkingConfigAccepted && /thinking/i.test(errorBody)) {
+        // A newer model behind the "-latest" alias may not take this setting — drop it and redo this attempt.
+        thinkingConfigAccepted = false;
+        attempt--;
+        continue;
+      }
       if (!CURATOR_RETRYABLE_STATUS.has(res.status)) break; // not transient — move to the next model, not worth retrying this one
       if (attempt < CURATOR_ATTEMPTS_PER_MODEL) await new Promise((resolve) => setTimeout(resolve, attempt * 700));
     }
@@ -813,7 +832,7 @@ app.post(`${PREFIX}/curator/lab`, async (c) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: "application/json", maxOutputTokens: CURATOR_MAX_OUTPUT_TOKENS, ...override },
+      generationConfig: { responseMimeType: "application/json", maxOutputTokens: CURATOR_MAX_OUTPUT_TOKENS, thinkingConfig: CURATOR_THINKING_CONFIG, ...override },
     }),
     signal: AbortSignal.timeout(45_000),
   }).catch((err) => ({ ok: false, status: 0, text: async () => String(err) }) as unknown as Response);
