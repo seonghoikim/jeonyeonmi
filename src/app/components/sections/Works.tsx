@@ -321,7 +321,7 @@ export function Works({
                               <input value={String(selectedWork[field])} onChange={(e) => updateWork(selectedWork.id, field, e.target.value)} placeholder="KO" className="flex-1 bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground font-light outline-none" />
                               <input value={field === "medium" ? selectedWork.mediumEn : (selectedWork.categoryEn || "")} onChange={(e) => updateWork(selectedWork.id, field === "medium" ? "mediumEn" : "categoryEn", e.target.value)} placeholder="EN" className="flex-1 bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground font-light outline-none" />
                             </div>
-                          : <input value={String(selectedWork[field])} onChange={(e) => updateWork(selectedWork.id, field, e.target.value)} className="flex-1 bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground font-light outline-none" />
+                          : <input value={String(selectedWork[field])} onChange={(e) => updateWork(selectedWork.id, field, e.target.value)} placeholder={field === "size" ? "세로 x 가로 cm" : undefined} className="flex-1 bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground font-light outline-none" />
                       ) : <span className="text-sm text-foreground font-light">{displayVal()}</span>}
                     </div>
                   );})}

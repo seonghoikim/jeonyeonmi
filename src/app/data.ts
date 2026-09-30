@@ -7,6 +7,14 @@ export function moveItem<T>(arr: T[], from: number, to: number): T[] {
 
 // Moves an item one step within a *filtered* view (e.g. a tag/status filter),
 // translating back to the right positions in the full underlying list.
+// Artwork sizes are written "세로 x 가로" (height x width, the Korean/museum convention).
+// Flips every "A x B" pair in a size string — used once to convert older entries that
+// were typed as width x height. Handles "(81 x 117 cm x3ea)" style suffixes and a trailing
+// depth ("30 x 40 x 5 cm" → "40 x 30 x 5 cm").
+export function swapSizeOrder(size: string): string {
+  return size.replace(/(\d+(?:\.\d+)?)(\s*[x×X]\s*)(\d+(?:\.\d+)?)/g, "$3$2$1");
+}
+
 export function moveInFiltered<T extends { id: number | string }>(
   full: T[], filtered: T[], idx: number, dir: -1 | 1
 ): T[] {

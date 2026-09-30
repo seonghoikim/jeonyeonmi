@@ -2,7 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, laz
 import { loadPortfolio, savePortfolio, uploadImage, backfillThumbnail, loginEditor, translateTexts, unfurlPress, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
 import { Menu, X, Edit3, Check, Languages, Instagram } from "lucide-react";
 import {
-  MONO, serifOf, sansOf, hSize, GLOBAL_CSS, artworkSlug, artworkIdFromSlug,
+  MONO, serifOf, sansOf, hSize, GLOBAL_CSS, artworkSlug, artworkIdFromSlug, swapSizeOrder,
   initContent, UI, initCurrentEx, initSeries, initArtworks, initSlides, initExhibitions, initActivityPhotos, initVideos, initContacts, initPress,
   normalizeExhibitionEntry, normalizeCurrentExhibition,
   type Lang, type ContentKey, type CurrentExhibition, type Artwork, type Series, type Slide, type ExhibitionEntry, type ActivityPhoto, type VideoEntry, type ContactItem, type PressEntry,
@@ -233,6 +233,7 @@ export default function App() {
       if (row.settings?.curatorEnabled) setCuratorEnabled(row.settings.curatorEnabled === "true");
       if (row.settings?.pastExDefaultExpanded) setPastExDefaultExpanded(row.settings.pastExDefaultExpanded === "true");
       if (row.settings?.worksDefaultExpanded) setWorksDefaultExpanded(row.settings.worksDefaultExpanded === "true");
+      if (row.settings?.sizeOrderFixed) setSizeOrderFixed(row.settings.sizeOrderFixed === "true");
       if (row.image_urls && Object.keys(row.image_urls).length > 0) {
         setImageUrls(row.image_urls);
         const heroUrl = row.image_urls.hero;
@@ -274,6 +275,8 @@ export default function App() {
   // these just decide what they start at, synced below whenever they change.
   const [pastExDefaultExpanded, setPastExDefaultExpanded] = useState(true);
   const [worksDefaultExpanded, setWorksDefaultExpanded] = useState(false);
+  // One-time migration flag: sizes were originally typed 가로 x 세로; once flipped to 세로 x 가로 this stays true.
+  const [sizeOrderFixed, setSizeOrderFixed] = useState(false);
   useEffect(() => { setShowPastEx(pastExDefaultExpanded); }, [pastExDefaultExpanded]);
 
   const [artworkList, setArtworkList] = useState(initArtworks);
@@ -356,6 +359,7 @@ export default function App() {
     settings: {
       heroCaption, heroCaptionEn, heroRotate: heroRotateEnabled ? "true" : "false", curatorEnabled: curatorEnabled ? "true" : "false",
       pastExDefaultExpanded: pastExDefaultExpanded ? "true" : "false", worksDefaultExpanded: worksDefaultExpanded ? "true" : "false",
+      sizeOrderFixed: sizeOrderFixed ? "true" : "false",
     }, image_urls: imageUrls,
   };
 
@@ -378,6 +382,7 @@ export default function App() {
     if (row.settings?.curatorEnabled) setCuratorEnabled(row.settings.curatorEnabled === "true");
     if (row.settings?.pastExDefaultExpanded) setPastExDefaultExpanded(row.settings.pastExDefaultExpanded === "true");
     if (row.settings?.worksDefaultExpanded) setWorksDefaultExpanded(row.settings.worksDefaultExpanded === "true");
+    if (row.settings?.sizeOrderFixed) setSizeOrderFixed(row.settings.sizeOrderFixed === "true");
     if (row.image_urls && Object.keys(row.image_urls).length > 0) {
       setImageUrls(row.image_urls);
       const heroUrl = row.image_urls.hero;
@@ -439,7 +444,7 @@ export default function App() {
   }, [content, currentExList, artworkList, seriesList, slides, exhibitionList, activityPhotos, videoList, contactItems, pressList, heroCaption, heroCaptionEn, imageUrls, isLoading,
     // Settings toggles: without these, flipping one on its own (e.g. the docent kill switch)
     // never triggered a save — it only got persisted alongside the next unrelated edit.
-    heroRotateEnabled, curatorEnabled, pastExDefaultExpanded, worksDefaultExpanded]);
+    heroRotateEnabled, curatorEnabled, pastExDefaultExpanded, worksDefaultExpanded, sizeOrderFixed]);
 
   /* ── Realtime: keep other open tabs/devices in sync ── */
   // Only during an edit session: this exists so two editor tabs/devices don't overwrite
@@ -774,6 +779,14 @@ export default function App() {
   const updateWork = (id: number, f: keyof Artwork, v: string | boolean) => setArtworkList((p) => p.map((w) => w.id === id ? { ...w, [f]: v } : w));
   const addArtwork = () => { const newId = Math.max(0, ...artworkList.map((w) => w.id)) + 1; setArtworkList((p) => [{ id: newId, title: "새 작품", titleEn: "New Work", year: String(new Date().getFullYear()), medium: "재료", mediumEn: "Medium", size: "크기", image: "", category: "회화", categoryEn: "Painting", series: "", collected: false }, ...p]); setSelectedWorkId(newId); };
   const deleteWork = (id: number) => { if (!window.confirm("이 작품을 삭제하시겠습니까?")) return; setArtworkList((p) => p.filter((w) => w.id !== id)); if (selectedWorkId === id) setSelectedWorkId(null); };
+  const needsSizeFlip = editMode && !sizeOrderFixed && artworkList.some((w) => swapSizeOrder(w.size) !== w.size);
+  const flipSizeOrder = () => {
+    const sample = artworkList.find((w) => swapSizeOrder(w.size) !== w.size);
+    const example = sample ? `\n\n예) ${sample.size}  →  ${swapSizeOrder(sample.size)}` : "";
+    if (!window.confirm(`모든 작품 크기를 "가로 x 세로"에서 "세로 x 가로" 순서로 한 번에 바꿉니다. 지금 적힌 값이 모두 가로 x 세로일 때만 진행하세요.${example}`)) return;
+    setArtworkList((p) => p.map((w) => ({ ...w, size: swapSizeOrder(w.size) })));
+    setSizeOrderFixed(true);
+  };
   const addSeries = () => { const newId = Math.max(0, ...seriesList.map((s) => s.id)) + 1; setSeriesList((p) => [{ id: newId, name: "새 시리즈", nameEn: "New Series" }, ...p]); setEditingSeriesId(newId); };
   const updateSeries = (id: number, f: keyof Series, v: string) => setSeriesList((p) => p.map((s) => s.id === id ? { ...s, [f]: v } : s));
   const deleteSeries = (id: number) => { if (!window.confirm("이 시리즈를 삭제하시겠습니까?")) return; const s = seriesList.find((s) => s.id === id); setSeriesList((p) => p.filter((s) => s.id !== id)); if (selectedSeries === s?.name) setSelectedSeries("전체"); };
@@ -1026,6 +1039,9 @@ export default function App() {
         {editMode && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-accent text-accent-foreground px-5 py-2.5 shadow-lg" style={MONO}>
             <Edit3 size={13} /><span className="text-xs tracking-widest hidden sm:inline">{u.editBanner}</span>
+            {needsSizeFlip && (
+              <button onClick={flipSizeOrder} className="ml-2 sm:ml-4 flex items-center gap-1.5 text-xs bg-accent-foreground/15 hover:bg-accent-foreground/25 px-3 py-1 transition-colors" style={MONO}>크기 세로×가로로 바꾸기</button>
+            )}
             {(backfillTargets.length > 0 || backfillProgress) && (
               <button onClick={runThumbnailBackfill} disabled={!!backfillProgress} className="ml-2 sm:ml-4 flex items-center gap-1.5 text-xs bg-accent-foreground/15 hover:bg-accent-foreground/25 px-3 py-1 transition-colors disabled:opacity-60" style={MONO}>
                 {backfillProgress ? `${u.thumbBackfilling} ${backfillProgress.done}/${backfillProgress.total}` : `${isRegenerate ? u.thumbRegenerate : u.thumbBackfill} (${backfillTargets.length})`}
