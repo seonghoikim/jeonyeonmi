@@ -41,7 +41,7 @@ export function Lightbox({
               className="p-2 text-white/60 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
               <ZoomOut size={16} />
             </button>
-            <span className="text-xs text-white/50 w-12 text-center" style={MONO}>{Math.round(scale * 100)}%</span>
+            <span className="text-xs text-white/70 w-12 text-center" style={MONO}>{Math.round(scale * 100)}%</span>
             <button onClick={onZoomIn} disabled={scale >= 8} aria-label={u.zoomIn}
               className="p-2 text-white/60 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
               <ZoomIn size={16} />
@@ -49,7 +49,7 @@ export function Lightbox({
             <button onClick={onReset} className="p-2 text-white/60 hover:text-white hover:bg-white/10 transition-colors ml-1" title={u.lbReset} aria-label={u.lbReset}>
               <RotateCcw size={14} />
             </button>
-            <span className="text-xs text-white/30 ml-3 hidden sm:block" style={MONO}>{u.lbHint}</span>
+            <span className="text-xs text-white/60 ml-3 hidden sm:block" style={MONO}>{u.lbHint}</span>
           </>)}
         </div>
         <button onClick={onClose}
@@ -81,7 +81,7 @@ export function Lightbox({
       </div>
       {/* hint overlay on first open */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
-        <span className="text-xs text-white/20" style={MONO}>{Math.round(scale * 100)}% · double-tap to zoom</span>
+        <span className="text-xs text-white/60" style={MONO}>{Math.round(scale * 100)}% · {u.lbDoubleTap}</span>
       </div>
     </div>
   );

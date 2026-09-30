@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, Upload, Check, Edit3, MessageCircle } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import type { Artwork } from "../../data";
+import { pressableProps, prefersReducedMotion } from "../../a11y";
 
 type HeroProps = {
   heroAspectRatio: number | null;
@@ -63,7 +64,7 @@ export function Hero({
   // Drives the hold → fadeOut → (swap) → fadeIn → hold cycle. Each phase change
   // reschedules the next one, so this single effect re-fires as `phase` advances.
   useEffect(() => {
-    if (!rotateActive || heroRotateWorks.length < 2) return;
+    if (!rotateActive || heroRotateWorks.length < 2 || prefersReducedMotion()) return;
     const duration = phase === "hold" ? ROTATE_HOLD_MS : phase === "fadeOut" ? FADE_OUT_MS : FADE_IN_MS;
     const id = setTimeout(() => {
       if (phase === "hold") { setPhase("fadeOut"); return; }
@@ -141,6 +142,7 @@ export function Hero({
       </div>
       <div className={`hero-image relative min-h-[50svh] md:min-h-[100svh] bg-background overflow-hidden flex-1 order-1 md:order-2 ${clickable ? "cursor-pointer" : ""}`}
         style={{ transition: "flex 0.6s cubic-bezier(0.4,0,0.2,1)" }}
+        {...pressableProps(!editMode && rotateActive && !!currentWork, () => currentWork && onSelectWork(currentWork.id, "hero"), currentWork ? (lang === "ko" ? currentWork.title : (currentWork.titleEn || currentWork.title)) : undefined)}
         onClick={() => {
           if (editMode) { if (!editingCaption && !rotateActive) triggerUpload("hero", heroCaptionEn); return; }
           if (rotateActive && currentWork) onSelectWork(currentWork.id, "hero");

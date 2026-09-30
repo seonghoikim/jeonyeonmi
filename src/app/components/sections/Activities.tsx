@@ -4,6 +4,7 @@ import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, type ActivityPhoto } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
 import { useModalLock } from "../../useModalLock";
+import { pressableProps } from "../../a11y";
 
 type ActivitiesProps = {
   activityPhotos: ActivityPhoto[];
@@ -103,13 +104,14 @@ export function Activities({
                   )}
                   <div
                     className={`relative aspect-square overflow-hidden bg-background ${editMode ? "cursor-pointer" : extraCount > 0 || actImg ? "cursor-zoom-in" : ""}`}
+                    {...pressableProps(!editMode && (extraCount > 0 || !!actImg), () => { if (extraCount > 0) setGallery({ photoId: photo.id, index: 0 }); else if (actImg) openLightbox(actImg); }, lang === "ko" ? photo.caption : (photo.captionEn || photo.caption))}
                     onClick={() => {
                       if (editMode) { setManagingId(photo.id); return; }
                       if (extraCount > 0) { setGallery({ photoId: photo.id, index: 0 }); return; }
                       if (actImg) openLightbox(actImg);
                     }}>
                     {actThumb
-                      ? <img src={actThumb} alt={photo.caption} className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${isHighlighted ? "opacity-100" : "opacity-80"}`} loading="lazy" decoding="async" />
+                      ? <img src={actThumb} alt={lang === "ko" ? photo.caption : (photo.captionEn || photo.caption)} className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${isHighlighted ? "opacity-100" : "opacity-80"}`} loading="lazy" decoding="async" />
                       : <img src="/activity-placeholder-v2.svg" alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />}
                     {editMode && <div className="absolute inset-0 flex items-center justify-center bg-background/50 hover:bg-background/65 transition-colors"><div className="flex flex-col items-center gap-2 text-foreground"><Upload size={18} /><span className="text-xs text-center px-2" style={MONO}>{u.activityManage}</span></div></div>}
                     {editMode && <button onClick={(e) => { e.stopPropagation(); deleteActivityPhoto(photo.id); }} aria-label={u.worksDelete} className="absolute bottom-1.5 left-1.5 z-10 bg-background/80 hover:bg-background text-foreground p-1 transition-all"><Trash2 size={12} /></button>}
@@ -211,7 +213,7 @@ export function Activities({
           onTouchStart={handleGalleryTouchStart} onTouchEnd={handleGalleryTouchEnd}
           onKeyDown={(e) => { if (e.key === "ArrowLeft") goGallery(-1); if (e.key === "ArrowRight") goGallery(1); }}>
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 shrink-0">
-            <span className="text-xs text-white/50" style={MONO}>{gallery.index + 1} / {galleryKeys.length}</span>
+            <span className="text-xs text-white/70" style={MONO}>{gallery.index + 1} / {galleryKeys.length}</span>
             <button onClick={() => setGallery(null)} className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white px-3 py-1.5 border border-white/20 hover:border-white/40 transition-colors" style={MONO}>
               <X size={13} />{u.lbClose}
             </button>

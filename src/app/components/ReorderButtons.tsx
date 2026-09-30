@@ -21,7 +21,7 @@ export function ReorderButtons({ onMoveUp, onMoveDown, disableUp, disableDown, c
         disabled={disableUp}
         title="앞으로 이동"
         aria-label="앞으로 이동"
-        className="text-accent/70 hover:text-accent disabled:opacity-20 disabled:cursor-not-allowed p-0.5"
+        className="text-accent/70 hover:text-accent disabled:opacity-20 disabled:cursor-not-allowed p-1 [@media(pointer:coarse)]:p-2"
       >
         <ChevronUp size={13} />
       </button>
@@ -31,7 +31,7 @@ export function ReorderButtons({ onMoveUp, onMoveDown, disableUp, disableDown, c
         disabled={disableDown}
         title="뒤로 이동"
         aria-label="뒤로 이동"
-        className="text-accent/70 hover:text-accent disabled:opacity-20 disabled:cursor-not-allowed p-0.5"
+        className="text-accent/70 hover:text-accent disabled:opacity-20 disabled:cursor-not-allowed p-1 [@media(pointer:coarse)]:p-2"
       >
         <ChevronDown size={13} />
       </button>

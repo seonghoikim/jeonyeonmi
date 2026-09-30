@@ -9,6 +9,7 @@ import {
 } from "./data";
 import { useGoogleAnalytics } from "./useGoogleAnalytics";
 import { trackEvent } from "./analytics";
+import { prefersReducedMotion } from "./a11y";
 import { useSeoMeta } from "./useSeoMeta";
 import { useStructuredData } from "./useStructuredData";
 import { useModalLock } from "./useModalLock";
@@ -667,9 +668,9 @@ export default function App() {
     if (el) { el.scrollIntoView(opts); return; }
     if (tries > 0) requestAnimationFrame(() => scrollToId(id, opts, tries - 1));
   };
-  const scrollTo = (id: string) => { scrollToId(id, { behavior: "smooth" }); setMenuOpen(false); };
+  const scrollTo = (id: string) => { scrollToId(id, { behavior: prefersReducedMotion() ? "auto" : "smooth" }); setMenuOpen(false); };
   const scrollToActivity = (activityId: number) => {
-    scrollToId(`activity-photo-${activityId}`, { behavior: "smooth", block: "center" });
+    scrollToId(`activity-photo-${activityId}`, { behavior: prefersReducedMotion() ? "auto" : "smooth", block: "center" });
     setHighlightedPhotoId(activityId);
   };
 
@@ -1034,6 +1035,8 @@ export default function App() {
           </div>
         )}
 
+        <a href="#main-content" onClick={(e) => { e.preventDefault(); document.getElementById("main-content")?.focus(); document.getElementById("main-content")?.scrollIntoView(); }} className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-background focus:text-foreground focus:border focus:border-accent focus:px-3 focus:py-2 text-xs" style={MONO}>{lang === "ko" ? "본문으로 건너뛰기" : "Skip to content"}</a>
+
         {/* ── NAV ── */}
         <nav ref={navRef} className="nav-bar fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border"
           style={{ height: "var(--nav-height)" }}>
@@ -1071,7 +1074,7 @@ export default function App() {
                 </a>
               )}
               <button onClick={handleLangClick} aria-label={u.langSwitch} className={`text-xs tracking-widest border px-2.5 py-1.5 transition-all ${editMode ? "border-accent text-accent bg-accent/10" : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"}`} style={MONO}>{u.langLabel}</button>
-              <button className="lg:hidden text-foreground p-1" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? u.menuClose : u.menuOpen}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
+              <button className="lg:hidden text-foreground p-2 -mr-1" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label={menuOpen ? u.menuClose : u.menuOpen}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
             </div>
           </div>
           {menuOpen && (
@@ -1092,6 +1095,7 @@ export default function App() {
           </div>
         )}
 
+        <main id="main-content" tabIndex={-1} className="outline-none">
         <Hero
           heroAspectRatio={heroAspectRatio}
           heroCaption={heroCaption}
@@ -1236,6 +1240,10 @@ export default function App() {
           onDownloadPortfolio={() => { trackEvent("portfolio_download", { location: "contact" }); setShowPortfolioPrint(true); }}
         />
 
+        </Suspense>
+        </main>
+
+        <Suspense fallback={null}>
         <Footer />
         </Suspense>
 
