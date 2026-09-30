@@ -4,7 +4,7 @@ import { logger } from "npm:hono/logger";
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 import { createSessionToken, verifySessionToken, timingSafeEqual } from "./auth.tsx";
 import { isSafeHref, clientIp, sha256Hex, assertPublicHttpUrl } from "./safety.ts";
-import { buildSections, selectKnowledge, buildPrompt, getVisibleContacts, insufficientContactNote, type PortfolioRowForCurator } from "./curator-prompt.ts";
+import { buildSections, selectKnowledge, buildPrompt, getVisibleContacts, insufficientContactNote, parseCuratorOutput, type CuratorOutput, type PortfolioRowForCurator } from "./curator-prompt.ts";
 
 const app = new Hono();
 const PREFIX = "/make-server-9c6a1cce";
@@ -452,7 +452,14 @@ const CURATOR_RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const CURATOR_ATTEMPTS_PER_MODEL = 2;
 const CURATOR_CALL_TIMEOUT_MS = 20_000;
 
-async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<{ res: Response; model: string } | null> {
+// "Thinking" tokens count against maxOutputTokens, and they vary a lot per question (0 to
+// ~1000 observed). A 1024 cap once truncated a visible answer mid-JSON; 4096 leaves room for
+// the largest thinking spikes plus the answer, while still bounding a worst-case call.
+const CURATOR_MAX_OUTPUT_TOKENS = 4096;
+
+type GeminiResult = { data: Record<string, any>; model: string; parsed: CuratorOutput };
+
+async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<GeminiResult | null> {
   for (const model of CURATOR_MODELS) {
     for (let attempt = 1; attempt <= CURATOR_ATTEMPTS_PER_MODEL; attempt++) {
       let res: Response;
@@ -464,9 +471,7 @@ async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<{
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
-              // Answer (3-6 sentences) + 3 suggestions fits well inside this; the cap keeps
-              // a prompt-injected "write an essay" from turning into real token spend.
-              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 1024 },
+              generationConfig: { responseMimeType: "application/json", maxOutputTokens: CURATOR_MAX_OUTPUT_TOKENS },
             }),
             // A hung upstream call would otherwise hold the instance until the platform kills it.
             signal: AbortSignal.timeout(CURATOR_CALL_TIMEOUT_MS),
@@ -476,7 +481,15 @@ async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<{
         console.error(`[curator] Gemini fetch threw (model=${model}, attempt=${attempt}):`, err);
         continue;
       }
-      if (res.ok) return { res, model };
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        const candidate = data?.candidates?.[0];
+        const parsed = candidate?.finishReason === "MAX_TOKENS" ? null : parseCuratorOutput(candidate?.content?.parts?.[0]?.text ?? "");
+        if (data && parsed) return { data, model, parsed };
+        // Truncated or unusable output: never pass it on — try again (then the next model).
+        console.error(`[curator] unusable Gemini output (model=${model}, attempt=${attempt}): finishReason=${candidate?.finishReason} usage=${JSON.stringify(data?.usageMetadata ?? {})}`);
+        continue;
+      }
       console.error(`[curator] Gemini API error (model=${model}, attempt=${attempt}):`, res.status, await res.text().catch(() => ""));
       if (!CURATOR_RETRYABLE_STATUS.has(res.status)) break; // not transient — move to the next model, not worth retrying this one
       if (attempt < CURATOR_ATTEMPTS_PER_MODEL) await new Promise((resolve) => setTimeout(resolve, attempt * 700));
@@ -642,25 +655,10 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
     if (!gemini) {
       return c.json({ error: "답변을 만드는 중 문제가 생겼어요" }, 502);
     }
-    const data = await gemini.res.json();
+    const { answer, sufficient, suggestions } = gemini.parsed;
     // Thinking tokens are billed like output, so they're logged separately — that is
     // what makes real per-question spend visible instead of guessed.
-    const usage = data?.usageMetadata ?? {};
-    const textOut: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    let answer = "";
-    let sufficient = true;
-    let suggestions: string[] = [];
-    try {
-      const parsed = JSON.parse(textOut);
-      answer = typeof parsed?.answer === "string" ? parsed.answer : "";
-      sufficient = parsed?.sufficient !== false;
-      suggestions = Array.isArray(parsed?.suggestions)
-        ? parsed.suggestions.filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0).slice(0, 3)
-        : [];
-    } catch {
-      answer = textOut;
-    }
-    if (!answer) return c.json({ error: "답변을 만드는 중 문제가 생겼어요" }, 502);
+    const usage = gemini.data?.usageMetadata ?? {};
 
     // The "please contact us" line is appended here, in code, only when Gemini
     // itself flagged the reference material as insufficient — not left to the
@@ -781,6 +779,55 @@ app.get(`${PREFIX}/curator/usage`, async (c) => {
     },
     spend,
     limits: { perIpPerWindow: CURATOR_MAX_PER_WINDOW, perIpPerDay: CURATOR_MAX_PER_IP_PER_DAY, windowMinutes: CURATOR_WINDOW_MS / 60000, perDay: CURATOR_DAY_MAX },
+  });
+});
+
+/* ── curator lab: report-key-only test bench for the docent's model settings ──
+   Runs the production prompt (built from the live portfolio row) through one Gemini call
+   with an optional model / generationConfig override and returns the raw usage numbers
+   (thinking tokens, cache hits, finishReason) — so cost and quality experiments don't
+   need a redeploy per idea. Not rate limited, but only the report key opens it. */
+app.post(`${PREFIX}/curator/lab`, async (c) => {
+  const expected = Deno.env.get("CURATOR_REPORT_KEY");
+  if (!expected) return c.json({ error: "리포트 키가 설정되지 않았습니다" }, 503);
+  if (!timingSafeEqual(c.req.header("X-Report-Key") ?? "", expected)) return c.json({ error: "인증이 필요합니다" }, 401);
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) return c.json({ error: "GEMINI_API_KEY 없음" }, 500);
+
+  const body = await c.req.json().catch(() => null);
+  const question = typeof body?.question === "string" && body.question.trim() ? body.question.trim().slice(0, 500) : "작가는 어떤 작업을 하나요?";
+  const lang: "ko" | "en" = body?.lang === "en" ? "en" : "ko";
+  const model = typeof body?.model === "string" && /^[a-z0-9.-]{3,60}$/.test(body.model) ? body.model : CURATOR_MODELS[0];
+  const override = body?.generationConfig && typeof body.generationConfig === "object" ? body.generationConfig : {};
+
+  const { data: row } = await supabaseAdmin
+    .from("portfolio_state")
+    .select("content,slides,artworks,current_exhibitions,exhibitions,press,contacts,settings")
+    .eq("id", 1).maybeSingle();
+  const sections = buildSections((row ?? {}) as PortfolioRowForCurator, lang);
+  const prompt = buildPrompt(question, selectKnowledge(question, sections), "", lang);
+
+  const started = Date.now();
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json", maxOutputTokens: CURATOR_MAX_OUTPUT_TOKENS, ...override },
+    }),
+    signal: AbortSignal.timeout(45_000),
+  }).catch((err) => ({ ok: false, status: 0, text: async () => String(err) }) as unknown as Response);
+  const elapsedMs = Date.now() - started;
+  if (!res.ok) return c.json({ model, status: res.status, elapsedMs, error: (await res.text()).slice(0, 800) });
+  const data = await res.json();
+  const candidate = data?.candidates?.[0];
+  const text: string = candidate?.content?.parts?.[0]?.text ?? "";
+  return c.json({
+    model, status: 200, elapsedMs, promptChars: prompt.length,
+    finishReason: candidate?.finishReason ?? null,
+    usage: data?.usageMetadata ?? null,
+    parsed: parseCuratorOutput(text),
+    rawTextHead: text.slice(0, 200),
   });
 });
 
