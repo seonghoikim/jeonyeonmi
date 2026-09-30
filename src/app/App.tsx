@@ -337,6 +337,10 @@ export default function App() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Set whenever remote state is applied; the autosave effect ignores changes that land
+  // right after, since they mirror the server rather than an edit made here.
+  const remoteAppliedAtRef = useRef(0);
+
   /* ── DB: keep latest save data in ref (no stale closures) ── */
   // Runs on every render so saveDataRef always has current values
   // when the debounce timer fires, regardless of when it was set.
@@ -352,6 +356,7 @@ export default function App() {
 
   /* ── DB: apply a row fetched remotely (initial 409-conflict reload or Realtime push) ── */
   const applyRemoteRow = useCallback((row: Partial<PortfolioRow>) => {
+    remoteAppliedAtRef.current = Date.now();
     if (row.content && Object.keys(row.content).length > 0) setContent((p) => ({ ...p, ...row.content }));
     if ((row.current_exhibitions as CurrentExhibition[])?.length) setCurrentExList(row.current_exhibitions as CurrentExhibition[]);
     if ((row.artworks as Artwork[])?.length) setArtworkList(row.artworks as Artwork[]);
@@ -417,6 +422,7 @@ export default function App() {
   /* ── DB: debounced auto-save (4 s after last change) — only while an editor session is active ── */
   useEffect(() => {
     if (isLoading || loadFailedRef.current || !editTokenRef.current) return;
+    if (Date.now() - remoteAppliedAtRef.current < 500) return;
     hasPendingChangesRef.current = true;
     setSaveDirty(true);
     clearTimeout(saveTimerRef.current);
@@ -425,11 +431,17 @@ export default function App() {
     }, 4000);
     return () => clearTimeout(saveTimerRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content, currentExList, artworkList, seriesList, slides, exhibitionList, activityPhotos, videoList, contactItems, pressList, heroCaption, heroCaptionEn, imageUrls, isLoading]);
+  }, [content, currentExList, artworkList, seriesList, slides, exhibitionList, activityPhotos, videoList, contactItems, pressList, heroCaption, heroCaptionEn, imageUrls, isLoading,
+    // Settings toggles: without these, flipping one on its own (e.g. the docent kill switch)
+    // never triggered a save — it only got persisted alongside the next unrelated edit.
+    heroRotateEnabled, curatorEnabled, pastExDefaultExpanded, worksDefaultExpanded]);
 
   /* ── Realtime: keep other open tabs/devices in sync ── */
+  // Only during an edit session: this exists so two editor tabs/devices don't overwrite
+  // each other. Every visitor holding a live channel meant each autosave pushed the
+  // whole row to all of them; visitors just get fresh content on their next load.
   useEffect(() => {
-    if (!isSupabaseReady) return;
+    if (!isSupabaseReady || !editMode) return;
     const unsubscribe = subscribePortfolio((row) => {
       if (isSavingRef.current) return; // don't clobber a save in flight
       if (hasPendingChangesRef.current) return; // don't clobber an edit that hasn't been auto-saved yet (e.g. mid-typing in another tab's shadow)
@@ -437,7 +449,7 @@ export default function App() {
       applyRemoteRow(row);
     });
     return unsubscribe;
-  }, [applyRemoteRow]);
+  }, [applyRemoteRow, editMode]);
 
   /* ── Leaving edit mode fully ends the editor session: drop the token so no
      further save can fire from this tab, and require the password again to resume.

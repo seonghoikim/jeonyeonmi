@@ -60,7 +60,19 @@ export type PortfolioPdfData = {
   contacts: { label: string; value: string; url: string | null }[];
 };
 
-async function fetchFontBase64(url: string): Promise<string> {
+// The two Korean-capable fonts are ~2.4 MB each; base64-encoding them is the slow part of
+// an export, so do it once per page load and reuse it for any later export.
+const fontBase64Cache = new Map<string, Promise<string>>();
+function fetchFontBase64(url: string): Promise<string> {
+  let cached = fontBase64Cache.get(url);
+  if (!cached) {
+    cached = loadFontBase64(url).catch((err) => { fontBase64Cache.delete(url); throw err; });
+    fontBase64Cache.set(url, cached);
+  }
+  return cached;
+}
+
+async function loadFontBase64(url: string): Promise<string> {
   const buf = await fetch(url).then((r) => r.arrayBuffer());
   const bytes = new Uint8Array(buf);
   let binary = "";

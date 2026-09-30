@@ -251,7 +251,7 @@ export function Works({
                 <div className="flex justify-between items-baseline gap-2">
                   <h3 className="text-xs sm:text-sm font-light text-foreground line-clamp-1 flex-1 flex items-center gap-1.5" style={SERIF}>
                     {lang === "ko" ? work.title : (work.titleEn || work.title)}
-                    {(work.description || work.descriptionEn) && <AlignLeft size={11} className="text-accent/85 shrink-0" title={u.fieldDescription} />}
+                    {(work.description || work.descriptionEn) && <span title={u.fieldDescription} className="shrink-0 inline-flex"><AlignLeft size={11} className="text-accent/85" aria-label={u.fieldDescription} /></span>}
                   </h3>
                   <span className="text-xs text-accent shrink-0" style={MONO}>{work.year}</span>
                 </div>
