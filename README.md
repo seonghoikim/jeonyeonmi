@@ -30,7 +30,9 @@ npm run build        # 프로덕션 빌드 (dist/)
 ## 배포 — 두 갈래이고, 서버 쪽은 자동이 아닙니다
 
 1. **프런트엔드 + `api/` (Vercel)**: `main`에 머지되면 자동 배포됩니다.
-2. **Edge Function (Supabase)**: 자동 배포되지 **않습니다.** `supabase/functions/` 아래를 바꿨다면 머지 후 직접:
+2. **Edge Function (Supabase)**: `supabase/functions/` 아래가 `main`에 머지되면 GitHub Actions(`deploy-edge-function.yml`)가 자동 배포하고 헬스 체크까지 합니다.
+   단, 저장소 시크릿 `SUPABASE_ACCESS_TOKEN`(Supabase 대시보드 → Account → Access Tokens에서 발급)이 있어야 하고, 없으면 경고만 남기고 배포는 건너뜁니다.
+   Actions 탭에서 "Deploy Edge Function"을 수동 실행할 수도 있습니다. 토큰 없이 손으로 배포하려면:
 
    ```
    git pull
