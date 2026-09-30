@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildPrompt, buildSections, getVisibleContacts, insufficientContactNote, personaPrelude, selectKnowledge,
+  buildPrompt, buildSections, getVisibleContacts, insufficientContactNote, parseCuratorOutput, personaPrelude, selectKnowledge,
   type PortfolioRowForCurator,
 } from "../supabase/functions/server/curator-prompt";
 
@@ -111,5 +111,31 @@ describe("insufficientContactNote", () => {
   });
   it("returns nothing when there is no channel to point to", () => {
     expect(insufficientContactNote([], "ko")).toBe("");
+  });
+});
+
+describe("parseCuratorOutput", () => {
+  it("parses a complete reply, capping suggestions at three and dropping blanks", () => {
+    const out = parseCuratorOutput(JSON.stringify({ answer: " 답변입니다 ", sufficient: true, suggestions: ["a", "", "b", "c", "d"] }));
+    expect(out).toEqual({ answer: "답변입니다", sufficient: true, suggestions: ["a", "b", "c"] });
+  });
+  it("only an explicit false marks the answer insufficient", () => {
+    expect(parseCuratorOutput('{"answer":"x","sufficient":false}')?.sufficient).toBe(false);
+    expect(parseCuratorOutput('{"answer":"x"}')?.sufficient).toBe(true);
+  });
+  it("returns null for JSON truncated mid-string — the raw text must never reach a visitor", () => {
+    expect(parseCuratorOutput('{\n  "answer": "전연미 작가에게 한지를 태우는 행위는 무언가를 없애는')).toBeNull();
+    expect(parseCuratorOutput('{"answer":"완성된 문장","suggestions":["절반만')).toBeNull();
+  });
+  it("returns null for empty, blank-answer, or answerless JSON", () => {
+    expect(parseCuratorOutput("")).toBeNull();
+    expect(parseCuratorOutput('{"answer":"  "}')).toBeNull();
+    expect(parseCuratorOutput('{"suggestions":["a"]}')).toBeNull();
+  });
+  it("unwraps a fenced json block", () => {
+    expect(parseCuratorOutput('```json\n{"answer":"펜스 안"}\n```')?.answer).toBe("펜스 안");
+  });
+  it("uses plain prose as the answer when there is no JSON at all", () => {
+    expect(parseCuratorOutput("그냥 문장입니다.")).toEqual({ answer: "그냥 문장입니다.", sufficient: true, suggestions: [] });
   });
 });

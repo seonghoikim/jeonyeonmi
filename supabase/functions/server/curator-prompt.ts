@@ -186,3 +186,32 @@ export function insufficientContactNote(contacts: CuratorContact[], lang: "ko" |
     ? `\n\n(자료만으로는 정확히 답변드리기 어려운 부분이 있어요. 더 자세하거나 개인적인 문의는 ${where}로 직접 연락해주시면 좋을 것 같아요.)`
     : `\n\n(I can't give a fully precise answer from what I have on hand. For anything more specific, feel free to reach out via ${where}.)`;
 }
+
+export type CuratorOutput = { answer: string; sufficient: boolean; suggestions: string[] };
+
+/* Parses the model's reply. Returns null for anything that isn't a complete, usable
+   answer — most importantly JSON cut off mid-way (finishReason MAX_TOKENS, e.g. when
+   "thinking" tokens ate the output budget). The caller must retry or fail on null;
+   showing the raw text would put half a JSON blob in front of a visitor. */
+export function parseCuratorOutput(text: string): CuratorOutput | null {
+  const t = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  if (!t) return null;
+  if (t.startsWith("{") || t.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(t);
+      const answer = typeof parsed?.answer === "string" ? parsed.answer.trim() : "";
+      if (!answer) return null;
+      return {
+        answer,
+        sufficient: parsed?.sufficient !== false,
+        suggestions: Array.isArray(parsed?.suggestions)
+          ? parsed.suggestions.filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0).slice(0, 3)
+          : [],
+      };
+    } catch {
+      return null;
+    }
+  }
+  // Prose with no JSON at all: use it as the answer, with no suggestions.
+  return { answer: t, sufficient: true, suggestions: [] };
+}
