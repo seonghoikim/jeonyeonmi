@@ -546,19 +546,24 @@ type CuratorLogRow = {
   lang: string; question: string; answer: string; sufficient: boolean;
   session_id: string | null; page: string | null; work_id: number | null; model: string;
   prompt_tokens: number | null; output_tokens: number | null; thought_tokens: number | null;
+  cached_tokens: number | null;
 };
 // The extra columns come from supabase/curator_analytics.sql; until that has been run, fall
 // back to the four original columns instead of losing the log row.
 async function insertCuratorLog(row: CuratorLogRow) {
-  const { error } = await supabaseAdmin.from("curator_logs").insert(row);
-  if (!error) return;
-  if (/column|schema cache/i.test(error.message)) {
-    const { lang, question, answer, sufficient } = row;
-    const retry = await supabaseAdmin.from("curator_logs").insert({ lang, question, answer, sufficient });
-    if (retry.error) console.error("[curator] log insert error:", retry.error.message);
-    return;
+  // Newest column set first, then progressively fewer, so a column that hasn't been
+  // added yet only costs that column — not every extra field.
+  const { cached_tokens: _cached, ...withoutCached } = row;
+  const { lang, question, answer, sufficient } = row;
+  const attempts: Record<string, unknown>[] = [row, withoutCached, { lang, question, answer, sufficient }];
+  for (const [i, attempt] of attempts.entries()) {
+    const { error } = await supabaseAdmin.from("curator_logs").insert(attempt);
+    if (!error) return;
+    if (!/column|schema cache/i.test(error.message) || i === attempts.length - 1) {
+      console.error("[curator] log insert error:", error.message);
+      return;
+    }
   }
-  console.error("[curator] log insert error:", error.message);
 }
 
 const CURATOR_LOG_RETENTION_DAYS = 90;
@@ -670,6 +675,8 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
       prompt_tokens: Number.isInteger(usage.promptTokenCount) ? usage.promptTokenCount : null,
       output_tokens: Number.isInteger(usage.candidatesTokenCount) ? usage.candidatesTokenCount : null,
       thought_tokens: Number.isInteger(usage.thoughtsTokenCount) ? usage.thoughtsTokenCount : null,
+      // Part of promptTokenCount that was served from Gemini's (implicit) cache, billed at ~10%.
+      cached_tokens: Number.isInteger(usage.cachedContentTokenCount) ? usage.cachedContentTokenCount : null,
     });
 
     return c.json({ answer: finalAnswer, suggestions });
@@ -693,7 +700,8 @@ app.get(`${PREFIX}/curator/report`, async (c) => {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
   const query = (cols: string) => supabaseAdmin
     .from("curator_logs").select(cols).gte("created_at", since).order("created_at", { ascending: false }).limit(2000);
-  let { data, error } = await query("id,created_at,lang,question,answer,sufficient,session_id,page,work_id,model,prompt_tokens,output_tokens,thought_tokens");
+  let { data, error } = await query("id,created_at,lang,question,answer,sufficient,session_id,page,work_id,model,prompt_tokens,output_tokens,thought_tokens,cached_tokens");
+  if (error) ({ data, error } = await query("id,created_at,lang,question,answer,sufficient,session_id,page,work_id,model,prompt_tokens,output_tokens,thought_tokens"));
   if (error) ({ data, error } = await query("id,created_at,lang,question,answer,sufficient")); // analytics columns not added yet
   if (error) return c.json({ error: "로그를 읽지 못했습니다" }, 500);
   return c.json({ days, count: data?.length ?? 0, rows: data ?? [] });
@@ -710,19 +718,21 @@ async function estimateCuratorSpend() {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabaseAdmin
     .from("curator_logs")
-    .select("created_at,model,prompt_tokens,output_tokens,thought_tokens")
+    .select("created_at,model,prompt_tokens,output_tokens,thought_tokens,cached_tokens")
     .gte("created_at", since)
     .limit(5000);
   if (error) return { available: false as const, note: "run supabase/curator_analytics.sql to record token usage" };
   const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
-  const acc = { last24h: { answers: 0, usd: 0 }, last7d: { answers: 0, usd: 0 }, promptTokens7d: 0, outputTokens7d: 0, thoughtTokens7d: 0, answersWithoutTokenData: 0 };
+  const acc = { last24h: { answers: 0, usd: 0 }, last7d: { answers: 0, usd: 0 }, promptTokens7d: 0, outputTokens7d: 0, thoughtTokens7d: 0, cachedTokens7d: 0, answersWithoutTokenData: 0 };
   for (const r of data ?? []) {
     if (r.prompt_tokens == null) { acc.answersWithoutTokenData++; continue; }
     const price = CURATOR_PRICES[r.model as string] ?? CURATOR_PRICES["gemini-flash-latest"];
-    const usd = (r.prompt_tokens * price.in + ((r.output_tokens ?? 0) + (r.thought_tokens ?? 0)) * price.out) / 1e6;
+    const cached = Math.min(r.cached_tokens ?? 0, r.prompt_tokens);
+    // Cached input is billed at 10% of the normal input rate.
+    const usd = ((r.prompt_tokens - cached) * price.in + cached * price.in * 0.1 + ((r.output_tokens ?? 0) + (r.thought_tokens ?? 0)) * price.out) / 1e6;
     acc.last7d.answers++; acc.last7d.usd += usd;
     if (new Date(r.created_at).getTime() >= dayAgo) { acc.last24h.answers++; acc.last24h.usd += usd; }
-    acc.promptTokens7d += r.prompt_tokens; acc.outputTokens7d += r.output_tokens ?? 0; acc.thoughtTokens7d += r.thought_tokens ?? 0;
+    acc.cachedTokens7d += cached; acc.promptTokens7d += r.prompt_tokens; acc.outputTokens7d += r.output_tokens ?? 0; acc.thoughtTokens7d += r.thought_tokens ?? 0;
   }
   const avg = (t: number, n: number) => (n ? Math.round(t / n) : null);
   return {
@@ -733,6 +743,8 @@ async function estimateCuratorSpend() {
     avgPromptTokens: avg(acc.promptTokens7d, acc.last7d.answers),
     avgOutputTokens: avg(acc.outputTokens7d, acc.last7d.answers),
     avgThoughtTokens: avg(acc.thoughtTokens7d, acc.last7d.answers),
+    cacheHitShareOfPrompt: acc.promptTokens7d ? Number((acc.cachedTokens7d / acc.promptTokens7d).toFixed(3)) : null,
+    avgCostPerAnswerUsd: acc.last7d.answers ? Number((acc.last7d.usd / acc.last7d.answers).toFixed(5)) : null,
   };
 }
 

@@ -10,4 +10,5 @@ alter table public.curator_logs
   add column if not exists model          text,      -- which Gemini model actually answered
   add column if not exists prompt_tokens  integer,
   add column if not exists output_tokens  integer,
-  add column if not exists thought_tokens integer;   -- "thinking" tokens, billed like output
+  add column if not exists thought_tokens integer,   -- "thinking" tokens, billed like output
+  add column if not exists cached_tokens  integer;   -- part of prompt_tokens served from Gemini's cache (~90% cheaper)
