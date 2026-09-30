@@ -425,7 +425,7 @@ const CURATOR_WINDOW_MS = 10 * 60 * 1000;
 const CURATOR_MAX_PER_WINDOW = 12;
 let curatorDayCount = 0;
 let curatorDayStart = Date.now();
-const CURATOR_DAY_MAX = 500;
+const CURATOR_DAY_MAX = 200;
 
 /* Visitors are actively waiting on this one (unlike the editor-only translate
    batch job), and Gemini's shared "-latest" pool turned out to 503 ("high

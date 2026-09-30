@@ -58,7 +58,7 @@ npm run build        # 프로덕션 빌드 (dist/)
 ## 도슨트 운영 메모
 
 - 질문·답변은 `curator_logs`에 쌓이고 90일 지나면 정리됩니다. 공개 키로는 읽을 수 없습니다.
-- 요청 제한(방문자별 10분 12회·하루 40회, 전체 하루 500회)은 Postgres(`curator_usage`, `curator_hit()`)에 저장됩니다. 현재 사용량은 `GET /curator/usage` (리포트 키 필요).
+- 요청 제한(방문자별 10분 12회·하루 40회, 전체 하루 200회)은 Postgres(`curator_usage`, `curator_hit()`)에 저장됩니다. 현재 사용량은 `GET /curator/usage` (리포트 키 필요).
 - 모델 목록은 `index.tsx`의 `CURATOR_MODELS`. Google이 모델 이름을 종종 폐기하므로 404가 나면 가장 먼저 여기를 확인하세요.
 - 답변 길이 상한(`CURATOR_MAX_OUTPUT_TOKENS`)은 모델의 "생각" 토큰까지 포함합니다. 너무 낮으면 답변이 중간에 잘리니(1024일 때 실제로 발생) 낮추지 마세요. 잘린 응답은 서버가 걸러서 재시도합니다.
 - `POST /curator/lab` (리포트 키 필요): 실제 프롬프트로 모델·`generationConfig`를 바꿔 한 번 호출해 토큰·캐시·finishReason을 확인하는 실험용 경로.
