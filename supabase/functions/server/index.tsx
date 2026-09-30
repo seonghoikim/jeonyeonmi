@@ -502,14 +502,18 @@ async function checkCuratorLimits(rawIp: string): Promise<{ body: { error: strin
   const ipHash = (await sha256Hex(`${Deno.env.get("SESSION_SECRET") ?? ""}:${rawIp}`)).slice(0, 24);
   const dayBucket = `day:${new Date(now).toISOString().slice(0, 10)}`;
   const ipBucket = `ip:${ipHash}:${Math.floor(now / CURATOR_WINDOW_MS)}`;
-  const [dayHits, ipHits] = await Promise.all([bumpCuratorBucket(dayBucket), bumpCuratorBucket(ipBucket)]);
+  // Per-visitor first, and only count toward the daily total once that passes —
+  // otherwise one visitor hammering past their own limit would burn the shared
+  // daily budget with requests that were all rejected anyway.
+  const ipHits = await bumpCuratorBucket(ipBucket);
+  const dayHits = ipHits !== null && ipHits <= CURATOR_MAX_PER_WINDOW ? await bumpCuratorBucket(dayBucket) : 0;
 
   const dayLimited = { error: "오늘 사용량이 많아 잠시 후 다시 시도해주세요.", code: "day_limit" };
   const ipLimited = { error: "잠시 요청이 많았어요. 몇 분 후 다시 시도해주세요.", code: "rate_limited" };
 
   if (dayHits !== null && ipHits !== null) {
-    if (dayHits > CURATOR_DAY_MAX) return { body: dayLimited };
     if (ipHits > CURATOR_MAX_PER_WINDOW) return { body: ipLimited };
+    if (dayHits > CURATOR_DAY_MAX) return { body: dayLimited };
     return null;
   }
 
@@ -539,10 +543,6 @@ function maybeCleanupCuratorData() {
 }
 
 app.post(`${PREFIX}/curator/ask`, async (c) => {
-  const limited = await checkCuratorLimits(clientIp(c.req.raw.headers));
-  if (limited) return c.json(limited.body, 429);
-  maybeCleanupCuratorData();
-
   const body = await c.req.json().catch(() => null);
   const question = typeof body?.question === "string" ? body.question.trim() : "";
   const lang: "ko" | "en" = body?.lang === "en" ? "en" : "ko";
@@ -554,9 +554,15 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
       return !!turn && (turn.role === "user" || turn.role === "guide") && typeof turn.text === "string";
     })
     .slice(-6);
+  // Malformed requests are rejected before touching the counters, so they can't
+  // be used to drain the daily budget.
   if (!question || question.length > 500) {
     return c.json({ error: "잘못된 요청" }, 400);
   }
+
+  const limited = await checkCuratorLimits(clientIp(c.req.raw.headers));
+  if (limited) return c.json(limited.body, 429);
+  maybeCleanupCuratorData();
 
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) {
