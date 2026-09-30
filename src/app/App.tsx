@@ -59,10 +59,14 @@ function parseWorkIdFromPath(pathname: string): number | null {
 
 export default function App() {
   // /en is a real, crawlable, bookmarkable/shareable URL for the English version (with its
-  // own hreflang entry) — it always wins over locale/timezone guessing. Anywhere else, keep
-  // guessing from the visitor's timezone as before.
+  // own hreflang entry) — it always wins over locale/timezone guessing. /works/:slug is the
+  // Korean artwork URL (its English twin is /en/works/:slug), so it is Korean by definition:
+  // guessing from the timezone there flipped a shared Korean link to English for anyone
+  // outside Seoul — crawlers included — and rewrote the address to /en/works/....
+  // Only the bare home path is still a guess from the visitor's timezone.
   const [lang, setLang] = useState<Lang>(() => {
     if (typeof window !== "undefined" && window.location.pathname.startsWith("/en")) return "en";
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/works/")) return "ko";
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone === "Asia/Seoul" ? "ko" : "en";
     } catch {
