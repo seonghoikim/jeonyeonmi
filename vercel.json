@@ -2,19 +2,46 @@
   "redirects": [
     {
       "source": "/(.*)",
-      "has": [{ "type": "host", "value": "jeonyeonmi.vercel.app" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "jeonyeonmi.vercel.app"
+        }
+      ],
       "destination": "https://jeonyeonmi.com/$1",
       "permanent": true
     }
   ],
   "functions": {
-    "api/seo.js": { "includeFiles": "dist/{index.html,en/index.html}" }
+    "api/seo.js": {
+      "includeFiles": "dist/{index.html,en/index.html}"
+    }
   },
   "rewrites": [
-    { "source": "/sitemap.xml", "destination": "/api/seo?type=sitemap" },
-    { "source": "/en", "destination": "/en/index.html" },
-    { "source": "/en/works/:slug", "destination": "/api/seo?lang=en&slug=:slug" },
-    { "source": "/en/(.*)", "destination": "/en/index.html" },
-    { "source": "/works/:slug", "destination": "/api/seo?lang=ko&slug=:slug" }
-  ]
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/seo?type=sitemap"
+    },
+    {
+      "source": "/en",
+      "destination": "/en/index.html"
+    },
+    {
+      "source": "/en/works/:slug",
+      "destination": "/api/seo?lang=en&slug=:slug"
+    },
+    {
+      "source": "/en/(.*)",
+      "destination": "/en/index.html"
+    },
+    {
+      "source": "/works/:slug",
+      "destination": "/api/seo?lang=ko&slug=:slug"
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "data-backups": false
+    }
+  }
 }
