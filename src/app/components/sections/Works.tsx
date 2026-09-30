@@ -36,12 +36,15 @@ type WorksProps = {
   addSeries: () => void;
   updateSeries: (id: number, f: keyof Series, v: string) => void;
   deleteSeries: (id: number) => void;
+  worksDefaultExpanded: boolean;
+  onToggleWorksDefault: () => void;
 };
 
 export function Works({
   artworkList, setArtworkList, selectedWorkId, setSelectedWorkId, seriesList, setSeriesList,
   selectedSeries, setSelectedSeries, editingSeriesId, setEditingSeriesId, filteredWorks,
   addArtwork, deleteWork, updateWork, addSeries, updateSeries, deleteSeries,
+  worksDefaultExpanded, onToggleWorksDefault,
 }: WorksProps) {
   const { lang, u, MONO, SERIF, editMode, img, imgThumb, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, triggerUpload, openLightbox, contactItems, C } = usePortfolioContext();
   // The artist's own clicks while editing shouldn't count as visitor engagement.
@@ -65,8 +68,10 @@ export function Works({
   // item visible and addressable.
   const WORKS_MOBILE_LIMIT = 8;
   const WORKS_DESKTOP_LIMIT = 9;
-  const [worksExpanded, setWorksExpanded] = useState(false);
-  useEffect(() => { setWorksExpanded(false); }, [selectedSeries]);
+  const [worksExpanded, setWorksExpanded] = useState(worksDefaultExpanded);
+  // Reset to the editor-configured default both on a series-filter change and
+  // whenever that default itself changes (including the async settings load).
+  useEffect(() => { setWorksExpanded(worksDefaultExpanded); }, [selectedSeries, worksDefaultExpanded]);
   const isCollapsing = !editMode && !worksExpanded && filteredWorks.length > WORKS_MOBILE_LIMIT;
 
   // Collapsing shrinks the grid back down, which can leave the viewport stranded
@@ -178,6 +183,12 @@ export function Works({
               );
             })}
             {editMode && <button onClick={addSeries} aria-label={u.seriesAdd} className="flex items-center gap-1 text-xs border border-dashed border-accent/40 text-accent/70 px-3 py-2 hover:border-accent hover:text-accent transition-colors" style={MONO}><Plus size={11} /><span className="hidden sm:inline">{u.seriesAdd}</span></button>}
+            {editMode && (
+              <button onClick={onToggleWorksDefault} className={`flex items-center gap-1.5 text-xs border border-dashed px-2 py-1.5 transition-colors ${worksDefaultExpanded ? "border-accent text-accent" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>
+                <span className={`w-1.5 h-1.5 rounded-full ${worksDefaultExpanded ? "bg-accent" : "bg-muted-foreground/40"}`} />
+                {u.worksDefaultLabel}: {worksDefaultExpanded ? u.defaultExpanded : u.defaultCollapsed}
+              </button>
+            )}
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-background">
