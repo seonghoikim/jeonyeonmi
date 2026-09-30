@@ -452,7 +452,7 @@ const CURATOR_RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const CURATOR_ATTEMPTS_PER_MODEL = 2;
 const CURATOR_CALL_TIMEOUT_MS = 20_000;
 
-async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<Response | null> {
+async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<{ res: Response; model: string } | null> {
   for (const model of CURATOR_MODELS) {
     for (let attempt = 1; attempt <= CURATOR_ATTEMPTS_PER_MODEL; attempt++) {
       let res: Response;
@@ -476,7 +476,7 @@ async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<R
         console.error(`[curator] Gemini fetch threw (model=${model}, attempt=${attempt}):`, err);
         continue;
       }
-      if (res.ok) return res;
+      if (res.ok) return { res, model };
       console.error(`[curator] Gemini API error (model=${model}, attempt=${attempt}):`, res.status, await res.text().catch(() => ""));
       if (!CURATOR_RETRYABLE_STATUS.has(res.status)) break; // not transient — move to the next model, not worth retrying this one
       if (attempt < CURATOR_ATTEMPTS_PER_MODEL) await new Promise((resolve) => setTimeout(resolve, attempt * 700));
@@ -534,6 +534,25 @@ async function checkCuratorLimits(rawIp: string): Promise<{ body: { error: strin
 // Housekeeping without a scheduler: now and then, drop old usage counters and
 // curator_logs rows past the retention window (visitors' free-text questions
 // shouldn't be kept forever).
+type CuratorLogRow = {
+  lang: string; question: string; answer: string; sufficient: boolean;
+  session_id: string | null; page: string | null; work_id: number | null; model: string;
+  prompt_tokens: number | null; output_tokens: number | null; thought_tokens: number | null;
+};
+// The extra columns come from supabase/curator_analytics.sql; until that has been run, fall
+// back to the four original columns instead of losing the log row.
+async function insertCuratorLog(row: CuratorLogRow) {
+  const { error } = await supabaseAdmin.from("curator_logs").insert(row);
+  if (!error) return;
+  if (/column|schema cache/i.test(error.message)) {
+    const { lang, question, answer, sufficient } = row;
+    const retry = await supabaseAdmin.from("curator_logs").insert({ lang, question, answer, sufficient });
+    if (retry.error) console.error("[curator] log insert error:", retry.error.message);
+    return;
+  }
+  console.error("[curator] log insert error:", error.message);
+}
+
 const CURATOR_LOG_RETENTION_DAYS = 90;
 function maybeCleanupCuratorData() {
   if (Math.random() > 0.02) return;
@@ -546,6 +565,11 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
   const body = await c.req.json().catch(() => null);
   const question = typeof body?.question === "string" ? body.question.trim() : "";
   const lang: "ko" | "en" = body?.lang === "en" ? "en" : "ko";
+  // Optional analytics context — kept only if it has the expected shape, never trusted further.
+  const sessionId = typeof body?.session_id === "string" && /^[\w-]{8,64}$/.test(body.session_id) ? body.session_id : null;
+  const page = typeof body?.page === "string" && body.page.startsWith("/") && body.page.length <= 200 ? body.page : null;
+  const workMatch = page?.match(/\/works\/[^/]*?(\d+)$/);
+  const workId = workMatch ? Number(workMatch[1]) : null;
   // Only well-formed turns get into the prompt — an arbitrary "role" (e.g. a forged
   // "guide" turn) or non-string text from a hand-built request is dropped.
   const history: { role: "user" | "guide"; text: string }[] = (Array.isArray(body?.history) ? body.history : [])
@@ -601,11 +625,14 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
   const prompt = buildPrompt(question, knowledge, historyText, lang);
 
   try {
-    const res = await callGeminiWithFallback(prompt, apiKey);
-    if (!res) {
+    const gemini = await callGeminiWithFallback(prompt, apiKey);
+    if (!gemini) {
       return c.json({ error: "답변을 만드는 중 문제가 생겼어요" }, 502);
     }
-    const data = await res.json();
+    const data = await gemini.res.json();
+    // Thinking tokens are billed like output, so they're logged separately — that is
+    // what makes real per-question spend visible instead of guessed.
+    const usage = data?.usageMetadata ?? {};
     const textOut: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     let answer = "";
     let sufficient = true;
@@ -628,9 +655,14 @@ app.post(`${PREFIX}/curator/ask`, async (c) => {
     // almost every reply regardless of whether it was actually needed.
     const finalAnswer = sufficient ? answer : answer + insufficientContactNote(getVisibleContacts(typedRow, lang), lang);
 
-    supabaseAdmin.from("curator_logs").insert({ lang, question, answer, sufficient }).then(
-      ({ error }) => { if (error) console.error("[curator] log insert error:", error.message); }
-    );
+    insertCuratorLog({
+      lang, question, answer, sufficient,
+      session_id: sessionId, page, work_id: workId,
+      model: gemini.model,
+      prompt_tokens: Number.isInteger(usage.promptTokenCount) ? usage.promptTokenCount : null,
+      output_tokens: Number.isInteger(usage.candidatesTokenCount) ? usage.candidatesTokenCount : null,
+      thought_tokens: Number.isInteger(usage.thoughtsTokenCount) ? usage.thoughtsTokenCount : null,
+    });
 
     return c.json({ answer: finalAnswer, suggestions });
   } catch (err) {
@@ -651,15 +683,50 @@ app.get(`${PREFIX}/curator/report`, async (c) => {
   }
   const days = Math.min(90, Math.max(1, Number(c.req.query("days")) || 7));
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabaseAdmin
-    .from("curator_logs")
-    .select("id,created_at,lang,question,answer,sufficient")
-    .gte("created_at", since)
-    .order("created_at", { ascending: false })
-    .limit(2000);
+  const query = (cols: string) => supabaseAdmin
+    .from("curator_logs").select(cols).gte("created_at", since).order("created_at", { ascending: false }).limit(2000);
+  let { data, error } = await query("id,created_at,lang,question,answer,sufficient,session_id,page,work_id,model,prompt_tokens,output_tokens,thought_tokens");
+  if (error) ({ data, error } = await query("id,created_at,lang,question,answer,sufficient")); // analytics columns not added yet
   if (error) return c.json({ error: "로그를 읽지 못했습니다" }, 500);
   return c.json({ days, count: data?.length ?? 0, rows: data ?? [] });
 });
+
+// List prices per 1M tokens (USD): gemini-flash-latest currently resolves to Gemini 3.8 Flash
+// at its introductory rate (doubles from 2027-01-01); the fallback is 3.5 Flash-Lite.
+// Thinking tokens bill at the output rate. This is an estimate from logged token counts.
+const CURATOR_PRICES: Record<string, { in: number; out: number }> = {
+  "gemini-flash-latest": { in: 0.75, out: 3.75 },
+  "gemini-3.5-flash-lite": { in: 0.30, out: 2.50 },
+};
+async function estimateCuratorSpend() {
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabaseAdmin
+    .from("curator_logs")
+    .select("created_at,model,prompt_tokens,output_tokens,thought_tokens")
+    .gte("created_at", since)
+    .limit(5000);
+  if (error) return { available: false as const, note: "run supabase/curator_analytics.sql to record token usage" };
+  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const acc = { last24h: { answers: 0, usd: 0 }, last7d: { answers: 0, usd: 0 }, promptTokens7d: 0, outputTokens7d: 0, thoughtTokens7d: 0, answersWithoutTokenData: 0 };
+  for (const r of data ?? []) {
+    if (r.prompt_tokens == null) { acc.answersWithoutTokenData++; continue; }
+    const price = CURATOR_PRICES[r.model as string] ?? CURATOR_PRICES["gemini-flash-latest"];
+    const usd = (r.prompt_tokens * price.in + ((r.output_tokens ?? 0) + (r.thought_tokens ?? 0)) * price.out) / 1e6;
+    acc.last7d.answers++; acc.last7d.usd += usd;
+    if (new Date(r.created_at).getTime() >= dayAgo) { acc.last24h.answers++; acc.last24h.usd += usd; }
+    acc.promptTokens7d += r.prompt_tokens; acc.outputTokens7d += r.output_tokens ?? 0; acc.thoughtTokens7d += r.thought_tokens ?? 0;
+  }
+  const avg = (t: number, n: number) => (n ? Math.round(t / n) : null);
+  return {
+    available: true as const,
+    ...acc,
+    last24h: { ...acc.last24h, usd: Number(acc.last24h.usd.toFixed(4)) },
+    last7d: { ...acc.last7d, usd: Number(acc.last7d.usd.toFixed(4)) },
+    avgPromptTokens: avg(acc.promptTokens7d, acc.last7d.answers),
+    avgOutputTokens: avg(acc.outputTokens7d, acc.last7d.answers),
+    avgThoughtTokens: avg(acc.thoughtTokens7d, acc.last7d.answers),
+  };
+}
 
 /* ── curator usage: read-only view of the rate-limit counters + what the function
    sees of the caller's network identity (same X-Report-Key as the report). Lets the
@@ -679,6 +746,7 @@ app.get(`${PREFIX}/curator/usage`, async (c) => {
     .order("updated_at", { ascending: false })
     .limit(200);
   const days = (data ?? []).filter((r) => r.bucket.startsWith("day:"));
+  const spend = await estimateCuratorSpend();
   const ipBuckets = (data ?? []).filter((r) => r.bucket.startsWith("ip:"));
   return c.json({
     usageQueryError: error?.message ?? null,
@@ -691,6 +759,7 @@ app.get(`${PREFIX}/curator/usage`, async (c) => {
       xForwardedFor: c.req.header("x-forwarded-for") ?? null,
       xRealIp: c.req.header("x-real-ip") ?? null,
     },
+    spend,
     limits: { perIpPerWindow: CURATOR_MAX_PER_WINDOW, windowMinutes: CURATOR_WINDOW_MS / 60000, perDay: CURATOR_DAY_MAX },
   });
 });

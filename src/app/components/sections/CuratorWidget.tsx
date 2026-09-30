@@ -47,6 +47,8 @@ export function CuratorWidget() {
   const [failedQuestion, setFailedQuestion] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [preview, setPreview] = useState<string | null>(null);
+  // One id per page load, so a visitor's consecutive questions can be read as one conversation.
+  const sessionIdRef = useRef(typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `s-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
   const logRef = useRef<HTMLDivElement>(null);
   const openedOnceRef = useRef(false);
   const wasOpenRef = useRef(curatorOpen);
@@ -140,7 +142,7 @@ export function CuratorWidget() {
     setErrorNotice("");
     setSuggestions([]);
     try {
-      const { answer, suggestions: next } = await askCurator(question, turnsForRequest.slice(-8), lang);
+      const { answer, suggestions: next } = await askCurator(question, turnsForRequest.slice(-8), lang, { sessionId: sessionIdRef.current, page: window.location.pathname });
       setTurns((p) => [...p, { role: "guide", text: answer }]);
       setSuggestions(next);
       setFailedQuestion(null);

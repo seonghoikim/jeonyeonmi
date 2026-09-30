@@ -156,11 +156,15 @@ export async function translateTexts(texts: string[], token: string): Promise<st
    can ask). Server builds the knowledge base from the live portfolio_state row. ── */
 export type CuratorTurn = { role: "user" | "guide"; text: string };
 
-export async function askCurator(question: string, history: CuratorTurn[], lang: "ko" | "en"): Promise<{ answer: string; suggestions: string[] }> {
+export async function askCurator(
+  question: string, history: CuratorTurn[], lang: "ko" | "en", context?: { sessionId?: string; page?: string }
+): Promise<{ answer: string; suggestions: string[] }> {
   const res = await fetch(`${FUNCTIONS_URL}/curator/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...gatewayHeaders() },
-    body: JSON.stringify({ question, history, lang }),
+    // session_id ties one visitor's questions together in curator_logs; page says where
+    // they were (e.g. a /works/... page) — both optional analytics context.
+    body: JSON.stringify({ question, history, lang, session_id: context?.sessionId, page: context?.page }),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body?.error ?? `curator request failed (${res.status})`);
