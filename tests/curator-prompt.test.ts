@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildPrompt, buildSections, getVisibleContacts, insufficientContactNote, parseCuratorOutput, personaPrelude, selectKnowledge,
+  buildPrompt, buildSections, exhibitionStatus, getVisibleContacts, insufficientContactNote, kstToday, normalizeDate, parseCuratorOutput, personaPrelude, selectKnowledge,
   type PortfolioRowForCurator,
 } from "../supabase/functions/server/curator-prompt";
 
@@ -137,5 +137,103 @@ describe("parseCuratorOutput", () => {
   });
   it("uses plain prose as the answer when there is no JSON at all", () => {
     expect(parseCuratorOutput("그냥 문장입니다.")).toEqual({ answer: "그냥 문장입니다.", sufficient: true, suggestions: [] });
+  });
+});
+
+describe("dates and exhibition status", () => {
+  it("normalizes the site's date formats and rejects non-dates", () => {
+    expect(normalizeDate("2026.09.08")).toBe("2026-09-08");
+    expect(normalizeDate("2026-9-8")).toBe("2026-09-08");
+    expect(normalizeDate("미정")).toBeNull();
+    expect(normalizeDate(undefined)).toBeNull();
+  });
+  it("kstToday uses Korean time, not UTC", () => {
+    // 2026-09-29 16:00 UTC is already 2026-09-30 01:00 in Seoul.
+    expect(kstToday(Date.UTC(2026, 8, 29, 16, 0, 0))).toBe("2026-09-30");
+    expect(kstToday(Date.UTC(2026, 8, 29, 14, 59, 0))).toBe("2026-09-29");
+  });
+  const ex = (startDate: string, endDate: string, status?: string) => ({ startDate, endDate, status });
+  it("classifies by date, treating the first and last day as ongoing", () => {
+    const today = "2026-09-30";
+    expect(exhibitionStatus(ex("2026.09.08", "2026.10.04"), today)).toBe("ongoing");
+    expect(exhibitionStatus(ex("2026.09.30", "2026.10.04"), today)).toBe("ongoing"); // opens today
+    expect(exhibitionStatus(ex("2026.09.01", "2026.09.30"), today)).toBe("ongoing"); // closes today
+    expect(exhibitionStatus(ex("2026.08.25", "2026.09.18"), today)).toBe("past");
+    expect(exhibitionStatus(ex("2026.10.02", "2026.10.11"), today)).toBe("upcoming");
+  });
+  it("falls back to the editor's status when dates can't be read", () => {
+    expect(exhibitionStatus(ex("미정", "미정", "진행중"), "2026-09-30")).toBe("ongoing");
+    expect(exhibitionStatus(ex("미정", "미정", "지난전시"), "2026-09-30")).toBe("past");
+    expect(exhibitionStatus(ex("미정", "미정"), "2026-09-30")).toBe("upcoming");
+  });
+});
+
+describe("current & upcoming exhibitions section", () => {
+  const rowWithShows: PortfolioRowForCurator = {
+    current_exhibitions: [
+      { title: "지난 전시 A", venue: "v", location: "l", startDate: "2026.08.25", endDate: "2026.09.18", tag: "단체전" },
+      { title: "예정 전시 늦음", venue: "v", location: "l", startDate: "2026.11.18", endDate: "2026.11.25", tag: "단체전" },
+      { title: "진행중 개인전", venue: "v", location: "l", startDate: "2026.09.08", endDate: "2026.10.04", tag: "개인전" },
+      { title: "예정 전시 빠름", venue: "v", location: "l", startDate: "2026.10.02", endDate: "2026.10.11", tag: "아트페어" },
+      { title: "더 지난 전시 B", venue: "v", location: "l", startDate: "2026.05.14", endDate: "2026.05.17", tag: "아트페어" },
+      { title: "숨김", venue: "v", location: "l", startDate: "2026.10.01", endDate: "2026.10.02", tag: "개인전", visible: false },
+    ],
+  };
+  const lines = buildSections(rowWithShows, "ko", "2026-09-30").currentExhibitions.split("\n").filter((l) => l.startsWith("- "));
+  it("labels each show and orders ongoing, then upcoming soonest-first, then past newest-first", () => {
+    expect(lines.map((l) => l.match(/\[(진행중|예정|지난전시)\]/)?.[1])).toEqual(["진행중", "예정", "예정", "지난전시", "지난전시"]);
+    expect(lines[0]).toContain("진행중 개인전");
+    expect(lines[1]).toContain("예정 전시 빠름");
+    expect(lines[2]).toContain("예정 전시 늦음");
+    expect(lines[3]).toContain("지난 전시 A");
+    expect(lines[4]).toContain("더 지난 전시 B");
+  });
+  it("leaves hidden shows out and uses English labels for lang=en", () => {
+    expect(lines.join("")).not.toContain("숨김");
+    expect(buildSections(rowWithShows, "en", "2026-09-30").currentExhibitions).toContain("[Ongoing]");
+  });
+});
+
+describe("auto-counted summary", () => {
+  const r: PortfolioRowForCurator = {
+    artworks: [
+      { title: "A", year: "2025", medium: "m", size: "s", category: "c", series: "S1", heroFeatured: true },
+      { title: "A", year: "2025", medium: "m", size: "s", category: "c", series: "S1", heroFeatured: true, collected: true },
+      { title: "B", year: "2026", medium: "m", size: "s", category: "c", collected: true },
+    ],
+    exhibitions: [
+      { year: "2026.08", title: "t", venue: "v", location: "l", tag: "단체전", award: "특선" },
+      { year: "2025", title: "t2", venue: "v", location: "l", tag: "개인전" },
+    ],
+    current_exhibitions: [{ title: "x", venue: "v", location: "l", startDate: "2026.09.08", endDate: "2026.10.04", tag: "개인전" }],
+  };
+  const summary = buildSections(r, "ko", "2026-09-30").summary;
+  it("gives exact counts by year, series and collection", () => {
+    expect(summary).toContain("작품 총 3점");
+    expect(summary).toContain("2025년 2점, 2026년 1점");
+    expect(summary).toContain("S1 2점");
+    expect(summary).toContain("시리즈 없음 1점");
+    expect(summary).toContain("컬렉션(소장) 2점");
+  });
+  it("lists each featured title once and summarizes exhibitions, awards and today's status", () => {
+    expect(summary).toContain("대표작: A(2025)");
+    expect(summary.match(/A\(2025\)/g)).toHaveLength(1);
+    expect(summary).toContain("전시 이력 2건");
+    expect(summary).toContain("수상·선정: 2026.08 특선");
+    expect(summary).toContain("오늘(2026-09-30) 기준 전시: 진행중 1건");
+  });
+  it("is always sent, even when the knowledge base is large enough to be filtered", () => {
+    const big = { ...r, artworks: Array.from({ length: 900 }, (_, i) => ({ title: `작품${i}`, year: "2026", medium: "한지", size: "1F", category: "회화", description: "긴 설명 ".repeat(30) })) };
+    expect(selectKnowledge("언론 기사", buildSections(big, "ko", "2026-09-30"))).toContain("작품 총 900점");
+  });
+});
+
+describe("prompt date awareness", () => {
+  it("states today's date after the reference block and asks for date-based reasoning", () => {
+    const p = buildPrompt("다음 전시는?", "REF", "", "ko", "2026-09-30");
+    expect(p).toContain("오늘 날짜: 2026-09-30 (한국 시간)");
+    expect(p.indexOf("[참고 자료 끝]")).toBeLessThan(p.indexOf("오늘 날짜: 2026-09-30"));
+    expect(personaPrelude("ko")).toContain("[진행중]/[예정]/[지난전시]");
+    expect(buildPrompt("next show?", "REF", "", "en", "2026-09-30")).toContain("Today's date: 2026-09-30");
   });
 });

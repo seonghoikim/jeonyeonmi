@@ -13,8 +13,8 @@
 export type PortfolioRowForCurator = {
   content?: Record<string, string>;
   slides?: { heading: string; headingEn?: string; body: string; bodyEn?: string }[];
-  artworks?: { title: string; titleEn?: string; year: string; medium: string; mediumEn?: string; size: string; category: string; categoryEn?: string; series?: string; collected?: boolean; description?: string; descriptionEn?: string }[];
-  current_exhibitions?: { title: string; titleEn?: string; venue: string; venueEn?: string; location: string; locationEn?: string; startDate: string; endDate: string; tag: string; visible?: boolean }[];
+  artworks?: { title: string; titleEn?: string; year: string; medium: string; mediumEn?: string; size: string; category: string; categoryEn?: string; series?: string; collected?: boolean; heroFeatured?: boolean; description?: string; descriptionEn?: string }[];
+  current_exhibitions?: { title: string; titleEn?: string; venue: string; venueEn?: string; location: string; locationEn?: string; startDate: string; endDate: string; tag: string; status?: string; visible?: boolean }[];
   exhibitions?: { year: string; title: string; titleEn?: string; venue: string; venueEn?: string; location: string; locationEn?: string; tag: string; award?: string; awardEn?: string }[];
   press?: { date: string; outlet: string; outletEn?: string; title: string; titleEn?: string }[];
   contacts?: { type: string; labelKo: string; labelEn: string; display: string; href: string; visible: boolean }[];
@@ -22,6 +22,7 @@ export type PortfolioRowForCurator = {
 
 export type CuratorSections = {
   profile: string;
+  summary: string;
   statement: string;
   works: string;
   currentExhibitions: string;
@@ -43,7 +44,48 @@ export function getVisibleContacts(row: PortfolioRowForCurator, lang: "ko" | "en
     .map((c) => ({ type: c.type, label: isKo ? c.labelKo : c.labelEn, display: c.display, href: c.href }));
 }
 
-export function buildSections(row: PortfolioRowForCurator, lang: "ko" | "en"): CuratorSections {
+/* ── dates ──
+   The model has no clock, so without an explicit "today" it can't tell a running
+   exhibition from an upcoming or finished one — it once told a visitor the show that
+   had opened three weeks earlier was "upcoming" and one that had already closed was
+   still on. Status is computed here from the dates, in Korean time. */
+export function kstToday(now: number = Date.now()): string {
+  return new Date(now + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+// "2026.09.08" / "2026-9-8" -> "2026-09-08"; null when it isn't a date.
+export function normalizeDate(s?: string): string | null {
+  const m = String(s ?? "").match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  return m ? `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}` : null;
+}
+
+export type ExhibitionStatus = "ongoing" | "upcoming" | "past";
+
+export function exhibitionStatus(e: { startDate: string; endDate: string; status?: string }, today: string): ExhibitionStatus {
+  const start = normalizeDate(e.startDate);
+  const end = normalizeDate(e.endDate) ?? start;
+  if (start && end) {
+    if (end < today) return "past";
+    if (start > today) return "upcoming";
+    return "ongoing";
+  }
+  // Unparseable dates (e.g. "미정"): fall back to whatever the editor set.
+  return e.status === "진행중" ? "ongoing" : e.status === "지난전시" ? "past" : "upcoming";
+}
+
+const STATUS_LABEL: Record<ExhibitionStatus, { ko: string; en: string }> = {
+  ongoing: { ko: "진행중", en: "Ongoing" },
+  upcoming: { ko: "예정", en: "Upcoming" },
+  past: { ko: "지난전시", en: "Past" },
+};
+
+const countBy = <T,>(items: T[], key: (x: T) => string): [string, number][] => {
+  const m = new Map<string, number>();
+  for (const it of items) m.set(key(it), (m.get(key(it)) ?? 0) + 1);
+  return [...m.entries()];
+};
+
+export function buildSections(row: PortfolioRowForCurator, lang: "ko" | "en", today: string = kstToday()): CuratorSections {
   const isKo = lang === "ko";
   const tt = (ko?: string, en?: string) => t(isKo, ko, en);
 
@@ -69,10 +111,15 @@ export function buildSections(row: PortfolioRowForCurator, lang: "ko" | "en"): C
     worksLines.push(`- ${title} (${a.year}) · ${medium} · ${a.size} · ${category}${collected}${d ? `\n  ${d}` : ""}`);
   }
 
-  const currentExLines: string[] = [];
-  for (const e of (row.current_exhibitions ?? []).filter((e) => e.visible !== false)) {
-    currentExLines.push(`- ${e.startDate}–${e.endDate} ${tt(e.title, e.titleEn)} — ${tt(e.venue, e.venueEn)}, ${tt(e.location, e.locationEn)} [${e.tag}]`);
-  }
+  // Running first, then upcoming (soonest first), then past (most recent first) — the
+  // order a visitor cares about, and one the model can read straight off the list.
+  const rank: Record<ExhibitionStatus, number> = { ongoing: 0, upcoming: 1, past: 2 };
+  const visibleEx = (row.current_exhibitions ?? [])
+    .filter((e) => e.visible !== false)
+    .map((e) => ({ e, status: exhibitionStatus(e, today), start: normalizeDate(e.startDate) ?? "9999" }))
+    .sort((a, b) => rank[a.status] - rank[b.status] || (a.status === "past" ? b.start.localeCompare(a.start) : a.start.localeCompare(b.start)));
+  const currentExLines: string[] = visibleEx.map(({ e, status }) =>
+    `- [${STATUS_LABEL[status][isKo ? "ko" : "en"]}] ${e.startDate}–${e.endDate} ${tt(e.title, e.titleEn)} — ${tt(e.venue, e.venueEn)}, ${tt(e.location, e.locationEn)} [${e.tag}]`);
 
   const historyLines: string[] = [];
   for (const e of row.exhibitions ?? []) {
@@ -88,8 +135,42 @@ export function buildSections(row: PortfolioRowForCurator, lang: "ko" | "en"): C
 
   const wrap = (heading: string, lines: string[]) => (lines.length ? `## ${heading}\n${lines.join("\n")}` : "");
 
+  // Counted here rather than left to the model: asked "how many works?" it answered "40여 점"
+  // for a list of 54.
+  const artworks = row.artworks ?? [];
+  const factLines: string[] = [];
+  if (artworks.length) {
+    const byYear = countBy(artworks, (a) => a.year).sort(([x], [y]) => x.localeCompare(y)).map(([y, n]) => (isKo ? `${y}년 ${n}점` : `${y}: ${n}`)).join(", ");
+    const bySeries = countBy(artworks, (a) => a.series || (isKo ? "시리즈 없음" : "no series")).map(([s, n]) => (isKo ? `${s} ${n}점` : `${s}: ${n}`)).join(", ");
+    const collectedN = artworks.filter((a) => a.collected).length;
+    factLines.push(isKo
+      ? `- 작품 총 ${artworks.length}점 (연도별: ${byYear} / 시리즈별: ${bySeries} / 컬렉션(소장) ${collectedN}점)`
+      : `- ${artworks.length} works in total (by year: ${byYear} / by series: ${bySeries} / ${collectedN} in collections)`);
+    const featured = [...new Set(artworks.filter((a) => a.heroFeatured).map((a) => `${tt(a.title, a.titleEn)}(${a.year})`))];
+    if (featured.length) {
+      factLines.push(isKo
+        ? `- 작가가 홈페이지 첫 화면에서 소개하는 대표작: ${featured.join(", ")}`
+        : `- Works the artist features on the homepage's first screen: ${featured.join(", ")}`);
+    }
+  }
+  const history = row.exhibitions ?? [];
+  if (history.length) {
+    const byTag = countBy(history, (e) => e.tag).map(([g, n]) => (isKo ? `${g} ${n}건` : `${g}: ${n}`)).join(", ");
+    const awards = history.filter((e) => e.award).map((e) => `${e.year} ${tt(e.award, e.awardEn)}`);
+    factLines.push(isKo
+      ? `- 전시 이력 ${history.length}건 (${byTag})${awards.length ? ` · 수상·선정: ${awards.join(", ")}` : ""}`
+      : `- ${history.length} exhibitions on record (${byTag})${awards.length ? ` · awards/selections: ${awards.join(", ")}` : ""}`);
+  }
+  if (visibleEx.length) {
+    const n = (s: ExhibitionStatus) => visibleEx.filter((x) => x.status === s).length;
+    factLines.push(isKo
+      ? `- 오늘(${today}) 기준 전시: 진행중 ${n("ongoing")}건, 예정 ${n("upcoming")}건, 지난 전시 ${n("past")}건`
+      : `- As of today (${today}): ${n("ongoing")} ongoing, ${n("upcoming")} upcoming, ${n("past")} past exhibitions`);
+  }
+
   return {
     profile: profileLines.join("\n"),
+    summary: wrap(tt("자료 요약 (자동 집계)", "Summary (auto-counted)"), factLines),
     statement: wrap(tt("작가노트", "Artist Statement"), statementLines),
     works: wrap(tt("작품 목록", "Selected Works"), worksLines),
     currentExhibitions: wrap(tt("현재·예정 전시", "Current & Upcoming Exhibitions"), currentExLines),
@@ -117,7 +198,7 @@ const KEYWORDS: Record<"works" | "statement" | "currentExhibitions" | "history" 
 const FULL_SEND_CHAR_BUDGET = 40000;
 
 export function selectKnowledge(question: string, sections: CuratorSections): string {
-  const always = [sections.profile, sections.contact].filter(Boolean);
+  const always = [sections.profile, sections.summary, sections.contact].filter(Boolean);
   const optional: [keyof typeof KEYWORDS, string][] = [
     ["statement", sections.statement],
     ["works", sections.works],
@@ -150,7 +231,10 @@ export function personaPrelude(lang: "ko" | "en"): string {
 3. 그 외에 자료에 정말 없는 사적인 정보(정확한 생년월일, 출신지 등)를 답할 수 없을 때도, "모르겠어요"라고 무성의하게 끝내지 말고 아는 만큼 자연스럽게 답한 뒤 부족한 부분은 담백하게 인정하세요. 이런 사적 정보는 연락처로 문의한다고 알 수 있는 게 아니므로, 이렇게 답했다면 그 자체로 완결된 답입니다 — 문의를 유도하지 마세요.
 4. 친절하고 자연스러운 한국어 존댓말을 쓰되, 큐레이터가 실제로 설명하듯 답하세요.
 5. 답변은 3~6문장 정도로, 핵심만 전달하세요.
-6. 관련된 작품이 있으면 작품명을 〈 〉로 표기해 언급하세요.`;
+6. 관련된 작품이 있으면 작품명을 〈 〉로 표기해 언급하세요.
+7. 전시 일정을 물으면 [현재·예정 전시]의 [진행중]/[예정]/[지난전시] 표기와 "오늘 날짜"를 기준으로 정확히 구분해 답하세요. 끝난 전시를 예정이라고 하거나, 아직 열리지 않은 전시를 열리고 있다고 하지 마세요. "지금 하는 전시"는 [진행중]만, "다음 전시"는 가장 가까운 [예정]을 기간과 장소와 함께 안내하세요. 해당하는 전시가 없으면 없다고 솔직하게 말하고 가장 최근 전시를 소개하세요.
+8. 작품 수·전시 수처럼 개수를 물으면 [자료 요약 (자동 집계)]의 정확한 숫자를 쓰세요. "40여 점" 같은 어림 표현은 쓰지 마세요.
+9. "가장 유명한 작품", "대표작"을 물으면 [자료 요약]의 대표작(작가가 홈페이지 첫 화면에서 소개하는 작품)을 중심으로 추천하세요.`;
   }
   return `You are 'Hoi', the manager working alongside artist Jeon Yeon-mi. Your job is to give visitors an accurate, professional introduction to the artist and her work.
 
@@ -164,16 +248,21 @@ Rules:
 2. For business questions — price, buying a piece, commissions — don't say "I don't know" or "that's not in the material." Instead, naturally point them to reach out directly, e.g. "That's best handled directly — feel free to reach out via Instagram or the blog." (Don't put the actual contact link in your answer text — the system appends that separately.)
 3. For other private details genuinely not in the reference (exact birth year, hometown, etc.), don't just flatly say "I don't know" — answer with what you do know naturally, then plainly acknowledge the gap. That information isn't something reaching out would reveal either, so an answer like that is already complete — don't push them toward contact.
 4. Keep it natural, friendly English, 3-6 sentences, like a curator actually explaining something.
-5. Name specific works with 〈 〉 when relevant.`;
+5. Name specific works with 〈 〉 when relevant.
+6. For exhibition schedule questions, rely on the [Ongoing]/[Upcoming]/[Past] labels in [Current & Upcoming Exhibitions] and on "Today's date". Never call a finished show upcoming or an unopened one ongoing. "What's on now" means [Ongoing] only; "next show" means the nearest [Upcoming], with dates and venue. If none applies, say so plainly and mention the most recent show.
+7. For counts (works, exhibitions), use the exact numbers in [Summary (auto-counted)] — never approximations like "over 40".
+8. For "most famous work" / "signature work", lean on the featured works in [Summary] (the ones the artist highlights on the homepage's first screen).`;
 }
 
-export function buildPrompt(question: string, knowledge: string, historyText: string, lang: "ko" | "en"): string {
+export function buildPrompt(question: string, knowledge: string, historyText: string, lang: "ko" | "en", today: string = kstToday()): string {
   const persona = personaPrelude(lang);
   const refBlock = lang === "ko"
     ? `\n[참고 자료 시작]\n${knowledge}\n[참고 자료 끝]\n\n아래 JSON 형식으로만 응답하세요: {"answer": "...", "sufficient": true 또는 false, "suggestions": ["...", "...", "..."]}\n"sufficient"는 방문자의 질문에 실질적으로 도움이 되는 답을 줄 수 있었는지를 뜻합니다. 관련 있는 내용으로 답했다면 일부 세부사항(정확한 날짜, 순서 등)까지는 몰라도 true로 표시하세요. 가격·구매·커미션 등 비즈니스 질문에 자연스럽게 직접 문의를 안내했다면 그것도 true로 표시하세요 (그 자체가 올바른 답입니다). 정확한 생년월일·출신지 등 작가가 공개하지 않는 사적인 정보에 대해 자연스럽게 답했을 때도 true로 표시하세요 (연락처로 문의해도 알 수 없는 정보라 문의 안내가 도움이 되지 않습니다). 참고 자료에 질문과 관련된 내용이 전혀 없어 거의 답을 하지 못했을 때만 false로 표시하세요.\n"suggestions"에는 방문자가 이어서 물어볼 만한 구체적이고 의미 있는 질문을 정확히 3개 담으세요. 반드시 위 [참고 자료]만으로 충분히 답할 수 있는 내용이어야 하고, 이번 답변에서 이미 다룬 내용을 그대로 반복하지 마세요. "더 알려주세요" 같은 막연하고 겉핥기식인 질문은 피하고, 참고 자료에 실제로 등장하는 특정 작품명·시리즈·전시·재료나 기법처럼 구체적인 내용을 짚는 질문으로 만드세요.`
     : `\n[Reference start]\n${knowledge}\n[Reference end]\n\nRespond ONLY in this JSON shape: {"answer": "...", "sufficient": true or false, "suggestions": ["...", "...", "..."]}\n"sufficient" means whether you were able to give a substantively useful answer. Mark it true if you answered with genuinely relevant information, even if some minor details (exact dates, precise order, etc.) remain uncertain. Also mark it true when you naturally pointed a business question (price, purchase, commission) toward direct contact — that redirect IS the correct answer, not a failure. Also mark it true when you naturally answered around private details the artist doesn't publish (exact birth year, hometown, etc.) — reaching out wouldn't reveal that either, so a contact prompt wouldn't help. Only mark it false when the reference had nothing relevant at all, so you could barely answer the question.\n"suggestions" should contain exactly 3 specific, meaningful follow-up questions the visitor could naturally ask next — ones the [Reference] above can genuinely answer well. Don't repeat what this answer already covered, and avoid vague, surface-level prompts like "tell me more" — point to specific works, series, exhibitions, materials, or techniques that actually appear in the reference.`;
   const questionLine = lang === "ko" ? `방문자의 새 질문: ${question}` : `New question: ${question}`;
-  return `${persona}${refBlock}${historyText}\n${questionLine}`;
+  // After the (large, stable) reference block, so a date that changes daily doesn't disturb the prefix.
+  const todayLine = lang === "ko" ? `\n오늘 날짜: ${today} (한국 시간)\n` : `\nToday's date: ${today} (Korea time)\n`;
+  return `${persona}${refBlock}${todayLine}${historyText}\n${questionLine}`;
 }
 
 export function insufficientContactNote(contacts: CuratorContact[], lang: "ko" | "en"): string {
