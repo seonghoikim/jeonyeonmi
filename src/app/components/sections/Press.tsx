@@ -3,6 +3,7 @@ import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, hSize, type PressEntry } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
 import { trackEvent } from "../../analytics";
+import { safeHref } from "../../safeHref";
 
 type PressProps = {
   pressList: PressEntry[];
@@ -127,7 +128,7 @@ export function Press({
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground/70 mb-0.5" style={MONO}>{outlet}{item.date && <span> · {item.date}</span>}</p>
                     {item.url ? (
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("press_click", { outlet, title })} className="text-sm font-light text-foreground hover:text-accent transition-colors leading-snug flex items-center gap-1" style={SERIF}>
+                      <a href={safeHref(item.url)} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("press_click", { outlet, title })} className="text-sm font-light text-foreground hover:text-accent transition-colors leading-snug flex items-center gap-1" style={SERIF}>
                         {title} <ArrowUpRight size={12} className="shrink-0 opacity-60" />
                       </a>
                     ) : displayImage ? (

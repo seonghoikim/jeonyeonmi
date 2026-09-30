@@ -6,6 +6,7 @@ import { useModalLock } from "../../useModalLock";
 import { ReorderButtons } from "../ReorderButtons";
 import { contactIcon } from "../contactIcon";
 import { trackEvent } from "../../analytics";
+import { safeHref } from "../../safeHref";
 
 // Shared by the "collected" and "hero rotation" edit-mode toggles below —
 // same pill-with-dot markup, just a different field/labels.
@@ -400,7 +401,7 @@ export function Works({
               <>
                 <div className="p-1">
                   {visibleContacts.map((item) => (
-                    <a key={item.id} href={item.href} target={item.type === "email" || item.type === "phone" ? "_self" : "_blank"} rel="noopener noreferrer"
+                    <a key={item.id} href={safeHref(item.href)} target={item.type === "email" || item.type === "phone" ? "_self" : "_blank"} rel="noopener noreferrer"
                       onClick={closeInquiry}
                       className="flex items-center gap-3 px-3 py-2.5 hover:bg-secondary/40 transition-colors">
                       <span className="text-muted-foreground shrink-0">{contactIcon(item.type)}</span>

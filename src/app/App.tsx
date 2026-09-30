@@ -16,6 +16,7 @@ import { PortfolioContext, usePortfolioContext, type PortfolioContextValue } fro
 import { Hero } from "./components/sections/Hero";
 import { CurrentExhibitions } from "./components/sections/CurrentExhibitions";
 import { Works } from "./components/sections/Works";
+import { safeHref } from "./safeHref";
 // Below-the-fold sections and editor-only UI (upload/reorder/password modal) are
 // dead weight for every anonymous visitor's initial bundle — split them into their
 // own chunks that load in parallel once the above-the-fold JS has taken over.
@@ -206,7 +207,7 @@ export default function App() {
   useEffect(() => {
     if (!isSupabaseReady) { setIsLoading(false); return; }
     loadPortfolio().then((row) => {
-      if (!row) { setIsLoading(false); return; }
+      if (!row) { loadFailedRef.current = true; setLoadError(true); setIsLoading(false); return; }
       if (row.content && Object.keys(row.content).length > 0) setContent((p) => ({ ...p, ...row.content }));
       if ((row.current_exhibitions as CurrentExhibition[])?.length) setCurrentExList((row.current_exhibitions as CurrentExhibition[]).map(normalizeCurrentExhibition));
       if ((row.artworks as Artwork[])?.length) setArtworkList(row.artworks as Artwork[]);
@@ -240,6 +241,12 @@ export default function App() {
   /* ── DB / image state ── */
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const [saveDirty, setSaveDirty] = useState(false);
+  // The initial load failed, so on-screen content is the built-in sample data —
+  // never let that be saved over the real row.
+  const [loadError, setLoadError] = useState(false);
+  const loadFailedRef = useRef(false);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const isSavingRef = useRef(false);   // lock: prevent concurrent saves
@@ -368,8 +375,10 @@ export default function App() {
      token is nulled out the instant editMode flips false — see exitEditMode). ── */
   const flushSave = useCallback(async (token: string) => {
     clearTimeout(saveTimerRef.current);
+    if (loadFailedRef.current) return; // on-screen data is sample data, not the real row
     // If a save is already running, mark dirty and let it re-save on completion
     if (isSavingRef.current) { saveAgainRef.current = true; return; }
+    let failed = false;
     // Loop: re-save if state changed while the previous save was in flight
     do {
       saveAgainRef.current = false;
@@ -378,23 +387,31 @@ export default function App() {
       const result = await savePortfolio(saveDataRef.current, token, lastUpdatedAtRef.current); // always uses latest data
       if (result.ok) {
         lastUpdatedAtRef.current = result.row.updated_at;
+        failed = false;
       } else if (result.conflict) {
         // Someone else saved a newer version first — reload it instead of overwriting.
         applyRemoteRow(result.latest);
         alert("다른 곳에서 방금 저장한 최신 내용을 불러왔습니다. 변경사항을 다시 입력해주세요.");
+        failed = false;
       } else {
         console.error("[DB] save error:", result.error);
+        failed = true;
       }
       isSavingRef.current = false;
     } while (saveAgainRef.current);
-    hasPendingChangesRef.current = false;
+    // A failed save leaves the edit unsaved — keep it flagged (and the realtime
+    // guard up) rather than reporting it as saved.
+    hasPendingChangesRef.current = failed;
+    setSaveError(failed);
+    setSaveDirty(failed);
     setIsSaving(false);
   }, [applyRemoteRow]);
 
   /* ── DB: debounced auto-save (4 s after last change) — only while an editor session is active ── */
   useEffect(() => {
-    if (isLoading || !editTokenRef.current) return;
+    if (isLoading || loadFailedRef.current || !editTokenRef.current) return;
     hasPendingChangesRef.current = true;
+    setSaveDirty(true);
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       if (editTokenRef.current) flushSave(editTokenRef.current);
@@ -420,8 +437,28 @@ export default function App() {
      exitEditMode() below flushes any pending debounced save *before* this runs,
      since the token it needs is nulled out here as soon as editMode flips false. ── */
   useEffect(() => {
-    if (!editMode) { editTokenRef.current = null; setIsAuth(false); }
+    if (!editMode) {
+      editTokenRef.current = null; setIsAuth(false);
+      setSaveDirty(false); setSaveError(false);
+    }
   }, [editMode]);
+
+  /* ── Unsaved-edit protection: warn before closing the tab mid-debounce or after a
+     failed save, and push a pending save out as soon as the tab is hidden (mobile
+     browsers often never fire beforeunload). ── */
+  useEffect(() => {
+    if (!editMode || !(saveDirty || isSaving || saveError)) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden" && editTokenRef.current && !loadFailedRef.current) flushSave(editTokenRef.current);
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [editMode, saveDirty, isSaving, saveError, flushSave]);
 
   // Keep language and the open artwork (if any) in sync with browser back/forward
   // navigation between /, /en, and /(en/)works/:slug.
@@ -519,6 +556,10 @@ export default function App() {
   };
   const handleEditToggle = () => {
     if (editMode) { exitEditMode(); return; }
+    if (loadFailedRef.current) {
+      alert("데이터를 불러오지 못한 상태에서는 편집할 수 없어요 (예시 데이터가 실제 내용을 덮어쓸 수 있습니다). 페이지를 새로고침한 뒤 다시 시도해주세요.");
+      return;
+    }
     if (isAuth) { setEditMode(true); return; }
     setShowPwModal(true);
   };
@@ -948,9 +989,19 @@ export default function App() {
               {navItems.map((item) => <button key={item.key} onClick={item.onClick} className="text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase" style={MONO}>{item.label}</button>)}
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              {isSupabaseReady && (
-                <span className={`text-xs transition-all duration-500 ${isSaving ? "text-accent/70 opacity-100" : "opacity-0"}`} style={MONO}>
-                  {isSaving ? "saving…" : ""}
+              {editMode && (
+                <span
+                  role="status"
+                  aria-live="polite"
+                  className={`text-xs ${saveError ? "text-red-400" : isSaving || saveDirty ? "text-accent/70" : "text-muted-foreground/60"}`}
+                  style={MONO}
+                >
+                  {saveError ? (
+                    <>
+                      저장 실패{" "}
+                      <button onClick={() => editTokenRef.current && flushSave(editTokenRef.current)} className="underline">다시 시도</button>
+                    </>
+                  ) : isSaving ? "저장 중…" : saveDirty ? "저장 대기…" : "저장됨"}
                 </span>
               )}
               {editMode && (
@@ -959,7 +1010,7 @@ export default function App() {
                 </button>
               )}
               {!editMode && contactItems.find((item) => item.type === "instagram" && item.visible) && (
-                <a href={contactItems.find((item) => item.type === "instagram" && item.visible)!.href} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("nav_instagram_click")} aria-label="Instagram" className="text-muted-foreground hover:text-accent transition-colors p-1">
+                <a href={safeHref(contactItems.find((item) => item.type === "instagram" && item.visible)!.href)} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("nav_instagram_click")} aria-label="Instagram" className="text-muted-foreground hover:text-accent transition-colors p-1">
                   <Instagram size={17} />
                 </a>
               )}
@@ -973,6 +1024,17 @@ export default function App() {
             </div>
           )}
         </nav>
+
+        {loadError && (
+          <div role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[70] w-[92vw] max-w-md bg-card border border-border shadow-2xl px-4 py-3 flex items-center justify-between gap-3">
+            <span className="text-xs text-foreground/90 leading-relaxed">
+              {lang === "ko" ? "콘텐츠를 불러오지 못했어요. 지금 보이는 내용은 예시일 수 있어요." : "Couldn't load the content. What you see may be placeholder data."}
+            </span>
+            <button onClick={() => window.location.reload()} className="shrink-0 text-xs border border-accent text-accent px-3 py-1.5 hover:bg-accent/10 transition-colors" style={MONO}>
+              {lang === "ko" ? "새로고침" : "Reload"}
+            </button>
+          </div>
+        )}
 
         <Hero
           heroAspectRatio={heroAspectRatio}

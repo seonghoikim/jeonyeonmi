@@ -22,6 +22,9 @@ export function Video({
   setFullscreenVideoYtId, addVideo, updateVideoField, deleteVideo,
 }: VideoProps) {
   const { lang, u, MONO, SERIF, editMode, dragSrc, dragOverKey, setDragOverKey, C } = usePortfolioContext();
+  // Visitors shouldn't see half-filled tiles (an empty "enter a YouTube URL" box);
+  // editors still get every entry so they can fill it in and reorder.
+  const shownVideos = editMode ? videoList : videoList.filter((v) => getYoutubeId(v.youtubeUrl));
 
   return (
     <section id="videos" className="py-16 sm:py-24 border-t border-border">
@@ -34,7 +37,7 @@ export function Video({
           {editMode && <button onClick={addVideo} aria-label={u.videoAdd} className="flex items-center gap-1.5 text-xs border border-dashed border-accent/50 text-accent px-3 sm:px-4 py-2 hover:border-accent transition-colors" style={MONO}><Plus size={13} /><span className="hidden sm:inline">{u.videoAdd}</span></button>}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-background items-start">
-          {videoList.map((vid, idx) => {
+          {shownVideos.map((vid, idx) => {
             const youtubeId = getYoutubeId(vid.youtubeUrl);
             const isEditing = editMode && editingVideoId === vid.id;
             return (
@@ -67,6 +70,7 @@ export function Video({
                     <>
                       <iframe
                         src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0`}
+                        title={lang === "ko" ? vid.title : (vid.titleEn || vid.title)}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; web-share"
                         allowFullScreen
                         className="absolute inset-0 w-full h-full border-0"

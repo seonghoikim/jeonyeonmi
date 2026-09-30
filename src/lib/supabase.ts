@@ -191,15 +191,22 @@ export type PortfolioRow = {
   updated_at: string;
 };
 
-export async function loadPortfolio(): Promise<Partial<PortfolioRow>> {
-  if (!supabase) return {};
-  const { data, error } = await supabase
-    .from("portfolio_state")
-    .select("*")
-    .eq("id", 1)
-    .maybeSingle();
-  if (error) { console.error("[DB] load error:", error.message); return {}; }
-  return data ?? {};
+// null means the load itself failed (network/DB error) — distinct from {} (no row yet),
+// so the app can refuse to edit/save over real content with its built-in sample data.
+export async function loadPortfolio(): Promise<Partial<PortfolioRow> | null> {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from("portfolio_state")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
+    if (error) { console.error("[DB] load error:", error.message); return null; }
+    return data ?? {};
+  } catch (err) {
+    console.error("[DB] load threw:", err);
+    return null;
+  }
 }
 
 export type SaveResult =

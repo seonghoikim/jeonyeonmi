@@ -4,6 +4,7 @@ import { askCurator, type CuratorTurn } from "../../../lib/supabase";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { trackEvent } from "../../analytics";
 import { useModalLock } from "../../useModalLock";
+import { safeHref } from "../../safeHref";
 
 const SUGGESTIONS_KO = [
   "전연미 작가는 어떤 작업을 하나요?",
@@ -213,13 +214,13 @@ export function CuratorWidget() {
                 <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
                   {isKo ? "AI 답변이 충분하지 않다면 " : "If the AI's answer isn't quite enough, reach out directly via "}
                   {instagram && (
-                    <a href={instagram.href} target="_blank" rel="noopener noreferrer" className="text-accent underline decoration-accent/40 hover:decoration-accent">
+                    <a href={safeHref(instagram.href)} target="_blank" rel="noopener noreferrer" className="text-accent underline decoration-accent/40 hover:decoration-accent">
                       {isKo ? "인스타그램" : "Instagram"}
                     </a>
                   )}
                   {instagram && blog && (isKo ? " 또는 " : " or ")}
                   {blog && (
-                    <a href={blog.href} target="_blank" rel="noopener noreferrer" className="text-accent underline decoration-accent/40 hover:decoration-accent">
+                    <a href={safeHref(blog.href)} target="_blank" rel="noopener noreferrer" className="text-accent underline decoration-accent/40 hover:decoration-accent">
                       {isKo ? "블로그" : "the blog"}
                     </a>
                   )}
@@ -292,7 +293,10 @@ export function CuratorWidget() {
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+                onKeyDown={(e) => {
+                  // Enter while a Hangul syllable is still being composed just commits it — sending here fires the question early with a stray character.
+                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); }
+                }}
                 placeholder={isKo ? "궁금한 점을 물어보세요" : "Ask a question"}
                 rows={1}
                 // 16px min — iOS Safari auto-zooms the whole page on focus for any
