@@ -7,6 +7,7 @@ import { ReorderButtons } from "../ReorderButtons";
 import { contactIcon } from "../contactIcon";
 import { trackEvent } from "../../analytics";
 import { safeHref } from "../../safeHref";
+import { pressableProps } from "../../a11y";
 
 // Shared by the "collected" and "hero rotation" edit-mode toggles below —
 // same pill-with-dot markup, just a different field/labels.
@@ -170,10 +171,10 @@ export function Works({
                   ) : (
                     <button onClick={() => setSelectedSeries(s.name)} className={`text-xs tracking-wider px-3 sm:px-4 py-2 border transition-all ${isActive ? "border-accent text-accent" : "border-border text-muted-foreground hover:border-foreground/40"}`} style={MONO}>{name}</button>
                   )}
-                  {editMode && !isEditingThis && <button onClick={() => setEditingSeriesId(s.id)} aria-label={u.editLabel} className="absolute -top-2 -right-2 bg-background border border-border text-muted-foreground hover:text-foreground p-0.5 opacity-0 group-hover/series:opacity-100 transition-opacity"><Edit3 size={9} /></button>}
+                  {editMode && !isEditingThis && <button onClick={() => setEditingSeriesId(s.id)} aria-label={u.editLabel} className="absolute -top-2.5 -right-2.5 bg-background border border-border text-muted-foreground hover:text-foreground p-1.5 opacity-0 group-hover/series:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"><Edit3 size={11} /></button>}
                   {editMode && !isEditingThis && (
                     <ReorderButtons
-                      className="absolute -top-2 -left-2 bg-background border border-border opacity-0 group-hover/series:opacity-100 transition-opacity"
+                      className="absolute -top-2.5 -left-2.5 bg-background border border-border opacity-0 group-hover/series:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
                       onMoveUp={() => setSeriesList((prev) => moveItem(prev, idx, idx - 1))}
                       onMoveDown={() => setSeriesList((prev) => moveItem(prev, idx, idx + 1))}
                       disableUp={idx === 0}
@@ -204,6 +205,7 @@ export function Works({
             return (
             <div key={work.id}
               className={`group bg-background ${displayClass} flex-col cursor-pointer border-r border-b border-border/30`}
+              {...pressableProps(!editMode, () => setSelectedWorkId(work.id, "grid"), lang === "ko" ? work.title : (work.titleEn || work.title))}
               draggable={editMode}
               onDragStart={() => { dragSrc.current = idx; }}
               onDragOver={(e) => { e.preventDefault(); if (dragSrc.current !== idx) setDragOverKey("work-" + idx); }}
@@ -241,7 +243,7 @@ export function Works({
                   : <img src="/work-placeholder-v2.svg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />}
                 <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-all duration-500" />
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"><ArrowUpRight size={16} className="text-foreground" /></div>
-                {editMode && <button onClick={(e) => { e.stopPropagation(); deleteWork(work.id); }} aria-label={u.worksDelete} className="absolute top-3 left-3 bg-background/80 hover:bg-background text-foreground p-1.5 transition-all"><Trash2 size={13} /></button>}
+                {editMode && <button onClick={(e) => { e.stopPropagation(); deleteWork(work.id); }} aria-label={u.worksDelete} className="absolute top-3 left-3 bg-background/80 hover:bg-background text-foreground p-2 transition-all"><Trash2 size={14} /></button>}
                 <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
                   {work.series && (() => { const s = seriesList.find((s) => s.name === work.series); const label = lang === "ko" ? work.series : (s?.nameEn ?? work.series); return <span className="text-xs px-2 py-0.5 bg-background/70 text-muted-foreground" style={MONO}>{label}</span>; })()}
                   {work.collected && <span className="text-xs px-2 py-0.5 bg-accent/90 text-accent-foreground ml-auto" style={MONO}>{u.worksCollected}</span>}
@@ -266,7 +268,7 @@ export function Works({
             <button onClick={() => setWorksExpanded((p) => !p)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors" style={MONO}>
               <span className="w-4 h-px bg-muted-foreground/40" />
               {worksExpanded ? u.worksShowLess : u.worksShowMore}
-              <span className="text-muted-foreground/40">({filteredWorks.length - WORKS_MOBILE_LIMIT})</span>
+              <span className="text-muted-foreground/70">({filteredWorks.length - WORKS_MOBILE_LIMIT})</span>
               <ChevronRight size={12} className={`transition-transform duration-200 ${worksExpanded ? "rotate-90" : ""}`} />
             </button>
           </div>
@@ -277,7 +279,7 @@ export function Works({
       {selectedWork && (
         <div ref={modalRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={lang === "ko" ? selectedWork.title : selectedWork.titleEn} className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-8 outline-none" onClick={() => setSelectedWorkId(null)} onTouchStart={handleModalTouchStart} onTouchEnd={handleModalTouchEnd}>
           <div className="relative max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 bg-card max-h-[95dvh] overflow-y-auto hide-sb" onClick={(e) => e.stopPropagation()}>
-            <button className="absolute top-3 right-3 z-10 bg-card/80 text-muted-foreground hover:text-foreground p-1.5 transition-colors" onClick={() => setSelectedWorkId(null)} aria-label={u.lbClose}><X size={18} /></button>
+            <button className="absolute top-2 right-2 z-10 bg-card/80 text-muted-foreground hover:text-foreground p-2.5 transition-colors" onClick={() => setSelectedWorkId(null)} aria-label={u.lbClose}><X size={18} /></button>
             {/* image panel */}
             <div className={`relative bg-background overflow-hidden flex items-center justify-center ${editMode ? "cursor-pointer" : ""}`} style={{ minHeight: "260px", maxHeight: "min(60vh, 560px)" }} onClick={() => editMode && triggerUpload(`artwork-${selectedWork.id}`, selectedWork.titleEn)}>
               {img(`artwork-${selectedWork.id}`) || selectedWork.image

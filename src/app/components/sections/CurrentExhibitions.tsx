@@ -82,7 +82,7 @@ export function CurrentExhibitions({
                     ratio instead lets object-cover fill it without losing the top/bottom. */}
                 <div className={`current-ex-img relative overflow-hidden bg-card ${editMode ? "cursor-pointer" : ""}`} style={{ aspectRatio: "1 / 1.414" }} onClick={() => editMode && triggerUpload(`current-${ex.id}`, ex.titleEn)}>
                   {exImg
-                    ? <img src={exImg} alt={ex.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    ? <img src={exImg} alt={lang === "ko" ? ex.title : (ex.titleEn || ex.title)} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     : <img src="/poster-placeholder-v3.svg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />}
                   {!isEditing && (
                     <div className="absolute top-3 left-3 flex gap-1.5">
@@ -185,7 +185,7 @@ export function CurrentExhibitions({
               <button onClick={() => setShowPastEx((p) => !p)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-0" style={MONO}>
                 <span className="w-4 h-px bg-muted-foreground/40" />
                 {showPastEx ? u.hidePastEx : u.showPastEx}
-                <span className="text-muted-foreground/40">({pastList.length})</span>
+                <span className="text-muted-foreground/70">({pastList.length})</span>
                 <ChevronRight size={12} className={`transition-transform duration-200 ${showPastEx ? "rotate-90" : ""}`} />
               </button>
               {editMode && (
@@ -232,7 +232,7 @@ export function CurrentExhibitions({
                           disableDown={pidx === pastList.length - 1}
                         />
                       )}
-                      <span className="text-xs text-muted-foreground/50 w-16 shrink-0" style={MONO}>{ex.startDate.slice(0, 7)}</span>
+                      <span className="text-xs text-muted-foreground/80 w-16 shrink-0" style={MONO}>{ex.startDate.slice(0, 7)}</span>
                       {/* thumbnail */}
                       <div className="shrink-0 overflow-hidden bg-secondary" style={{ width: 52, height: 68 }}>
                         {pastThumb
@@ -277,8 +277,8 @@ export function CurrentExhibitions({
                               <span className={`hidden sm:inline-block align-middle text-xs px-1.5 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
                               {ex.isCompetition && <span className={`hidden sm:inline-block align-middle text-xs px-1.5 py-0.5 border ml-1 ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
                             </p>
-                            <p className="text-xs text-muted-foreground/50 mt-0.5">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>
-                            <p className="text-xs text-muted-foreground/30 mt-0.5" style={MONO}>{ex.startDate} — {ex.endDate}</p>
+                            <p className="text-xs text-muted-foreground/80 mt-0.5">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>
+                            <p className="text-xs text-muted-foreground/70 mt-0.5" style={MONO}>{ex.startDate} — {ex.endDate}</p>
                           </>
                         )}
                       </div>

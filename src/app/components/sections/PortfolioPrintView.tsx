@@ -69,7 +69,7 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
             description: c("heroDesc"),
             generatedLabel: `${u.cvGenerated}: ${new Date().toISOString().slice(0, 10)}`,
             statementHeading: c("s03heading"),
-            slides: slides.map((s) => ({ heading: lang === "ko" ? s.heading : s.headingEn, body: lang === "ko" ? s.body : s.bodyEn })),
+            slides: slides.map((s) => ({ heading: lang === "ko" ? s.heading : (s.headingEn || s.heading), body: lang === "ko" ? s.body : (s.bodyEn || s.body) })),
             workNotes: workNotes.map((w) => {
               const title = lang === "ko" ? w.title : (w.titleEn || w.title);
               const note = (lang === "ko" ? w.description : (w.descriptionEn || w.description)) || "";
@@ -81,9 +81,9 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
               const category = lang === "ko" ? w.category : (w.categoryEn || w.category);
               const tagParts = [category, seriesName].filter(Boolean) as string[];
               return {
-                title: lang === "ko" ? w.title : w.titleEn,
+                title: lang === "ko" ? w.title : (w.titleEn || w.title),
                 year: w.year,
-                meta: `${lang === "ko" ? w.medium : w.mediumEn} · ${w.size}`,
+                meta: `${lang === "ko" ? w.medium : (w.mediumEn || w.medium)} · ${w.size}`,
                 tag: [tagParts.join(" · "), w.collected ? u.worksCollected : null].filter(Boolean).join("  ·  ") || null,
                 // The PDF only ever displays these at a fixed ~55mm-tall box, so the
                 // already-generated thumbnail is more than enough resolution — using
@@ -96,18 +96,18 @@ export function PortfolioPrintView({ show, onClose, slides, artworks, seriesList
             }),
             exhibitionsHeading: c("s04heading"),
             currentLabel: u.cvCurrent,
-            current: current.map((ex) => `${ex.startDate} — ${ex.endDate}   ${lang === "ko" ? ex.title : ex.titleEn} — ${lang === "ko" ? ex.venue : ex.venueEn}, ${lang === "ko" ? ex.location : ex.locationEn}`),
+            current: current.map((ex) => `${ex.startDate} — ${ex.endDate}   ${lang === "ko" ? ex.title : (ex.titleEn || ex.title)} — ${lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)}, ${lang === "ko" ? ex.location : (ex.locationEn || ex.location)}`),
             historyLabel: u.cvHistory,
             history: history.map((ex) => {
               const awardText = lang === "ko" ? ex.award : (ex.awardEn || ex.award);
               const award = awardText ? ` — ${awardText}` : "";
               const tagLabel = ex.isCompetition ? `${exBaseTagLabel(ex.tag, u)} · ${u.exCompetition}` : exBaseTagLabel(ex.tag, u);
               const locationText = lang === "ko" ? ex.location : (ex.locationEn || ex.location);
-              return `${ex.year}   ${lang === "ko" ? ex.title : ex.titleEn} — ${lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)}, ${locationText}  [${tagLabel}]${award}`;
+              return `${ex.year}   ${lang === "ko" ? ex.title : (ex.titleEn || ex.title)} — ${lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)}, ${locationText}  [${tagLabel}]${award}`;
             }),
             pressHeading: c("s08heading"),
             press: press.map((p) => ({
-              text: `${p.date}   ${lang === "ko" ? p.outlet : (p.outletEn || p.outlet)} — ${lang === "ko" ? p.title : p.titleEn}`,
+              text: `${p.date}   ${lang === "ko" ? p.outlet : (p.outletEn || p.outlet)} — ${lang === "ko" ? p.title : (p.titleEn || p.title)}`,
               url: p.url || null,
             })),
             contactHeading: u.cvContact,

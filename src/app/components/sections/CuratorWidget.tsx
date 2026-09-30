@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
 import { askCurator, type CuratorTurn } from "../../../lib/supabase";
+import { prefersReducedMotion } from "../../a11y";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { trackEvent } from "../../analytics";
 import { useModalLock } from "../../useModalLock";
@@ -55,8 +56,13 @@ export function CuratorWidget() {
   const previewRef = useRef<HTMLDivElement>(null);
   const panelRef = useModalLock<HTMLDivElement>(curatorOpen, () => setCuratorOpen(false));
 
+  // Language toggled before any question was asked — re-issue the greeting in the new language.
   useEffect(() => {
-    logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
+    setTurns((prev) => (prev.length === 1 && prev[0].role === "guide" ? [{ role: "guide", text: isKo ? GREETING_KO : GREETING_EN }] : prev));
+  }, [isKo]);
+
+  useEffect(() => {
+    logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: prefersReducedMotion() ? "auto" : "smooth" });
   }, [turns, busy]);
 
   // The panel unmounts on close, so logRef is a fresh node each time it

@@ -86,7 +86,7 @@ export function Video({
                     <>
                       <img
                         src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
-                        alt={vid.title}
+                        alt={lang === "ko" ? vid.title : (vid.titleEn || vid.title)}
                         className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100"
                         loading="lazy" decoding="async"
                       />
