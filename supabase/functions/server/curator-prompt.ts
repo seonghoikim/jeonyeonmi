@@ -172,7 +172,7 @@ export function buildSections(row: PortfolioRowForCurator, lang: "ko" | "en", to
     profile: profileLines.join("\n"),
     summary: wrap(tt("자료 요약 (자동 집계)", "Summary (auto-counted)"), factLines),
     statement: wrap(tt("작가노트", "Artist Statement"), statementLines),
-    works: wrap(tt("작품 목록", "Selected Works"), worksLines),
+    works: wrap(tt("작품 목록 (크기는 세로 x 가로)", "Selected Works (sizes are height x width)"), worksLines),
     currentExhibitions: wrap(tt("현재·예정 전시", "Current & Upcoming Exhibitions"), currentExLines),
     history: wrap(tt("전시 및 수상 이력", "Exhibition & Award History"), historyLines),
     press: wrap(tt("언론 보도", "Press"), pressLines),

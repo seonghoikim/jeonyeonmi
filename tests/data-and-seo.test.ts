@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { artworkIdFromSlug, artworkSlug, moveInFiltered, moveItem } from "../src/app/data";
+import { artworkIdFromSlug, artworkSlug, moveInFiltered, moveItem, swapSizeOrder } from "../src/app/data";
 import { artworkIdFromSlug as apiIdFromSlug, artworkSlug as apiSlug, buildSitemap, injectWorkMeta } from "../api/_seoLib.js";
 
 describe("moveItem / moveInFiltered", () => {
@@ -102,5 +102,20 @@ describe("buildSitemap", () => {
   });
   it("still returns the two home URLs when the data couldn't be loaded", () => {
     expect(buildSitemap(null).match(/<loc>/g)).toHaveLength(2);
+  });
+});
+
+describe("swapSizeOrder", () => {
+  it("flips width x height into height x width", () => {
+    expect(swapSizeOrder("72.7 x 90.9 cm")).toBe("90.9 x 72.7 cm");
+    expect(swapSizeOrder("50 × 72.7 cm")).toBe("72.7 × 50 cm");
+  });
+  it("handles multi-panel and depth notations", () => {
+    expect(swapSizeOrder("243 x 117 cm (81 x 117 cm x3ea)")).toBe("117 x 243 cm (117 x 81 cm x3ea)");
+    expect(swapSizeOrder("30 x 40 x 5 cm")).toBe("40 x 30 x 5 cm");
+  });
+  it("leaves strings without a pair alone and is reversible", () => {
+    expect(swapSizeOrder("가변크기")).toBe("가변크기");
+    expect(swapSizeOrder(swapSizeOrder("22  x 16 cm"))).toBe("22  x 16 cm");
   });
 });
