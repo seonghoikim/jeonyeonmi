@@ -496,6 +496,8 @@ async function bumpCuratorBucket(bucket: string): Promise<number | null> {
   return data;
 }
 
+const CURATOR_MAX_PER_IP_PER_DAY = 40;
+
 async function checkCuratorLimits(rawIp: string): Promise<{ body: { error: string; code: string } } | null> {
   const now = Date.now();
   // Raw IPs never reach the database — only a salted hash, bucketed per 10-minute window.
@@ -505,14 +507,20 @@ async function checkCuratorLimits(rawIp: string): Promise<{ body: { error: strin
   // Per-visitor first, and only count toward the daily total once that passes —
   // otherwise one visitor hammering past their own limit would burn the shared
   // daily budget with requests that were all rejected anyway.
-  const ipHits = await bumpCuratorBucket(ipBucket);
-  const dayHits = ipHits !== null && ipHits <= CURATOR_MAX_PER_WINDOW ? await bumpCuratorBucket(dayBucket) : 0;
+  // A 10-minute window alone still lets one persistent visitor burn the whole daily budget
+  // (12 per window x ~42 windows = 500 in about 7 hours), so each visitor also has a daily cap.
+  const ipDayBucket = `ipday:${ipHash}:${dayBucket.slice(4)}`;
+  const [ipHits, ipDayHits] = await Promise.all([bumpCuratorBucket(ipBucket), bumpCuratorBucket(ipDayBucket)]);
+  const ipOk = ipHits !== null && ipDayHits !== null && ipHits <= CURATOR_MAX_PER_WINDOW && ipDayHits <= CURATOR_MAX_PER_IP_PER_DAY;
+  const dayHits = ipOk ? await bumpCuratorBucket(dayBucket) : 0;
 
   const dayLimited = { error: "오늘 사용량이 많아 잠시 후 다시 시도해주세요.", code: "day_limit" };
   const ipLimited = { error: "잠시 요청이 많았어요. 몇 분 후 다시 시도해주세요.", code: "rate_limited" };
+  const ipDayLimited = { error: "오늘 질문 가능 횟수를 모두 사용하셨어요. 내일 다시 이용해주세요.", code: "ip_day_limit" };
 
-  if (dayHits !== null && ipHits !== null) {
+  if (dayHits !== null && ipHits !== null && ipDayHits !== null) {
     if (ipHits > CURATOR_MAX_PER_WINDOW) return { body: ipLimited };
+    if (ipDayHits > CURATOR_MAX_PER_IP_PER_DAY) return { body: ipDayLimited };
     if (dayHits > CURATOR_DAY_MAX) return { body: dayLimited };
     return null;
   }
@@ -760,7 +768,7 @@ app.get(`${PREFIX}/curator/usage`, async (c) => {
       xRealIp: c.req.header("x-real-ip") ?? null,
     },
     spend,
-    limits: { perIpPerWindow: CURATOR_MAX_PER_WINDOW, windowMinutes: CURATOR_WINDOW_MS / 60000, perDay: CURATOR_DAY_MAX },
+    limits: { perIpPerWindow: CURATOR_MAX_PER_WINDOW, perIpPerDay: CURATOR_MAX_PER_IP_PER_DAY, windowMinutes: CURATOR_WINDOW_MS / 60000, perDay: CURATOR_DAY_MAX },
   });
 });
 
