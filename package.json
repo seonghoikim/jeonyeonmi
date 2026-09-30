@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build && node scripts/build-en-html.mjs",
+    "build": "vite build && node scripts/inject-seo-defaults.mjs && node scripts/build-en-html.mjs",
     "dev": "vite"
   },
   "dependencies": {

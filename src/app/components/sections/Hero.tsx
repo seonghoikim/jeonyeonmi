@@ -14,7 +14,7 @@ type HeroProps = {
   heroRotateEnabled: boolean;
   onToggleHeroRotate: () => void;
   heroRotateWorks: Artwork[];
-  onSelectWork: (id: number) => void;
+  onSelectWork: (id: number, source?: string) => void;
 };
 
 // How long each work stays fully visible before the next breath begins.
@@ -143,7 +143,7 @@ export function Hero({
         style={{ transition: "flex 0.6s cubic-bezier(0.4,0,0.2,1)" }}
         onClick={() => {
           if (editMode) { if (!editingCaption && !rotateActive) triggerUpload("hero", heroCaptionEn); return; }
-          if (rotateActive && currentWork) onSelectWork(currentWork.id);
+          if (rotateActive && currentWork) onSelectWork(currentWork.id, "hero");
           else if (!rotateActive) scrollTo("current-exhibitions");
         }}>
         {currentWork ? (
