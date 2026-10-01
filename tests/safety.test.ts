@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertPublicHttpUrl, clientIp, isSafeHref } from "../supabase/functions/server/safety";
+import { assertPublicHttpUrl, clientIp, detectImageType, isSafeHref } from "../supabase/functions/server/safety";
 
 describe("isSafeHref", () => {
   it.each(["https://a.com", "http://a.com", "mailto:a@b.c", "tel:+8210", "/works/x", "youtu.be/abc", "", undefined, null])("allows %s", (v) => {
@@ -35,5 +35,22 @@ describe("clientIp", () => {
   it("falls back to the first forwarded entry, then 'unknown'", () => {
     expect(clientIp(h({ "x-forwarded-for": "9.9.9.9, 1.1.1.1" }))).toBe("9.9.9.9");
     expect(clientIp(h({}))).toBe("unknown");
+  });
+});
+
+describe("detectImageType", () => {
+  const webp = new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4, 0x57, 0x45, 0x42, 0x50, 0x56]);
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16]);
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 73]);
+  const svg = new TextEncoder().encode("<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>");
+  it("accepts real WebP and JPEG bytes", () => {
+    expect(detectImageType(webp)).toBe("webp");
+    expect(detectImageType(jpeg)).toBe("jpeg");
+  });
+  it("rejects PNG, SVG/HTML and tiny or empty input", () => {
+    expect(detectImageType(png)).toBeNull();
+    expect(detectImageType(svg)).toBeNull();
+    expect(detectImageType(new Uint8Array([0xff, 0xd8]))).toBeNull();
+    expect(detectImageType(new Uint8Array())).toBeNull();
   });
 });

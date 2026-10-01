@@ -24,7 +24,7 @@ async function getSupabaseClient(): Promise<SupabaseClient> {
 export const isSupabaseReady = true;
 
 /* ── Resize + WebP conversion (client-side via Canvas) ── */
-// Resizes to at most maxPx on the longest side before encoding as WebP.
+// Resizes to at most maxPx on the longest side before encoding as WebP (JPEG where WebP encoding is unsupported).
 // Keeps portfolio images well under 500KB while preserving quality.
 export async function toWebP(file: File, quality = 0.85, maxPx = 2000): Promise<File> {
   const bitmap = await createImageBitmap(file);
@@ -33,19 +33,25 @@ export async function toWebP(file: File, quality = 0.85, maxPx = 2000): Promise<
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(w * scale);
   canvas.height = Math.round(h * scale);
-  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) return reject(new Error("WebP conversion failed"));
-        const name = file.name.replace(/\.[^.]+$/, ".webp");
-        resolve(new File([blob], name, { type: "image/webp" }));
-      },
-      "image/webp",
-      quality
-    );
-  });
+  const encode = (type: string, q: number) =>
+    new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, q));
+  return (async () => {
+    const webp = await encode("image/webp", quality);
+    if (webp && webp.type === "image/webp") {
+      return new File([webp], file.name.replace(/\.[^.]+$/, ".webp"), { type: "image/webp" });
+    }
+    // Safari/iOS can't encode WebP: toBlob quietly hands back a lossless PNG instead (5–10MB
+    // for a painting). Fall back to JPEG, flattening any transparency onto white first.
+    ctx.globalCompositeOperation = "destination-over";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const jpeg = await encode("image/jpeg", quality);
+    if (!jpeg || jpeg.type !== "image/jpeg") throw new Error("image conversion failed");
+    return new File([jpeg], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+  })();
 }
 
 // Supabase's Edge Function gateway itself requires a valid Supabase JWT in the

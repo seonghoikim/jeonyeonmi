@@ -3,7 +3,7 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 import { createSessionToken, verifySessionToken, timingSafeEqual } from "./auth.tsx";
-import { isSafeHref, clientIp, sha256Hex, assertPublicHttpUrl } from "./safety.ts";
+import { isSafeHref, clientIp, sha256Hex, assertPublicHttpUrl, detectImageType } from "./safety.ts";
 import { buildSections, selectKnowledge, buildPrompt, getVisibleContacts, insufficientContactNote, parseCuratorOutput, type CuratorOutput, type PortfolioRowForCurator } from "./curator-prompt.ts";
 
 const app = new Hono();
@@ -173,18 +173,17 @@ app.post(`${PREFIX}/portfolio/upload`, requireAuth, async (c) => {
   }
 
   const namePart = typeof label === "string" && label.trim() ? `${slugify(label)}-${Date.now()}` : `${Date.now()}`;
-  const path = `${key}/${namePart}.webp`;
   const bytes = new Uint8Array(await file.arrayBuffer());
-  // The client always converts to WebP before uploading; check the real bytes
-  // (RIFF....WEBP) instead of trusting the declared type, and store as image/webp,
-  // so this bucket can't be used to host HTML/SVG/anything else.
-  const isWebp = bytes.length > 12
-    && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF"
-    && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
-  if (!isWebp) return c.json({ error: "WebP 이미지만 업로드할 수 있습니다" }, 415);
+  // The client converts to WebP before uploading (JPEG on browsers that can't encode WebP,
+  // e.g. iPhone Safari, which silently produces a huge PNG instead). Check the real bytes
+  // instead of trusting the declared type, and store with the matching content type, so
+  // this bucket can't be used to host HTML/SVG/PNG-sized blobs/anything else.
+  const kind = detectImageType(bytes);
+  if (!kind) return c.json({ error: "WebP 또는 JPEG 이미지만 업로드할 수 있습니다" }, 415);
+  const path = `${key}/${namePart}.${kind === "jpeg" ? "jpg" : "webp"}`;
   const { error } = await supabaseAdmin.storage
     .from("portfolio")
-    .upload(path, bytes, { upsert: false, contentType: "image/webp", cacheControl: "31536000" });
+    .upload(path, bytes, { upsert: false, contentType: kind === "jpeg" ? "image/jpeg" : "image/webp", cacheControl: "31536000" });
   if (error) return c.json({ error: error.message }, 500);
 
   const { data } = supabaseAdmin.storage.from("portfolio").getPublicUrl(path);
