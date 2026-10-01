@@ -283,7 +283,7 @@ export function Works({
             {/* image panel */}
             <div className={`relative bg-background overflow-hidden flex items-center justify-center ${editMode ? "cursor-pointer" : ""}`} style={{ minHeight: "260px", maxHeight: "min(60vh, 560px)" }} onClick={() => editMode && triggerUpload(`artwork-${selectedWork.id}`, selectedWork.titleEn)}>
               {img(`artwork-${selectedWork.id}`) || selectedWork.image
-                ? <img src={img(`artwork-${selectedWork.id}`)!} alt={lang === "ko" ? selectedWork.title : (selectedWork.titleEn || selectedWork.title)} className="w-full h-full object-contain" style={{ maxHeight: "min(60vh, 560px)" }} decoding="async" />
+                ? <img src={imgThumb(`artwork-${selectedWork.id}`)!} alt={lang === "ko" ? selectedWork.title : (selectedWork.titleEn || selectedWork.title)} className="w-full h-full object-contain" style={{ maxHeight: "min(60vh, 560px)" }} decoding="async" />
                 : <img src="/work-placeholder-v2.svg" alt="" className="w-full h-full object-cover" style={{ minHeight: "260px" }} decoding="async" />}
               {editMode && <div className="absolute inset-0 flex items-center justify-center bg-background/50 hover:bg-background/65 transition-colors"><div className="flex flex-col items-center gap-2 text-foreground"><Upload size={22} /><span className="text-xs tracking-widest" style={MONO}>{uploadingTarget === `artwork-${selectedWork.id}` ? u.worksUploading : u.worksUpload}</span></div></div>}
               {!editMode && (img(`artwork-${selectedWork.id}`) || selectedWork.image) && (

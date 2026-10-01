@@ -75,6 +75,12 @@ describe("injectWorkMeta", () => {
     expect(html).toContain("https://img/53.webp");
     expect(html).not.toContain("https://old/hero.webp");
   });
+  it("prefers the small thumbnail over the original for the preview image", () => {
+    const withThumb = { ...row, image_urls: { ...row.image_urls, "artwork-53-thumb": "https://img/53-thumb.webp" } };
+    const html = injectWorkMeta(shell, { work, row: withThumb, lang: "ko" });
+    expect(html).toContain("https://img/53-thumb.webp");
+    expect(html).not.toContain('content="https://img/53.webp"');
+  });
   it("uses English text and the /en URL for lang=en", () => {
     const html = injectWorkMeta(shell, { work, row, lang: "en" });
     expect(html).toContain("<title>Yeon-gyeol — Jeon Yeon-mi</title>");

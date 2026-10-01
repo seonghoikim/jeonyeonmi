@@ -50,7 +50,10 @@ export function injectWorkMeta(shell, { work, row, lang, origin = SITE }) {
   // Collapse line breaks/runs of spaces — descriptions are multi-paragraph, a preview card is one blob.
   const written = ((isEn ? work.descriptionEn : work.description) || work.description || "").replace(/\s+/g, " ").trim();
   const description = truncate(written || [detail, bio].filter(Boolean).join(" — "), 200);
-  const image = row.image_urls?.[`artwork-${work.id}`] || row.image_urls?.hero || "";
+  // Share-preview crawlers (Kakao, Facebook, Google…) fetch this URL on every scrape. The 900px
+  // thumbnail is plenty for a preview card; the original can be 10MB.
+  const urls = row.image_urls ?? {};
+  const image = urls[`artwork-${work.id}-thumb`] || urls[`artwork-${work.id}`] || urls.hero || "";
   const slug = artworkSlug(work);
   const koUrl = `${origin}/works/${slug}`;
   const enUrl = `${origin}/en/works/${slug}`;
