@@ -106,3 +106,12 @@ export async function assertPublicHttpUrl(raw: string): Promise<URL> {
   if (addrs && addrs.some(isPrivateAddress)) throw new Error("host_not_allowed");
   return url;
 }
+
+/** Identifies an uploaded image by its real bytes (never by the declared type). Only WebP and JPEG are accepted. */
+export function detectImageType(bytes: Uint8Array): "webp" | "jpeg" | null {
+  if (bytes.length > 12
+    && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+    && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return "webp";
+  if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpeg";
+  return null;
+}

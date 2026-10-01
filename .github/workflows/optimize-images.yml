@@ -1,0 +1,36 @@
+name: Optimize images
+
+# Manual. Shrinks images already stored in Supabase Storage (see scripts/optimize-images.mjs).
+# mode=check → can the token fetch the service key?  mode=dry → report only.  mode=apply → do it.
+# Old files are never deleted; the report lists the old URLs so it can be undone.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "check | dry | apply"
+        required: true
+        default: "dry"
+
+permissions:
+  contents: read
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: tkbfgxxwsfxhdhjnrdqv
+      MODE: ${{ inputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save sharp
+      - run: node scripts/optimize-images.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: optimize-report
+          path: optimize-report.json
+          if-no-files-found: ignore
