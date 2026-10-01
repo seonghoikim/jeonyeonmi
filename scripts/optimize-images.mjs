@@ -4,40 +4,42 @@
 // browser's canvas quietly returned PNG) — 5-10MB each — and they blew the egress quota.
 //
 // What it does, per image key in portfolio_state.image_urls:
-//   * full image: if it isn't real WebP, or is >900KB, or has a long edge >2560px  → re-encode as
+//   * full image: if it isn't real WebP (e.g. a lossless PNG), or is >1.6MB, or has a long edge >2560px  → re-encode as
 //     WebP (long edge <= 2560px, quality 88) and upload as a NEW object (old object is left alone)
 //   * thumbnail ("<key>-thumb"): re-created from the original, 900px / quality 78, as WebP
 //   * then swaps the new URLs into portfolio_state.image_urls (only if nobody saved in between)
 //
-// MODE=check  → only tests that the deploy token can fetch the service key (prints nothing secret)
+// MODE=check  → only tests that the service key is accepted (prints nothing secret)
 // MODE=dry    → downloads + re-encodes in memory, prints the savings, writes nothing
 // MODE=apply  → uploads + updates the row. Old URLs are written to optimize-report.json first.
 //
-// Runs from the "Optimize images" workflow (needs SUPABASE_ACCESS_TOKEN). Output is limited to
+// Runs from the "Optimize images" workflow (needs the SUPABASE_SERVICE_ROLE_KEY repo secret). Output is limited to
 // storage keys and byte counts: the repo's logs are public.
 import sharp from "sharp";
 import fs from "node:fs";
 
 const REF = process.env.PROJECT_REF;
-const TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
+// The service key comes from the repo secret SUPABASE_SERVICE_ROLE_KEY (the deploy token only has
+// narrow permissions and can't read project API keys).
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const MODE = process.env.MODE || "dry";
 const SUPABASE_URL = `https://${REF}.supabase.co`;
 const MAX_FULL_PX = 2560, FULL_QUALITY = 88, THUMB_PX = 900, THUMB_QUALITY = 78;
-const KEEP_IF_UNDER = 900 * 1024;
-if (!REF || !TOKEN) { console.error("PROJECT_REF / SUPABASE_ACCESS_TOKEN missing"); process.exit(1); }
+// Real WebP files are only re-encoded when clearly oversized — re-compressing an already-lossy file costs quality for little gain.
+const KEEP_IF_UNDER = 1600 * 1024;
+if (!REF || !SERVICE_KEY) { console.error("PROJECT_REF / SUPABASE_SERVICE_ROLE_KEY missing - add the repo secret (see README)"); process.exit(1); }
 
 const kb = (n) => `${(n / 1024).toFixed(0)}KB`;
 
-// ── service key via the Management API ──
-const keysRes = await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys`, { headers: { Authorization: `Bearer ${TOKEN}` } });
-if (!keysRes.ok) { console.error(`Could not read project API keys: HTTP ${keysRes.status} ${(await keysRes.text()).slice(0, 300)}`); process.exit(2); }
-const service = (await keysRes.json()).find((k) => k.name === "service_role")?.api_key;
-if (!service) { console.error("service_role key not found in the API response"); process.exit(2); }
-console.log(`::add-mask::${service}`);
+// ── service key (from the repo secret) ──
+console.log(`::add-mask::${SERVICE_KEY}`);
+// New-style secret keys (sb_secret_...) are not JWTs and go in the apikey header only.
+const H = SERVICE_KEY.startsWith("sb_secret_") ? { apikey: SERVICE_KEY } : { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` };
+const rowRes0 = await fetch(`${SUPABASE_URL}/rest/v1/portfolio_state?id=eq.1&select=id`, { headers: H });
+if (!rowRes0.ok) { console.error(`service key rejected: HTTP ${rowRes0.status}`); process.exit(2); }
 console.log("service key: OK");
 if (MODE === "check") process.exit(0);
 
-const H = { apikey: service, Authorization: `Bearer ${service}` };
 const rowRes = await fetch(`${SUPABASE_URL}/rest/v1/portfolio_state?id=eq.1&select=image_urls,updated_at`, { headers: H });
 const [row] = await rowRes.json();
 if (!row?.image_urls) { console.error("could not read portfolio_state"); process.exit(3); }

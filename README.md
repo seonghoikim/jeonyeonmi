@@ -83,3 +83,12 @@ node scripts/snapshot-to-sql.mjs portfolio_state.json > restore.sql
 만든 SQL을 Supabase 대시보드 → SQL Editor에 붙여넣고 Run 합니다(현재 내용을 그 시점으로 덮어씀). 열려 있는 편집 탭은 다음 저장 때 "더 새로운 버전이 있다"는 안내를 받습니다.
 PC가 없다면 어시스턴트에게 "○월 ○일 백업으로 복원 SQL 만들어줘"라고 하면 됩니다.
 
+
+## 이미지 용량과 Supabase 전송량
+
+무료 플랜은 이미지 전송량(cached egress)이 월 5GB입니다. 한도를 넘으면 프로젝트 전체(DB·이미지·도슨트)가 멈추므로, 이미지는 가볍게 유지해야 합니다.
+
+- 화면은 썸네일(`<key>-thumb`, 900px)만 쓰고, 원본은 라이트박스의 "원본 보기"에서만 불러옵니다. 메인 히어로 회전도 썸네일만 쓰며, 다음 한 장만 미리 받습니다.
+- 아이폰 사파리는 canvas로 WebP를 만들지 못하고 조용히 무손실 PNG를 돌려줍니다(5~10MB). 그래서 업로드는 WebP를 못 만드는 브라우저에서 JPEG로 대체하고, 서버는 실제 바이트가 WebP/JPEG인 파일만 받습니다.
+- 이미 저장된 큰 이미지는 **Optimize images** 워크플로우로 정리합니다(수동 실행, `mode`: `check` → `dry` → `apply`). 리포 시크릿 `SUPABASE_SERVICE_ROLE_KEY`가 필요합니다. 옛 파일은 지우지 않고 새 파일을 올린 뒤 주소만 바꾸며, 이전 주소는 실행 결과의 `optimize-report` 아티팩트에 남습니다.
+- 전송량이 갑자기 늘면 `Investigate egress` 워크플로우로 원인을 볼 수 있지만, 토큰에 로그 읽기 권한(`analytics_logs_read`)이 있어야 합니다. 무료 플랜의 로그 보관은 하루뿐입니다.
