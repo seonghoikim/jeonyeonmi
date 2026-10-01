@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Upload, Check, Edit3, MessageCircle } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import type { Artwork } from "../../data";
@@ -32,7 +32,7 @@ export function Hero({
   heroAspectRatio, heroCaption, heroCaptionEn, setHeroCaption, setHeroCaptionEn, editingCaption, setEditingCaption,
   heroRotateEnabled, onToggleHeroRotate, heroRotateWorks, onSelectWork,
 }: HeroProps) {
-  const { lang, u, MONO, SERIF, SANS, content, updateContent, c, editMode, img, uploadingTarget, triggerUpload, scrollTo, curatorEnabled, setCuratorOpen } = usePortfolioContext();
+  const { lang, u, MONO, SERIF, SANS, content, updateContent, c, editMode, img, uploadingTarget, triggerUpload, scrollTo, curatorEnabled, setCuratorOpen, imgThumb } = usePortfolioContext();
   const rotateActive = heroRotateEnabled && heroRotateWorks.length > 0;
   // A single image layer, breathing between fully visible and fully hidden.
   // The next work's src is only ever swapped in while opacity is at 0 (during
@@ -47,19 +47,27 @@ export function Hero({
     setPhase("hold");
   }, [rotateActive, heroRotateWorks.length]);
 
-  // Only the currently-displayed work's <img> triggers a fetch on its own — every
-  // other featured work would otherwise only start downloading the moment rotation
-  // switches to it, showing a blank/placeholder flash mid-transition on a slow
-  // connection. Warm the browser's cache for all of them up front instead.
+  // Only the currently-displayed work's <img> triggers a fetch on its own, so the NEXT work is
+  // chosen at the start of each hold and warmed in the browser cache — otherwise it would only
+  // start downloading when the swap happens, flashing a blank frame on a slow connection.
+  // Only that one image, and only its ~150KB thumbnail: preloading every featured work's
+  // original (up to 10MB each) used to cost each visitor ~40MB and blew the storage quota.
+  const nextRef = useRef<Artwork | null>(null);
+  const pickNext = (prev: Artwork | null): Artwork | null => {
+    if (heroRotateWorks.length < 2) return heroRotateWorks[0] ?? null;
+    const idx = Math.floor(Math.random() * heroRotateWorks.length);
+    let next = heroRotateWorks[idx];
+    if (next.id === prev?.id) next = heroRotateWorks[(idx + 1) % heroRotateWorks.length];
+    return next;
+  };
   useEffect(() => {
-    if (!rotateActive) return;
-    heroRotateWorks.forEach((w) => {
-      const src = img(`artwork-${w.id}`) || w.image;
-      if (!src) return;
-      const preload = new window.Image();
-      preload.src = src;
-    });
-  }, [rotateActive, heroRotateWorks, img]);
+    if (!rotateActive || phase !== "hold" || heroRotateWorks.length < 2) return;
+    const next = pickNext(displayed);
+    nextRef.current = next;
+    const src = next ? (imgThumb(`artwork-${next.id}`) || next.image) : null;
+    if (src) new window.Image().src = src;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rotateActive, phase, displayed, heroRotateWorks, imgThumb]);
 
   // Drives the hold → fadeOut → (swap) → fadeIn → hold cycle. Each phase change
   // reschedules the next one, so this single effect re-fires as `phase` advances.
@@ -72,10 +80,8 @@ export function Hero({
         // Random rather than sequential per request — picks a different work each
         // time so the same piece never repeats twice in a row.
         setDisplayed((prev) => {
-          const idx = Math.floor(Math.random() * heroRotateWorks.length);
-          let next = heroRotateWorks[idx];
-          if (next.id === prev?.id) next = heroRotateWorks[(idx + 1) % heroRotateWorks.length];
-          return next;
+          const preloaded = nextRef.current;
+          return preloaded && preloaded.id !== prev?.id ? preloaded : pickNext(prev);
         });
         setPhase("fadeIn");
         return;
@@ -151,7 +157,7 @@ export function Hero({
         {currentWork ? (
           <img
             key="rotating"
-            src={(img(`artwork-${currentWork.id}`) || currentWork.image)!}
+            src={(imgThumb(`artwork-${currentWork.id}`) || currentWork.image)!}
             alt={`${lang === "ko" ? currentWork.title : (currentWork.titleEn || currentWork.title)}, ${currentWork.year}`}
             decoding="async"
             className={`absolute inset-0 w-full h-full object-contain transition-opacity ${phase === "fadeOut" ? "opacity-0" : "opacity-70 hover:opacity-80"}`}

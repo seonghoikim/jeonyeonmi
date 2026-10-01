@@ -184,7 +184,7 @@ app.post(`${PREFIX}/portfolio/upload`, requireAuth, async (c) => {
   if (!isWebp) return c.json({ error: "WebP 이미지만 업로드할 수 있습니다" }, 415);
   const { error } = await supabaseAdmin.storage
     .from("portfolio")
-    .upload(path, bytes, { upsert: false, contentType: "image/webp" });
+    .upload(path, bytes, { upsert: false, contentType: "image/webp", cacheControl: "31536000" });
   if (error) return c.json({ error: error.message }, 500);
 
   const { data } = supabaseAdmin.storage.from("portfolio").getPublicUrl(path);

@@ -16,7 +16,7 @@ type ArtistStatementProps = {
 };
 
 export function ArtistStatement({ slides, currentSlide, setCurrentSlide, isSliding, addSlide, deleteSlide, updateSlide, goSlide }: ArtistStatementProps) {
-  const { lang, u, MONO, SERIF, SANS, editMode, img, uploadingTarget, triggerUpload, openLightbox, C } = usePortfolioContext();
+  const { lang, u, MONO, SERIF, SANS, editMode, img, imgThumb, uploadingTarget, triggerUpload, openLightbox, C } = usePortfolioContext();
 
   // The track lays every slide out side-by-side (only shifted via translateX), so its
   // rendered height defaults to the tallest slide — shorter slides then show empty
@@ -87,11 +87,12 @@ export function ArtistStatement({ slides, currentSlide, setCurrentSlide, isSlidi
             <div ref={trackRef} className="flex items-start" style={{ transform: `translateX(-${currentSlide * 100}%)`, transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)" }}>
               {slides.map((sl) => {
                 const imgSrc = img(`slide-${sl.id}`);
+                const imgShown = imgThumb(`slide-${sl.id}`);
                 return (
                   <div key={sl.id} className="slide-row w-full shrink-0 flex flex-col md:flex-row border border-border">
                     <div className={`slide-img-area md:w-2/5 shrink-0 flex items-center justify-center bg-card relative ${editMode ? "cursor-pointer" : imgSrc ? "cursor-zoom-in" : ""}`} style={{ minHeight: "280px" }} {...pressableProps(!editMode && !!imgSrc, () => openLightbox(imgSrc!, false), lang === "ko" ? sl.heading : (sl.headingEn || sl.heading))} onClick={() => { if (editMode) { triggerUpload(`slide-${sl.id}`, sl.headingEn); } else if (imgSrc) { openLightbox(imgSrc, false); } }}>
                       {imgSrc
-                        ? <img src={imgSrc} alt={lang === "ko" ? sl.heading : (sl.headingEn || sl.heading)} className="w-full h-full object-contain" style={{ maxHeight: "520px" }} loading="lazy" decoding="async" />
+                        ? <img src={imgShown ?? imgSrc} alt={lang === "ko" ? sl.heading : (sl.headingEn || sl.heading)} className="w-full h-full object-contain" style={{ maxHeight: "520px" }} loading="lazy" decoding="async" />
                         : <img src="/statement-placeholder-v2.svg" alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />}
                       {editMode && <div className="absolute inset-0 flex items-center justify-center bg-background/50 hover:bg-background/65 transition-colors"><div className="flex flex-col items-center gap-2 text-foreground"><Upload size={22} /><span className="text-xs tracking-widest" style={MONO}>{uploadingTarget === `slide-${sl.id}` ? u.statUploading : u.statUpload}</span></div></div>}
                     </div>

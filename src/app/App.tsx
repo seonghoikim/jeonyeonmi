@@ -708,6 +708,9 @@ export default function App() {
     const token = editTokenRef.current;
     if (!token) { alert("편집 권한이 필요합니다. 다시 로그인해주세요."); return; }
     const keys = backfillTargets;
+    // Regenerating re-downloads every full-size original (~260MB at the time of writing) and
+    // counts against the Supabase egress quota — never fire it by accident.
+    if (isRegenerate && !window.confirm(`모든 이미지(${keys.length}개)의 원본을 다시 내려받아 썸네일을 새로 만듭니다. 이미지 전송량을 많이 쓰니(수백 MB) 정말 필요할 때만 진행하세요. 계속할까요?`)) return;
     setBackfillProgress({ done: 0, total: keys.length });
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
