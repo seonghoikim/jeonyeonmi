@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { Plus, GripVertical, ArrowUpRight, Trash2, Edit3, Check, Upload, Maximize2, X, AlignLeft, ChevronRight } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
-import { moveItem, moveInFiltered, hSize, type Artwork, type Series } from "../../data";
+import { moveItem, moveInFiltered, hSize, artworkSlug, type Artwork, type Series } from "../../data";
 import { useModalLock } from "../../useModalLock";
 import { ReorderButtons } from "../ReorderButtons";
 import { contactIcon } from "../contactIcon";
 import { trackEvent } from "../../analytics";
 import { safeHref } from "../../safeHref";
-import { pressableProps } from "../../a11y";
 
 // Shared by the "collected" and "hero rotation" edit-mode toggles below —
 // same pill-with-dot markup, just a different field/labels.
@@ -202,14 +201,26 @@ export function Works({
                 : idx >= WORKS_MOBILE_LIMIT
                   ? "hidden lg:flex"
                   : "flex";
+            // Outside edit mode each card is a real link to the work's own page (so crawlers can
+            // discover and follow it, and "open in new tab" works); a plain click still just opens
+            // the modal. In edit mode it stays a div — it holds buttons and is a drag handle.
+            const CardTag = (editMode ? "div" : "a") as React.ElementType;
+            const linkProps = editMode ? {} : {
+              href: `${lang === "en" ? "/en" : ""}/works/${artworkSlug(work)}`,
+              onClick: (e: React.MouseEvent) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                e.preventDefault();
+                setSelectedWorkId(work.id, "grid");
+              },
+            };
             return (
-            <div key={work.id}
-              className={`group bg-background ${displayClass} flex-col cursor-pointer border-r border-b border-border/30`}
-              {...pressableProps(!editMode, () => setSelectedWorkId(work.id, "grid"), lang === "ko" ? work.title : (work.titleEn || work.title))}
+            <CardTag key={work.id}
+              {...linkProps}
+              className={`group bg-background ${displayClass} flex-col cursor-pointer border-r border-b border-border/30 ${editMode ? "" : "text-inherit no-underline"}`}
               draggable={editMode}
               onDragStart={() => { dragSrc.current = idx; }}
-              onDragOver={(e) => { e.preventDefault(); if (dragSrc.current !== idx) setDragOverKey("work-" + idx); }}
-              onDrop={(e) => {
+              onDragOver={(e: React.DragEvent) => { e.preventDefault(); if (dragSrc.current !== idx) setDragOverKey("work-" + idx); }}
+              onDrop={(e: React.DragEvent) => {
                 e.preventDefault();
                 if (dragSrc.current !== null && dragSrc.current !== idx) {
                   setArtworkList(prev => {
@@ -226,7 +237,7 @@ export function Works({
               }}
               onDragEnd={() => { dragSrc.current = null; setDragOverKey(null); }}
               style={{ outline: dragOverKey === "work-" + idx ? "2px solid var(--accent)" : "none" }}
-              onClick={() => setSelectedWorkId(work.id, "grid")}>
+              {...(editMode ? { onClick: () => setSelectedWorkId(work.id, "grid") } : {})}>
               <div className="relative aspect-[4/5] overflow-hidden bg-background shrink-0">
                 {editMode && <div className="absolute top-1.5 left-1.5 z-10 text-accent/60 cursor-grab"><GripVertical size={14} /></div>}
                 {editMode && (
@@ -259,7 +270,7 @@ export function Works({
                 </div>
                 <p className="text-xs text-muted-foreground hidden sm:block" style={MONO}>{lang === "ko" ? work.medium : (work.mediumEn || work.medium)}</p>
               </div>
-            </div>
+            </CardTag>
           );})}
           {editMode && <button onClick={addArtwork} className="group aspect-[4/5] bg-background border border-dashed border-border hover:border-accent transition-colors flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-accent"><Plus size={24} /><span className="text-xs tracking-widest" style={MONO}>{u.worksAdd}</span></button>}
         </div>
