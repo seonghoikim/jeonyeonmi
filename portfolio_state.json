@@ -1,6 +1,19 @@
 {
   "activity_photos": [
     {
+      "caption": "2026 크리에이티브X성수, 성수아트페어",
+      "captionEn": "2026 CreativeXSeongsu, Seongsu Art Fair",
+      "extraPhotoIds": [
+        1,
+        2,
+        7,
+        4,
+        5,
+        6
+      ],
+      "id": 16
+    },
+    {
       "caption": "거친 결로 다져온 시간 뒤, 가볍게 만개한 순간",
       "captionEn": "Time Hardened, Lightly in Bloom",
       "extraPhotoIds": [
@@ -1227,6 +1240,18 @@
   ],
   "exhibitions": [
     {
+      "activityId": 16,
+      "id": 16,
+      "location": "서울",
+      "locationEn": "Seoul",
+      "tag": "아트페어",
+      "title": "2026 크리에이티브X성수, 성수아트페어",
+      "titleEn": "2026 CreativeXSeongsu, Seongsu Art Fair",
+      "venue": "슈퍼패스트 서울숲",
+      "venueEn": "Superfast Seoul Forest",
+      "year": "2026.10"
+    },
+    {
       "activityId": 15,
       "id": 15,
       "location": "서울",
@@ -1455,6 +1480,20 @@
     "activity-15-5": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-15-5/179083167166568.webp",
     "activity-15-5-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-15-5-thumb/179083167222669.webp",
     "activity-15-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-15-thumb/179083166105646.webp",
+    "activity-16": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16/new-photo-1791459172222.jpg",
+    "activity-16-1": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-1/new-photo-1791459300386.jpg",
+    "activity-16-1-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-1-thumb/new-photo-1791459300339.jpg",
+    "activity-16-2": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-2/new-photo-1791459302661.jpg",
+    "activity-16-2-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-2-thumb/new-photo-1791459302611.jpg",
+    "activity-16-4": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-4/new-photo-1791459307111.jpg",
+    "activity-16-4-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-4-thumb/new-photo-1791459307081.jpg",
+    "activity-16-5": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-5/new-photo-1791459309266.jpg",
+    "activity-16-5-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-5-thumb/new-photo-1791459309179.jpg",
+    "activity-16-6": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-6/new-photo-1791459310793.jpg",
+    "activity-16-6-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-6-thumb/new-photo-1791459310631.jpg",
+    "activity-16-7": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-7/1791459346407.jpg",
+    "activity-16-7-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-7-thumb/1791459346476.jpg",
+    "activity-16-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-thumb/new-photo-1791459172075.jpg",
     "activity-2": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-2/179083163893016.webp",
     "activity-2-1": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-2-1/2026-contact-point-1786723866271.webp",
     "activity-2-1-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-2-1-thumb/1788617457416.webp",
@@ -1815,7 +1854,7 @@
       "id": 5
     }
   ],
-  "updated_at": "2026-10-08T03:15:21.045+00:00",
+  "updated_at": "2026-10-08T11:38:19.451+00:00",
   "videos": [
     {
       "description": "경주아트페어 작가 인터뷰 영상",
