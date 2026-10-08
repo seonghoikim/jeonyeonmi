@@ -270,7 +270,7 @@
       "series": "",
       "size": "33.4 x 24.2 cm",
       "title": "결연",
-      "titleEn": "",
+      "titleEn": "Gyeol-yeon",
       "year": "2026"
     },
     {
@@ -1651,8 +1651,8 @@
     "slide-4-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/slide-4-thumb/1788617262743.webp",
     "slide-5": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/slide-5/new-statement-1788621686718.webp",
     "slide-5-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/slide-5-thumb/new-statement-1788621686688.webp",
-    "slide-6": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/slide-6/new-statement-1790442337956.webp",
-    "slide-6-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/slide-6-thumb/new-statement-1790442337974.webp"
+    "slide-6": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/slide-6/it-s-okay-to-be-sad-and-it-s-okay-to-be-glad-1791429308986.webp",
+    "slide-6-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/slide-6-thumb/it-s-okay-to-be-sad-and-it-s-okay-to-be-glad-1791429308987.webp"
   },
   "press": [
     {
@@ -1773,6 +1773,13 @@
   },
   "slides": [
     {
+      "body": "내가 어디에서 작업의 영향을 받았는가 묻는다면, 그 시작은 남편의 한마디였다.\n“슬퍼해도 되고, 기쁠 때 기뻐해도 된다.”\n\n나는 오랫동안 울지 말라, 슬퍼하지 말라는 말에 길들여져 있었다. 그래서 눈물이 나도 소리 내어 울지 못하고, 기쁨조차 조심스레 숨기며 살아왔다. 감정을 드러내는 것은 늘 허용되지 않는 것 같았고, 그렇게 타인의 기준 속에서 나 자신을 잃어가고 있었다.\n\n그런데 남편의 그 말은 내 안의 단단한 족쇄를 풀어주었다. 나는 처음으로 슬픔을 있는 그대로 슬퍼하고, 기쁨을 있는 그대로 기뻐할 수 있다는 사실을 깨달았다. 감정을 억누르지 않고 받아들일 때, 비로소 나는 나 자신을 온전히 인정할 수 있었고, 타인의 틀에서 벗어나 나에게로 돌아올 수 있었다.\n\n그래서 나의 작업에는 모든 감정이 새겨진다. 기쁨도, 슬픔도, 두려움도, 기다림도. 그것들은 더 이상 감추어야 할 것이 아니라, 삶을 이루는 결이자 흔적이다. 나무껍질이 겹겹이 쌓여 나무를 단단하게 하듯, 내 감정의 결 또한 쌓이고 겹쳐 나를 만들고, 그것이 곧 내 작업의 뿌리가 된다.",
+      "bodyEn": "If you ask where my work’s influence comes from, it began with one sentence from my husband.\n“It’s okay to be sad, and it’s okay to be happy when you’re happy.”\n\nFor a long time, I had been trained by words like “don’t cry” and “don’t be sad.” So even when tears came, I couldn’t cry out loud, and I carefully hid even my joy. Showing emotion never seemed to be allowed, and in living by other people’s standards, I was losing myself.\n\nBut my husband’s words loosened a hard shackle inside me. For the first time, I realized I could be sad as sadness, and glad as gladness. When I accepted my feelings instead of suppressing them, I could finally fully acknowledge myself, step out of other people’s frames, and return to me.\n\nThat is why every emotion is engraved in my work: joy, sorrow, fear, waiting. They are no longer things to hide, but the grain and traces that make up a life. As layer upon layer of bark makes a tree sturdy, the grain of my emotions accumulates and overlaps to make me, and that has become the root of my work.",
+      "heading": "슬퍼해도 되고, 기뻐해도 된다\n",
+      "headingEn": "It’s Okay to Be Sad, and It’s Okay to Be Glad",
+      "id": 6
+    },
+    {
       "body": "우리는 모두 흰 결로 태어납니다.\n시간이 흐르며 그 위에 수많은 감정들이 겹겹이 스며듭니다.\n\n어떤 감정은 빠르게 스쳐 지나가고, \n어떤 기억은 오래도록 흔적을 남깁니다.\n​\n그렇게 나는 나만의 색을 가지게 되었습니다.\n겉으로는 잘 보이지 않을 수 있지만,\n그 결 위에는 내가 살아낸 시간들이 분명히 새겨져 있습니다.\n\n<아주 사적인 색>은 \n누구에게도 똑같을 수 없는,\n각자의 시간, 감정, 존재의 깊이에 대한 이야기입니다.",
       "bodyEn": "We are all born as a white texture. As time passes, countless emotions seep into it layer by layer. Some emotions quickly pass by, while some memories leave long-lasting traces. That is how I came to have my own unique color. Although it may not be easily visible on the outside, the times I have lived through are clearly engraved upon that texture. <A Color\\ Private Very> is a story about the depth of time, emotion, and existence of each individual, which can never be the exact same for anyone.",
       "heading": "아주 사적인 색",
@@ -1808,7 +1815,7 @@
       "id": 5
     }
   ],
-  "updated_at": "2026-10-05T00:06:21.06+00:00",
+  "updated_at": "2026-10-08T03:15:21.045+00:00",
   "videos": [
     {
       "description": "경주아트페어 작가 인터뷰 영상",
