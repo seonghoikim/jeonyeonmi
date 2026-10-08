@@ -10,6 +10,8 @@
    threshold we switch to keyword-based section selection instead of always
    sending everything. */
 
+import { ARTIST_NOTES } from "./curator-notes.ts";
+
 export type PortfolioRowForCurator = {
   content?: Record<string, string>;
   slides?: { heading: string; headingEn?: string; body: string; bodyEn?: string }[];
@@ -23,6 +25,7 @@ export type PortfolioRowForCurator = {
 export type CuratorSections = {
   profile: string;
   summary: string;
+  notes: string;
   statement: string;
   works: string;
   currentExhibitions: string;
@@ -171,6 +174,7 @@ export function buildSections(row: PortfolioRowForCurator, lang: "ko" | "en", to
   return {
     profile: profileLines.join("\n"),
     summary: wrap(tt("자료 요약 (자동 집계)", "Summary (auto-counted)"), factLines),
+    notes: wrap(tt("작가가 직접 들려준 추가 정보", "Additional notes from the artist"), isKo ? ARTIST_NOTES.ko : ARTIST_NOTES.en),
     statement: wrap(tt("작가노트", "Artist Statement"), statementLines),
     works: wrap(tt("작품 목록 (크기는 세로 x 가로)", "Selected Works (sizes are height x width)"), worksLines),
     currentExhibitions: wrap(tt("현재·예정 전시", "Current & Upcoming Exhibitions"), currentExLines),
@@ -198,7 +202,7 @@ const KEYWORDS: Record<"works" | "statement" | "currentExhibitions" | "history" 
 const FULL_SEND_CHAR_BUDGET = 40000;
 
 export function selectKnowledge(question: string, sections: CuratorSections): string {
-  const always = [sections.profile, sections.summary, sections.contact].filter(Boolean);
+  const always = [sections.profile, sections.summary, sections.notes, sections.contact].filter(Boolean);
   const optional: [keyof typeof KEYWORDS, string][] = [
     ["statement", sections.statement],
     ["works", sections.works],

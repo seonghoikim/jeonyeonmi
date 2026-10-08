@@ -237,3 +237,21 @@ describe("prompt date awareness", () => {
     expect(buildPrompt("next show?", "REF", "", "en", "2026-09-30")).toContain("Today's date: 2026-09-30");
   });
 });
+
+describe("artist notes", () => {
+  it("are part of the knowledge in both languages and say what the docent could not answer before", () => {
+    const ko = selectKnowledge("가장 먼저 제작한 작품이 뭐예요?", buildSections(row, "ko"));
+    expect(ko).toContain("작가가 직접 들려준 추가 정보");
+    expect(ko).toContain("가장 먼저 만든 작품은 〈흰 결〉");
+    expect(ko).toContain("SNS 연락처");
+    expect(ko).toContain("남편의 한마디");
+    const en = selectKnowledge("Where did the work begin?", buildSections(row, "en"));
+    expect(en).toContain("Additional notes from the artist");
+    expect(en).toContain("one sentence from my husband");
+  });
+  it("survive keyword-picking when the knowledge base is large", () => {
+    const big = { ...row, artworks: Array.from({ length: 400 }, (_, i) => ({ title: `작품${i}`, titleEn: `Work${i}`, year: "2026", medium: "한지", size: "1F", category: "회화", description: "긴 설명 ".repeat(20) })) };
+    const k = selectKnowledge("언론 보도 기사 알려줘", buildSections(big, "ko"));
+    expect(k).toContain("작가가 직접 들려준 추가 정보");
+  });
+});
