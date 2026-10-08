@@ -18,6 +18,7 @@ const MARGIN_RIGHT = 22;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
 const PT_TO_MM = 0.352778;
 const IMAGE_BOX_HEIGHT = 50;
+const PDF_IMAGE_MAX_PX = 640;
 // Works are drawn as a single bordered card enclosing both the photo and its caption
 // (title/meta/tag) rather than a border around the photo alone — a border that stops
 // at the photo but leaves the caption floating below it read as disconnected from what
@@ -91,15 +92,19 @@ async function fetchImageAsDataUrl(url: string): Promise<{ dataUrl: string; widt
     // carry an alpha channel around the artwork, and flattening straight to JPEG (no
     // alpha support) would otherwise default any transparent pixels to black instead
     // of white, which is what was showing up as a black backdrop around the works.
+    // Each photo is drawn into a box at most ~80x50mm on the page, so ~640px on the long side
+    // is already ~200dpi. Embedding the full 900px thumbnails at q0.9 made a 9.5MB PDF that was
+    // slow to build and heavy to save/share from a phone; this keeps it around a third of that.
+    const scale = Math.min(1, PDF_IMAGE_MAX_PX / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement("canvas");
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
     const ctx = canvas.getContext("2d")!;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bitmap, 0, 0);
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close();
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
     return { dataUrl, width: canvas.width, height: canvas.height };
   } catch (err) {
     console.error("[Portfolio PDF] failed to load image:", url, err);
