@@ -153,7 +153,7 @@ export function Exhibitions({
                         {lang === "ko" ? ex.title : (ex.titleEn || ex.title)}
                       </p>
                       <p className="lg:hidden text-xs text-muted-foreground mt-0.5">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>
-                      {ex.award && <p className="text-xs text-yellow-500 mt-0.5">{lang === "ko" ? ex.award : (ex.awardEn || ex.award)}</p>}
+                      {ex.award && <p className="text-xs text-[#d9b08c] mt-0.5">◆ {lang === "ko" ? ex.award : (ex.awardEn || ex.award)}</p>}
                     </div>
                     <div className="hidden lg:block col-span-3">
                       <p className="text-xs text-muted-foreground">{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>

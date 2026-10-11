@@ -27,8 +27,32 @@ export function moveInFiltered<T extends { id: number | string }>(
   return moveItem(full, fromFullIdx, toFullIdx);
 }
 
+/* ─── exhibition status from dates ─────────────────────── */
+// The status shown to visitors is derived from the dates (Korea time), so a show that
+// ended yesterday stops saying "진행중" without anyone editing it. The stored status is
+// only a fallback for entries whose dates can't be read (e.g. "미정").
+export type ExStatus = "예정" | "진행중" | "지난전시";
+const kstToday = (now = Date.now()) => new Date(now + 9 * 3600 * 1000).toISOString().slice(0, 10);
+const toIsoDate = (s?: string) => {
+  const m = String(s ?? "").match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  return m ? `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}` : null;
+};
+export function isStatusFromDates(e: { startDate: string; endDate: string }): boolean {
+  return !!toIsoDate(e.startDate);
+}
+export function exStatus(e: { startDate: string; endDate: string; status: ExStatus }, today = kstToday()): ExStatus {
+  const start = toIsoDate(e.startDate);
+  const end = toIsoDate(e.endDate) ?? start;
+  if (!start || !end) return e.status;
+  if (end < today) return "지난전시";
+  if (start > today) return "예정";
+  return "진행중";
+}
+
 /* ─── font helpers ───────────────────────────────────── */
-export const MONO = { fontFamily: "'DM Mono', monospace" };
+// DM Mono has no Hangul — without a Korean fallback, Korean labels set in MONO fell through
+// to the OS monospace font (굴림체-like on Windows).
+export const MONO = { fontFamily: "'DM Mono', 'Noto Sans KR', monospace" };
 // Heading: same family as body but ultra-light + wide tracking for distinction
 export const serifOf = (lang: Lang) =>
   lang === "ko"
@@ -72,11 +96,13 @@ export type ContentKey = keyof typeof initContent;
 export type ExBaseTag = "개인전" | "단체전" | "아트페어";
 export const EX_BASE_TAG_ORDER: readonly ExBaseTag[] = ["개인전", "단체전", "아트페어"];
 export const EX_BASE_TAG_STYLE: Record<ExBaseTag, string> = {
+  // Earth tones taken from the work itself (burnt terracotta, sand, ash) — told apart by
+  // lightness and line style rather than unrelated hues. 개인전 is the only filled-strength accent.
   개인전: "border-accent text-accent",
-  단체전: "border-purple-500/60 text-purple-400",
-  아트페어: "border-blue-500/60 text-blue-400",
+  단체전: "border-[#9d9384]/60 text-[#bdb3a3]",
+  아트페어: "border-[#c9a27a]/60 text-[#c9a27a]",
 };
-export const EX_COMPETITION_STYLE = "border-green-600/60 text-green-500";
+export const EX_COMPETITION_STYLE = "border-dashed border-[#9d9384]/70 text-[#bdb3a3]";
 // A handful of older/imported entries carry a tag string that doesn't exactly match
 // one of the three known categories (stray whitespace, a pre-validation value, etc.);
 // both helpers fall back to 단체전 for those instead of silently rendering with no
@@ -178,6 +204,7 @@ export const UI = {
     inquirySend: "메일 보내기", inquiryHint: "이메일 앱이 열립니다",
     inquiryRequired: "이름과 이메일을 입력해주세요",
     inquiryOtherWays: "다른 연락 방법 보기", inquiryBack: "← 폼으로 돌아가기",
+    inquiryInstagram: "인스타그램 DM으로 문의", inquiryCopied: "작품 정보를 복사했어요. DM 창에 붙여넣어 보내 주세요.", inquiryOrEmail: "또는 이메일로",
     contactEditDisplay: "표시 텍스트", contactEditHref: "링크 URL",
     editLabel: "편집", editDone: "완료", editBanner: "편집 모드 — 항목을 클릭해 수정하세요",
     pwTitle: "편집 모드 잠금 해제", pwPlaceholder: "비밀번호 입력",
@@ -228,6 +255,7 @@ export const UI = {
     inquirySend: "Send Email", inquiryHint: "Opens your email app",
     inquiryRequired: "Please enter your name and email",
     inquiryOtherWays: "Other ways to contact", inquiryBack: "← Back to form",
+    inquiryInstagram: "Message on Instagram", inquiryCopied: "Artwork details copied — paste them into your DM.", inquiryOrEmail: "or by email",
     contactEditDisplay: "Display text", contactEditHref: "Link URL",
     editLabel: "Edit", editDone: "Done", editBanner: "Edit Mode — click items to edit",
     pwTitle: "Unlock Edit Mode", pwPlaceholder: "Enter password",

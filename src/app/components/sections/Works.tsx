@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
-import { Plus, GripVertical, ArrowUpRight, Trash2, Edit3, Check, Upload, Maximize2, X, AlignLeft, ChevronRight } from "lucide-react";
+import { Plus, GripVertical, ArrowUpRight, Trash2, Edit3, Check, Upload, Maximize2, X, AlignLeft, ChevronRight, ChevronLeft } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, moveInFiltered, hSize, artworkSlug, type Artwork, type Series } from "../../data";
 import { useModalLock } from "../../useModalLock";
@@ -58,9 +58,22 @@ export function Works({
   const [inquiryEmail, setInquiryEmail] = useState("");
   const [inquiryMessage, setInquiryMessage] = useState("");
   const [inquiryError, setInquiryError] = useState("");
-  const closeInquiry = () => { setShowInquiry(false); setShowOtherContacts(false); setInquiryName(""); setInquiryEmail(""); setInquiryMessage(""); setInquiryError(""); };
+  const closeInquiry = () => { setDmCopied(false); setShowInquiry(false); setShowOtherContacts(false); setInquiryName(""); setInquiryEmail(""); setInquiryMessage(""); setInquiryError(""); };
   const inquiryRef = useModalLock<HTMLDivElement>(showInquiry, closeInquiry);
   const visibleContacts = contactItems.filter((item) => item.visible);
+  // Instagram is where the artist actually answers, and mailto: often does nothing inside the
+  // KakaoTalk/Instagram in-app browsers most visitors arrive from — so DM comes first.
+  const instagram = visibleContacts.find((item) => item.type === "instagram");
+  const [dmCopied, setDmCopied] = useState(false);
+  const inquireOnInstagram = () => {
+    if (!instagram || !selectedWork) return;
+    const title = lang === "ko" ? selectedWork.title : (selectedWork.titleEn || selectedWork.title);
+    const url = `${window.location.origin}${lang === "en" ? "/en" : ""}/works/${artworkSlug(selectedWork)}`;
+    const text = `${lang === "ko" ? "[작품 문의]" : "[Artwork inquiry]"} ${title} (${selectedWork.year}) ${url}`;
+    navigator.clipboard?.writeText(text).then(() => setDmCopied(true), () => {});
+    track("inquiry_instagram", { work: title });
+    window.open(safeHref(instagram.href), "_blank", "noopener,noreferrer");
+  };
   const artistEmail = contactItems.find((item) => item.type === "email")?.display ?? "";
 
   // Collapses the grid to ~4 rows on mobile (2 cols) / ~3 rows on desktop (3 cols)
@@ -120,11 +133,23 @@ export function Works({
     const dx = e.changedTouches[0].clientX - start.x;
     const dy = e.changedTouches[0].clientY - start.y;
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    const idx = filteredWorks.findIndex((w) => w.id === selectedWorkId);
-    if (idx === -1) return;
-    const nextIdx = idx + (dx < 0 ? 1 : -1);
+    goWork(dx < 0 ? 1 : -1, "swipe");
+  };
+  // Previous/next within the current series filter — swipe on mobile, ‹ › buttons and the
+  // arrow keys everywhere (desktop visitors previously had to close and reopen each work).
+  const modalIdx = filteredWorks.findIndex((w) => w.id === selectedWorkId);
+  const goWork = (delta: number, source: string) => {
+    if (modalIdx === -1) return;
+    const nextIdx = modalIdx + delta;
     if (nextIdx < 0 || nextIdx >= filteredWorks.length) return;
-    setSelectedWorkId(filteredWorks[nextIdx].id, "swipe");
+    setSelectedWorkId(filteredWorks[nextIdx].id, source);
+  };
+  const handleModalKeyDown = (e: React.KeyboardEvent) => {
+    if (editMode || showInquiry) return;
+    const t = e.target as HTMLElement;
+    if (t.tagName === "INPUT" || t.tagName === "TEXTAREA") return;
+    if (e.key === "ArrowRight") { e.preventDefault(); goWork(1, "key"); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); goWork(-1, "key"); }
   };
 
   return (
@@ -238,7 +263,7 @@ export function Works({
               onDragEnd={() => { dragSrc.current = null; setDragOverKey(null); }}
               style={{ outline: dragOverKey === "work-" + idx ? "2px solid var(--accent)" : "none" }}
               {...(editMode ? { onClick: () => setSelectedWorkId(work.id, "grid") } : {})}>
-              <div className="relative aspect-[4/5] overflow-hidden bg-background shrink-0">
+              <div className="relative aspect-[4/5] overflow-hidden bg-black/20 shrink-0">
                 {editMode && <div className="absolute top-1.5 left-1.5 z-10 text-accent/60 cursor-grab"><GripVertical size={14} /></div>}
                 {editMode && (
                   <ReorderButtons
@@ -250,15 +275,10 @@ export function Works({
                   />
                 )}
                 {imgThumb(`artwork-${work.id}`)
-                  ? <img src={imgThumb(`artwork-${work.id}`)!} alt={lang === "ko" ? work.title : (work.titleEn || work.title)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" decoding="async" />
+                  ? <img src={imgThumb(`artwork-${work.id}`)!} alt={lang === "ko" ? work.title : (work.titleEn || work.title)} className="w-full h-full object-contain p-3 sm:p-5" loading="lazy" decoding="async" />
                   : <img src="/work-placeholder-v2.svg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />}
-                <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-all duration-500" />
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"><ArrowUpRight size={16} className="text-foreground" /></div>
                 {editMode && <button onClick={(e) => { e.stopPropagation(); deleteWork(work.id); }} aria-label={u.worksDelete} className="absolute top-3 left-3 bg-background/80 hover:bg-background text-foreground p-2 transition-all"><Trash2 size={14} /></button>}
-                <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
-                  {work.series && (() => { const s = seriesList.find((s) => s.name === work.series); const label = lang === "ko" ? work.series : (s?.nameEn ?? work.series); return <span className="text-xs px-2 py-0.5 bg-background/70 text-muted-foreground" style={MONO}>{label}</span>; })()}
-                  {work.collected && <span className="text-xs px-2 py-0.5 bg-accent/90 text-accent-foreground ml-auto" style={MONO}>{u.worksCollected}</span>}
-                </div>
               </div>
               <div className="p-3 sm:p-5 flex flex-col gap-1">
                 <div className="flex justify-between items-baseline gap-2">
@@ -268,7 +288,12 @@ export function Works({
                   </h3>
                   <span className="text-xs text-accent shrink-0" style={MONO}>{work.year}</span>
                 </div>
-                <p className="text-xs text-muted-foreground hidden sm:block" style={MONO}>{lang === "ko" ? work.medium : (work.mediumEn || work.medium)}</p>
+                {/* Size on every card — a 16×22cm piece and a 117×243cm one otherwise look the same.
+                    Series/collected used to sit as badges on top of the artwork; they're captions now. */}
+                <p className="text-xs text-muted-foreground" style={MONO}>
+                  <span className="hidden sm:inline">{lang === "ko" ? work.medium : (work.mediumEn || work.medium)} · </span>{work.size.replace(/\s*[x×]\s*/g, " × ").replace(/\s{2,}/g, " ")}
+                </p>
+                {work.collected && <p className="text-xs text-accent flex items-center gap-1.5" style={MONO}><span className="w-1.5 h-1.5 rounded-full bg-accent" />{u.worksCollected}</p>}
               </div>
             </CardTag>
           );})}
@@ -279,7 +304,8 @@ export function Works({
             <button onClick={() => setWorksExpanded((p) => !p)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors" style={MONO}>
               <span className="w-4 h-px bg-muted-foreground/40" />
               {worksExpanded ? u.worksShowLess : u.worksShowMore}
-              <span className="text-muted-foreground/70">({filteredWorks.length - WORKS_MOBILE_LIMIT})</span>
+              <span className="text-muted-foreground/70 lg:hidden">({filteredWorks.length - WORKS_MOBILE_LIMIT})</span>
+              {filteredWorks.length > WORKS_DESKTOP_LIMIT && <span className="text-muted-foreground/70 hidden lg:inline">({filteredWorks.length - WORKS_DESKTOP_LIMIT})</span>}
               <ChevronRight size={12} className={`transition-transform duration-200 ${worksExpanded ? "rotate-90" : ""}`} />
             </button>
           </div>
@@ -288,9 +314,16 @@ export function Works({
 
       {/* ── ARTWORK MODAL ── */}
       {selectedWork && (
-        <div ref={modalRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={lang === "ko" ? selectedWork.title : selectedWork.titleEn} className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-8 outline-none" onClick={() => setSelectedWorkId(null)} onTouchStart={handleModalTouchStart} onTouchEnd={handleModalTouchEnd}>
+        <div ref={modalRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={lang === "ko" ? selectedWork.title : selectedWork.titleEn} className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-8 outline-none" onClick={() => setSelectedWorkId(null)} onKeyDown={handleModalKeyDown} onTouchStart={handleModalTouchStart} onTouchEnd={handleModalTouchEnd}>
+          {!editMode && modalIdx > 0 && (
+            <button onClick={(e) => { e.stopPropagation(); goWork(-1, "button"); }} aria-label={u.navPrev} className="absolute left-1 sm:left-4 top-40 sm:top-1/2 -translate-y-1/2 z-20 bg-card/85 border border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 p-2.5 sm:p-3 transition-colors"><ChevronLeft size={20} /></button>
+          )}
+          {!editMode && modalIdx !== -1 && modalIdx < filteredWorks.length - 1 && (
+            <button onClick={(e) => { e.stopPropagation(); goWork(1, "button"); }} aria-label={u.navNext} className="absolute right-1 sm:right-4 top-40 sm:top-1/2 -translate-y-1/2 z-20 bg-card/85 border border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 p-2.5 sm:p-3 transition-colors"><ChevronRight size={20} /></button>
+          )}
           <div className="relative max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 bg-card max-h-[95dvh] overflow-y-auto hide-sb" onClick={(e) => e.stopPropagation()}>
             <button className="absolute top-2 right-2 z-10 bg-card/80 text-muted-foreground hover:text-foreground p-2.5 transition-colors" onClick={() => setSelectedWorkId(null)} aria-label={u.lbClose}><X size={18} /></button>
+            {!editMode && modalIdx !== -1 && filteredWorks.length > 1 && <span className="absolute top-4 right-14 z-10 text-xs text-muted-foreground" style={MONO} aria-live="polite">{modalIdx + 1} / {filteredWorks.length}</span>}
             {/* image panel */}
             <div className={`relative bg-background overflow-hidden flex items-center justify-center ${editMode ? "cursor-pointer" : ""}`} style={{ minHeight: "260px", maxHeight: "min(60vh, 560px)" }} onClick={() => editMode && triggerUpload(`artwork-${selectedWork.id}`, selectedWork.titleEn)}>
               {img(`artwork-${selectedWork.id}`) || selectedWork.image
@@ -393,18 +426,27 @@ export function Works({
           <div className="w-full max-w-sm bg-card border border-border" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <span id="inquiry-modal-title" className="text-xs tracking-widest text-muted-foreground" style={MONO}>{u.inquiryTitle}</span>
-              <button onClick={closeInquiry} aria-label={u.lbClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
+              <button onClick={closeInquiry} aria-label={u.lbClose} className="text-muted-foreground hover:text-foreground p-2 -m-2"><X size={16} /></button>
             </div>
             {!showOtherContacts ? (
               <div className="p-4 space-y-3">
                 {selectedWork && (
                   <p className="text-xs text-muted-foreground">{u.inquiryArtwork}: <span className="text-foreground">{lang === "ko" ? selectedWork.title : selectedWork.titleEn}</span></p>
                 )}
+                {instagram && (
+                  <>
+                    <button onClick={inquireOnInstagram} className="w-full flex items-center justify-center gap-2 bg-accent text-accent-foreground text-xs tracking-widest py-3 hover:bg-accent/90 transition-colors" style={MONO}>
+                      {contactIcon("instagram")}{u.inquiryInstagram}
+                    </button>
+                    {dmCopied && <p className="text-xs text-accent text-center" role="status">{u.inquiryCopied}</p>}
+                    <p className="text-xs text-muted-foreground text-center pt-1" style={MONO}>— {u.inquiryOrEmail} —</p>
+                  </>
+                )}
                 <input value={inquiryName} onChange={(e) => { setInquiryName(e.target.value); setInquiryError(""); }} placeholder={u.inquiryNamePh} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground outline-none py-1" />
                 <input value={inquiryEmail} onChange={(e) => { setInquiryEmail(e.target.value); setInquiryError(""); }} type="email" placeholder={u.inquiryEmailPh} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground outline-none py-1" />
                 <textarea value={inquiryMessage} onChange={(e) => setInquiryMessage(e.target.value)} rows={3} placeholder={u.inquiryMessagePh} className="w-full bg-transparent border-b border-dashed border-accent/60 text-sm text-foreground outline-none py-1 resize-none" />
                 {inquiryError && <p className="text-xs text-red-400">{inquiryError}</p>}
-                <button onClick={submitInquiry} className="w-full bg-accent text-accent-foreground text-xs tracking-widest py-2.5 hover:bg-accent/90 transition-colors" style={MONO}>{u.inquirySend}</button>
+                <button onClick={submitInquiry} className={`w-full text-xs tracking-widest py-2.5 transition-colors ${instagram ? "border border-border text-foreground hover:border-accent hover:text-accent" : "bg-accent text-accent-foreground hover:bg-accent/90"}`} style={MONO}>{u.inquirySend}</button>
                 <p className="text-xs text-muted-foreground text-center">{u.inquiryHint}</p>
                 {visibleContacts.length > 0 && (
                   <button onClick={() => setShowOtherContacts(true)} className="w-full text-xs text-muted-foreground hover:text-accent transition-colors text-center pt-1" style={MONO}>{u.inquiryOtherWays}</button>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { artworkIdFromSlug, artworkSlug, moveInFiltered, moveItem, swapSizeOrder } from "../src/app/data";
+import { artworkIdFromSlug, artworkSlug, exStatus, isStatusFromDates, moveInFiltered, moveItem, swapSizeOrder } from "../src/app/data";
 import { artworkIdFromSlug as apiIdFromSlug, artworkSlug as apiSlug, buildSitemap, injectWorkMeta } from "../api/_seoLib.js";
 
 describe("moveItem / moveInFiltered", () => {
@@ -123,5 +123,20 @@ describe("swapSizeOrder", () => {
   it("leaves strings without a pair alone and is reversible", () => {
     expect(swapSizeOrder("가변크기")).toBe("가변크기");
     expect(swapSizeOrder(swapSizeOrder("22  x 16 cm"))).toBe("22  x 16 cm");
+  });
+});
+
+describe("exStatus (shown exhibition status comes from the dates)", () => {
+  const ex = (startDate: string, endDate: string, status: "예정" | "진행중" | "지난전시" = "예정") => ({ startDate, endDate, status });
+  it("past / ongoing (first and last day inclusive) / upcoming", () => {
+    expect(exStatus(ex("2026.10.02", "2026.10.11", "진행중"), "2026-10-12")).toBe("지난전시");
+    expect(exStatus(ex("2026.10.02", "2026.10.11"), "2026-10-11")).toBe("진행중");
+    expect(exStatus(ex("2026.10.14", "2026.10.19"), "2026-10-14")).toBe("진행중");
+    expect(exStatus(ex("2026.10.14", "2026.10.19", "진행중"), "2026-10-13")).toBe("예정");
+  });
+  it("falls back to the stored status when the dates can't be read", () => {
+    expect(exStatus(ex("미정", "", "진행중"), "2026-10-12")).toBe("진행중");
+    expect(isStatusFromDates(ex("미정", ""))).toBe(false);
+    expect(isStatusFromDates(ex("2026-11-18", "2026-11-25"))).toBe(true);
   });
 });

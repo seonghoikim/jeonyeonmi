@@ -126,6 +126,9 @@
 
   body {
     @apply bg-background text-foreground;
+    /* Korean: wrap between words (어절), never mid-word ("존/재로서", "바랍/니다"). */
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
 
   /* Keyboard focus ring — visible only for keyboard navigation, not mouse/touch taps. */

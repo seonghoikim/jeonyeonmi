@@ -2,7 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, laz
 import { loadPortfolio, savePortfolio, uploadImage, backfillThumbnail, loginEditor, translateTexts, unfurlPress, subscribePortfolio, isSupabaseReady, type PortfolioRow } from "../lib/supabase";
 import { Menu, X, Edit3, Check, Languages, Instagram } from "lucide-react";
 import {
-  MONO, serifOf, sansOf, hSize, GLOBAL_CSS, artworkSlug, artworkIdFromSlug, swapSizeOrder,
+  MONO, serifOf, sansOf, hSize, GLOBAL_CSS, artworkSlug, artworkIdFromSlug, swapSizeOrder, exStatus,
   initContent, UI, initCurrentEx, initSeries, initArtworks, initSlides, initExhibitions, initActivityPhotos, initVideos, initContacts, initPress,
   normalizeExhibitionEntry, normalizeCurrentExhibition,
   type Lang, type ContentKey, type CurrentExhibition, type Artwork, type Series, type Slide, type ExhibitionEntry, type ActivityPhoto, type VideoEntry, type ContactItem, type PressEntry,
@@ -39,10 +39,14 @@ const CuratorWidget = lazy(() => import("./components/sections/CuratorWidget").t
 // new component function each time, which made React unmount/remount the underlying
 // <input>/<textarea> on every keystroke and drop focus/cursor position.
 function InlineField({ field, multi = false, rows = 3, className = "" }: { field: ContentKey; multi?: boolean; rows?: number; className?: string; }) {
-  const { content, lang, editMode, updateContent, SANS } = usePortfolioContext();
+  const { content, lang, editMode, updateContent, SANS, sectionNo } = usePortfolioContext();
   const enKey = (field + "En") as ContentKey;
   const af: ContentKey = lang === "en" && enKey in content ? enKey : field;
-  const val = content[af] ?? "";
+  let val = content[af] ?? "";
+  // Section eyebrows ("03 — 작가노트") carry a typed-in number that drifted from the actual
+  // on-screen order (01 → 03 → 02 …); number them by position instead, keeping the label text.
+  const no = editMode ? null : sectionNo(field);
+  if (no) val = val.replace(/^\s*\d+\s*[—–-]\s*/, (m) => (m ? `${String(no).padStart(2, "0")} — ` : m));
   // Same untranslated-field-shows-blank issue as c() below — only for display;
   // edit mode still shows the raw (possibly empty) field so a missing translation
   // stays visibly obvious to whoever is editing it.
@@ -213,6 +217,8 @@ export default function App() {
     if (!isSupabaseReady) { setIsLoading(false); return; }
     loadPortfolio().then((row) => {
       if (!row) { loadFailedRef.current = true; setLoadError(true); setIsLoading(false); return; }
+      // Showing the build-time copy: real content, but never let it be saved back over the DB.
+      if ("__fallback" in row) { loadFailedRef.current = true; setLoadFromCopy(true); }
       if (row.content && Object.keys(row.content).length > 0) setContent((p) => ({ ...p, ...row.content }));
       if ((row.current_exhibitions as CurrentExhibition[])?.length) setCurrentExList((row.current_exhibitions as CurrentExhibition[]).map(normalizeCurrentExhibition));
       if ((row.artworks as Artwork[])?.length) setArtworkList(row.artworks as Artwork[]);
@@ -236,7 +242,9 @@ export default function App() {
       if (row.settings?.sizeOrderFixed) setSizeOrderFixed(row.settings.sizeOrderFixed === "true");
       if (row.image_urls && Object.keys(row.image_urls).length > 0) {
         setImageUrls(row.image_urls);
-        const heroUrl = row.image_urls.hero;
+        // Only needed to size the single-image hero; the thumbnail has the same proportions
+        // (the 515KB original used to be fetched on every visit even while rotation was on).
+        const heroUrl = row.settings?.heroRotate === "true" ? null : (row.image_urls["hero-thumb"] || row.image_urls.hero);
         if (heroUrl) { const i = new window.Image(); i.onload = () => setHeroAspectRatio(i.naturalWidth / i.naturalHeight); i.src = heroUrl; }
       }
       if (row.updated_at) lastUpdatedAtRef.current = row.updated_at;
@@ -252,6 +260,7 @@ export default function App() {
   // The initial load failed, so on-screen content is the built-in sample data —
   // never let that be saved over the real row.
   const [loadError, setLoadError] = useState(false);
+  const [loadFromCopy, setLoadFromCopy] = useState(false);
   const loadFailedRef = useRef(false);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -385,7 +394,7 @@ export default function App() {
     if (row.settings?.sizeOrderFixed) setSizeOrderFixed(row.settings.sizeOrderFixed === "true");
     if (row.image_urls && Object.keys(row.image_urls).length > 0) {
       setImageUrls(row.image_urls);
-      const heroUrl = row.image_urls.hero;
+      const heroUrl = row.settings?.heroRotate === "true" ? null : (row.image_urls["hero-thumb"] || row.image_urls.hero);
       if (heroUrl) { const i = new window.Image(); i.onload = () => setHeroAspectRatio(i.naturalWidth / i.naturalHeight); i.src = heroUrl; }
     }
     if (row.updated_at) lastUpdatedAtRef.current = row.updated_at;
@@ -932,6 +941,10 @@ export default function App() {
   // Each item owns its own click behavior — most scroll to a section, but the
   // portfolio entry opens a modal instead, so the list holds real actions rather
   // than ids that every consumer would otherwise have to assume are scroll targets.
+  // Order the sections actually appear in on the page (press hides itself when empty).
+  const sectionLabelOrder = ["s01label", "s03label", "s02label", "s04label", ...(pressList.length > 0 ? ["s08label"] : []), "s05label", "s06label", "s07label"];
+  const sectionNo = (field: string) => { const i = sectionLabelOrder.indexOf(field); return i === -1 ? null : i + 1; };
+
   const navItems: { key: string; label: string; onClick: () => void }[] = [
     { key: "hero", label: u.navHome, onClick: () => scrollTo("hero") },
     { key: "current-exhibitions", label: u.navCurrent, onClick: () => scrollTo("current-exhibitions") },
@@ -948,7 +961,7 @@ export default function App() {
 
   const contextValue: PortfolioContextValue = {
     lang, u, MONO, SERIF, SANS, hSize,
-    content, updateContent, c, C: InlineField,
+    content, updateContent, c, C: InlineField, sectionNo,
     editMode, img, imgThumb, uploadingTarget,
     dragSrc, dragOverKey, setDragOverKey,
     scrollTo, scrollToActivity, triggerUpload, openLightbox,
@@ -1114,6 +1127,15 @@ export default function App() {
           </div>
         )}
 
+        {loadFromCopy && !loadError && (
+          <div role="status" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[70] w-[92vw] max-w-md bg-card border border-border shadow-2xl px-4 py-3 flex items-center justify-between gap-3">
+            <span className="text-xs text-foreground/90 leading-relaxed">
+              {lang === "ko" ? "지금 연결이 원활하지 않아 저장해 둔 내용을 보여드리고 있어요. 일부 이미지가 안 보일 수 있어요." : "We're having trouble connecting, so you're seeing a saved copy. Some images may not load."}
+            </span>
+            <button onClick={() => setLoadFromCopy(false)} aria-label={u.lbClose} className="shrink-0 text-muted-foreground hover:text-foreground p-2 -m-2"><X size={16} /></button>
+          </div>
+        )}
+
         <main id="main-content" tabIndex={-1} className="outline-none">
         <Hero
           heroAspectRatio={heroAspectRatio}
@@ -1137,7 +1159,7 @@ export default function App() {
             slides={slides}
             artworks={artworkList}
             seriesList={seriesList}
-            current={currentExList.filter((ex) => ex.status !== "지난전시" && ex.visible)}
+            current={currentExList.filter((ex) => exStatus(ex) !== "지난전시" && ex.visible)}
             history={exhibitionList}
             press={pressList}
           />
