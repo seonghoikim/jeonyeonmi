@@ -13,6 +13,8 @@ export type PortfolioContextValue = {
   updateContent: (field: ContentKey, value: string) => void;
   c: (field: string) => string;
   C: (props: { field: ContentKey; multi?: boolean; rows?: number; className?: string }) => ReactElement;
+  /** On-screen position (1-based) of a section's eyebrow label, e.g. "s03label" -> 2. */
+  sectionNo: (field: string) => number | null;
   editMode: boolean;
   img: (key: string) => string | null;
   imgThumb: (key: string) => string | null;

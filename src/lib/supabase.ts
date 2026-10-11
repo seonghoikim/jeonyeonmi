@@ -216,11 +216,24 @@ export async function loadPortfolio(): Promise<Partial<PortfolioRow> | null> {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/portfolio_state?id=eq.1&select=*`, {
       headers: { apikey: publicAnonKey, Authorization: `Bearer ${publicAnonKey}` },
     });
-    if (!res.ok) { console.error("[DB] load error:", res.status); return null; }
+    if (!res.ok) { console.error("[DB] load error:", res.status); return loadFallback(); }
     const rows = (await res.json()) as PortfolioRow[];
     return rows[0] ?? {};
   } catch (err) {
     console.error("[DB] load threw:", err);
+    return loadFallback();
+  }
+}
+
+// Build-time copy of the content (scripts/write-fallback-snapshot.mjs), served by Vercel.
+// Marked so the app can block editing and say it's showing a saved copy.
+async function loadFallback(): Promise<(Partial<PortfolioRow> & { __fallback: true }) | null> {
+  try {
+    const res = await fetch("/portfolio-fallback.json", { cache: "no-store" });
+    if (!res.ok) return null;
+    const row = (await res.json()) as Partial<PortfolioRow>;
+    return { ...row, __fallback: true };
+  } catch {
     return null;
   }
 }

@@ -1,6 +1,6 @@
 import { Plus, Upload, GripVertical, Eye, EyeOff, Edit3, Check, Trash2, ArrowUpRight, ChevronRight, MapPin } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
-import { moveItem, moveInFiltered, hSize, EX_BASE_TAG_ORDER, exBaseTagStyle, exBaseTagLabel, EX_COMPETITION_STYLE, type CurrentExhibition } from "../../data";
+import { moveItem, moveInFiltered, hSize, exStatus, isStatusFromDates, EX_BASE_TAG_ORDER, exBaseTagStyle, exBaseTagLabel, EX_COMPETITION_STYLE, type CurrentExhibition } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
 import { trackEvent } from "../../analytics";
 import { safeHref } from "../../safeHref";
@@ -28,11 +28,11 @@ export function CurrentExhibitions({
   const { lang, u, MONO, SERIF, editMode, imgThumb, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, scrollTo, triggerUpload, C } = usePortfolioContext();
 
   const activeList = editMode
-    ? currentExList.filter((e) => e.status !== "지난전시")
-    : currentExList.filter((e) => e.status !== "지난전시" && e.visible);
+    ? currentExList.filter((e) => exStatus(e) !== "지난전시")
+    : currentExList.filter((e) => exStatus(e) !== "지난전시" && e.visible);
   const pastList = editMode
-    ? currentExList.filter((e) => e.status === "지난전시")
-    : currentExList.filter((e) => e.status === "지난전시" && e.visible);
+    ? currentExList.filter((e) => exStatus(e) === "지난전시")
+    : currentExList.filter((e) => exStatus(e) === "지난전시" && e.visible);
 
   return (
     <section id="current-exhibitions" className="py-16 sm:py-20 border-t border-border">
@@ -51,8 +51,9 @@ export function CurrentExhibitions({
           {activeList.map((ex, idx) => {
             const isEditing = editMode && editingCurrentId === ex.id;
             const exImg = imgThumb(`current-${ex.id}`);
-            const statusLabel = ex.status === "진행중" ? u.statusOngoing : u.statusUpcoming;
-            const statusCls = ex.status === "진행중" ? "bg-accent text-accent-foreground" : "bg-background/90 border border-border text-muted-foreground";
+            const shownStatus = exStatus(ex);
+            const statusLabel = shownStatus === "진행중" ? u.statusOngoing : u.statusUpcoming;
+            const statusCls = shownStatus === "진행중" ? "bg-accent text-accent-foreground" : "bg-background/90 border border-border text-muted-foreground";
             return (
               <div key={ex.id}
                 draggable={editMode}
@@ -62,7 +63,7 @@ export function CurrentExhibitions({
                   e.preventDefault();
                   if (dragSrc.current !== null && dragSrc.current !== idx) {
                     setCurrentExList(prev => {
-                      const filtered = editMode ? prev.filter(e => e.status !== "지난전시") : prev.filter(e => e.status !== "지난전시" && e.visible);
+                      const filtered = editMode ? prev.filter(e => exStatus(e) !== "지난전시") : prev.filter(e => e.status !== "지난전시" && e.visible);
                       const full = [...prev];
                       const fromId = filtered[dragSrc.current!].id;
                       const toId = filtered[idx].id;
@@ -109,10 +110,16 @@ export function CurrentExhibitions({
                     <div className="space-y-2 flex-1">
                       {/* status cycle */}
                       <div className="flex items-center gap-1.5 mb-2">
-                        <button onClick={() => { const cycle = { "예정": "진행중", "진행중": "지난전시", "지난전시": "예정" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }}
-                          className={`text-xs px-2 py-0.5 border ${ex.status === "진행중" ? "border-accent text-accent" : ex.status === "예정" ? "border-border text-muted-foreground" : "border-border/40 text-muted-foreground/50"}`} style={MONO}>
-                          {ex.status === "진행중" ? u.statusOngoing : ex.status === "예정" ? u.statusUpcoming : u.statusPast} ⇄
-                        </button>
+                        {isStatusFromDates(ex) ? (
+                          <span title="날짜로 자동 표시돼요" className={`text-xs px-2 py-0.5 border ${exStatus(ex) === "진행중" ? "border-accent text-accent" : "border-border text-muted-foreground"}`} style={MONO}>
+                            자동 · {exStatus(ex) === "진행중" ? u.statusOngoing : exStatus(ex) === "예정" ? u.statusUpcoming : u.statusPast}
+                          </span>
+                        ) : (
+                          <button onClick={() => { const cycle = { "예정": "진행중", "진행중": "지난전시", "지난전시": "예정" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }}
+                            className={`text-xs px-2 py-0.5 border ${ex.status === "진행중" ? "border-accent text-accent" : ex.status === "예정" ? "border-border text-muted-foreground" : "border-border/40 text-muted-foreground/50"}`} style={MONO}>
+                            {ex.status === "진행중" ? u.statusOngoing : ex.status === "예정" ? u.statusUpcoming : u.statusPast} ⇄
+                          </button>
+                        )}
                         <button onClick={() => { const next = EX_BASE_TAG_ORDER[(EX_BASE_TAG_ORDER.indexOf(ex.tag) + 1) % EX_BASE_TAG_ORDER.length]; updateCurrentEx(ex.id, "tag", next); }}
                           className={`text-xs px-2 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>
                           {exBaseTagLabel(ex.tag, u)} ⇄
@@ -244,7 +251,7 @@ export function CurrentExhibitions({
                         {isEditing ? (
                           <div className="space-y-2">
                             <div className="flex items-center gap-1.5 mb-1">
-                              <button onClick={() => { const cycle = { "예정": "진행중", "진행중": "지난전시", "지난전시": "예정" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }} className="text-xs px-2 py-0.5 border border-border/40 text-muted-foreground/50" style={MONO}>{u.statusPast} ⇄</button>
+                              {!isStatusFromDates(ex) && <button onClick={() => { const cycle = { "예정": "진행중", "진행중": "지난전시", "지난전시": "예정" } as const; updateCurrentEx(ex.id, "status", cycle[ex.status]); }} className="text-xs px-2 py-0.5 border border-border/40 text-muted-foreground/50" style={MONO}>{u.statusPast} ⇄</button>}
                               <button onClick={() => { const next = EX_BASE_TAG_ORDER[(EX_BASE_TAG_ORDER.indexOf(ex.tag) + 1) % EX_BASE_TAG_ORDER.length]; updateCurrentEx(ex.id, "tag", next); }} className={`text-xs px-2 py-0.5 border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)} ⇄</button>
                               <button onClick={() => updateCurrentEx(ex.id, "isCompetition", !ex.isCompetition)} className={`text-xs px-2 py-0.5 border ${ex.isCompetition ? EX_COMPETITION_STYLE : "border-border text-muted-foreground/50"}`} style={MONO}>{u.exCompetition}</button>
                             </div>

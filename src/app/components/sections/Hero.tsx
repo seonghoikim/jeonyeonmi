@@ -124,7 +124,7 @@ export function Hero({
             ? <input value={lang === "ko" ? content.heroName : content.heroNameEn} onChange={(e) => updateContent(lang === "ko" ? "heroName" : "heroNameEn", e.target.value)} className="bg-transparent border-b border-dashed border-accent/60 outline-none w-full" style={{ ...SERIF, letterSpacing: lang === "en" ? "0.01em" : "-0.02em" }} />
             : c("heroName")}
         </h1>
-        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xs font-light mb-10" style={SANS}>
+        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xs font-light mb-10 whitespace-pre-line" style={SANS}>
           {editMode
             ? <textarea value={lang === "ko" ? content.heroDesc : content.heroDescEn} onChange={(e) => updateContent(lang === "ko" ? "heroDesc" : "heroDescEn", e.target.value)} rows={3} className="bg-transparent border-b border-dashed border-accent/60 outline-none resize-none w-full text-sm text-muted-foreground leading-relaxed" style={SANS} />
             : c("heroDesc")}
@@ -160,15 +160,16 @@ export function Hero({
             src={(imgThumb(`artwork-${currentWork.id}`) || currentWork.image)!}
             alt={`${lang === "ko" ? currentWork.title : (currentWork.titleEn || currentWork.title)}, ${currentWork.year}`}
             decoding="async"
-            className={`absolute inset-0 w-full h-full object-contain transition-opacity ${phase === "fadeOut" ? "opacity-0" : "opacity-70 hover:opacity-80"}`}
+            className={`absolute inset-0 w-full h-full object-contain transition-opacity ${phase === "fadeOut" ? "opacity-0" : "opacity-100"}`}
             style={{ transitionDuration: `${phase === "fadeOut" ? FADE_OUT_MS : FADE_IN_MS}ms` }}
           />
         ) : img("hero") ? (
-          <img src={img("hero")!} alt={`${c("heroName")} — ${lang === "ko" ? heroCaption : heroCaptionEn}`} fetchPriority="high" decoding="async" className="absolute inset-0 w-full h-full object-contain opacity-70 hover:opacity-80 transition-opacity duration-700" />
+          <img src={img("hero")!} alt={`${c("heroName")} — ${lang === "ko" ? heroCaption : heroCaptionEn}`} fetchPriority="high" decoding="async" className="absolute inset-0 w-full h-full object-contain transition-opacity duration-700" />
         ) : (
           <div className="absolute inset-0 img-placeholder" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+        {/* only behind the caption at the bottom — the artwork itself is shown at full strength */}
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background/70 to-transparent pointer-events-none" />
         {editMode && !editingCaption && !rotateActive && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/40 hover:bg-background/60 transition-colors">
             <div className="flex flex-col items-center gap-2 text-foreground"><Upload size={28} /><span className="text-xs tracking-widest" style={MONO}>{uploadingTarget === "hero" ? u.worksUploading : u.worksUpload}</span></div>
