@@ -1009,6 +1009,39 @@
   },
   "current_exhibitions": [
     {
+      "endDate": "2026.10.11",
+      "id": 16,
+      "location": "서울",
+      "locationEn": "Seoul",
+      "mapUrl": "https://naver.me/FG3fVOPy",
+      "openingDate": "2026.10.03 PM 6:00",
+      "startDate": "2026.10.02",
+      "status": "진행중",
+      "tag": "아트페어",
+      "title": "2026 크리에이티브X성수, 성수아트페어",
+      "titleEn": "2026 Creative X Seongsu, Seongsu Art Fair",
+      "url": "https://www.creativexseongsu.co.kr/191",
+      "venue": "슈퍼패스트 서울숲",
+      "venueEn": "Superfast Seoul Forest",
+      "visible": true
+    },
+    {
+      "endDate": "2026.10.04",
+      "id": 15,
+      "location": "서울",
+      "locationEn": "Seoul",
+      "mapUrl": "https://naver.me/xeFv4sbY",
+      "startDate": "2026.09.08",
+      "status": "지난전시",
+      "tag": "개인전",
+      "title": "거친 결로 다져온 시간 뒤, 가볍게 만개한 순간",
+      "titleEn": "Time Hardened, Lightly in Bloom",
+      "url": "https://www.kor-artist.com/exhibitions/k17a9fmqq6xsme34bqpzd343bx8dwsc7",
+      "venue": "안목갤러리",
+      "venueEn": "Anmok Gallery",
+      "visible": true
+    },
+    {
       "endDate": "2026.09.18",
       "id": 12,
       "location": "파주",
@@ -1171,39 +1204,6 @@
       "titleEn": "PIABATGALLERY 10TH EXHIBITION",
       "venue": "갤러리 라메르",
       "venueEn": "Gallery La Mer",
-      "visible": true
-    },
-    {
-      "endDate": "2026.10.04",
-      "id": 15,
-      "location": "서울",
-      "locationEn": "Seoul",
-      "mapUrl": "https://naver.me/xeFv4sbY",
-      "startDate": "2026.09.08",
-      "status": "지난전시",
-      "tag": "개인전",
-      "title": "거친 결로 다져온 시간 뒤, 가볍게 만개한 순간",
-      "titleEn": "Time Hardened, Lightly in Bloom",
-      "url": "https://www.kor-artist.com/exhibitions/k17a9fmqq6xsme34bqpzd343bx8dwsc7",
-      "venue": "안목갤러리",
-      "venueEn": "Anmok Gallery",
-      "visible": true
-    },
-    {
-      "endDate": "2026.10.11",
-      "id": 16,
-      "location": "서울",
-      "locationEn": "Seoul",
-      "mapUrl": "https://naver.me/FG3fVOPy",
-      "openingDate": "2026.10.03 PM 6:00",
-      "startDate": "2026.10.02",
-      "status": "진행중",
-      "tag": "아트페어",
-      "title": "2026 크리에이티브X성수, 성수아트페어",
-      "titleEn": "2026 Creative X Seongsu, Seongsu Art Fair",
-      "url": "https://www.creativexseongsu.co.kr/191",
-      "venue": "슈퍼패스트 서울숲",
-      "venueEn": "Superfast Seoul Forest",
       "visible": true
     },
     {
@@ -1862,7 +1862,7 @@
       "id": 5
     }
   ],
-  "updated_at": "2026-10-11T15:06:02.023+00:00",
+  "updated_at": "2026-10-11T16:25:01.415+00:00",
   "videos": [
     {
       "description": "경주아트페어 작가 인터뷰 영상",
