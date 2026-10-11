@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: "23 */6 * * *"
   workflow_dispatch:
+    inputs:
+      fresh:
+        description: "Start the branch over with only the current snapshot (drops old history, e.g. to remove data that must not stay public)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -32,12 +37,13 @@ jobs:
 
       - name: Commit to data-backups if it changed
         env:
+          FRESH: ${{ inputs.fresh }}
           SUMMARY: ${{ steps.snap.outputs.summary }}
           UPDATED_AT: ${{ steps.snap.outputs.updated_at }}
         run: |
           git config user.name "portfolio-backup"
           git config user.email "portfolio-backup@users.noreply.github.com"
-          if git ls-remote --exit-code --heads origin data-backups >/dev/null 2>&1; then
+          if [ "$FRESH" != "true" ] && git ls-remote --exit-code --heads origin data-backups >/dev/null 2>&1; then
             git fetch --depth=1 origin data-backups
             git checkout -B data-backups FETCH_HEAD
           else
@@ -54,4 +60,4 @@ jobs:
             exit 0
           fi
           git commit -m "backup: $SUMMARY (row updated $UPDATED_AT) [skip ci] [vercel skip]"
-          git push origin data-backups
+          if [ "$FRESH" = "true" ]; then git push --force origin data-backups; else git push origin data-backups; fi
