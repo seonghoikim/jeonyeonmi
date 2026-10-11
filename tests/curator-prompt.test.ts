@@ -32,7 +32,7 @@ describe("buildSections", () => {
   });
   it("flags collected works and includes descriptions", () => {
     const ko = buildSections(row, "ko");
-    expect(ko.works).toContain("컬렉션");
+    expect(ko.works).toContain("소장됨");
     expect(ko.works).toContain("시작의 다짐");
   });
   it("leaves hidden exhibitions and hidden contacts out", () => {
@@ -213,7 +213,7 @@ describe("auto-counted summary", () => {
     expect(summary).toContain("2025년 2점, 2026년 1점");
     expect(summary).toContain("S1 2점");
     expect(summary).toContain("시리즈 없음 1점");
-    expect(summary).toContain("컬렉션(소장) 2점");
+    expect(summary).toContain("소장됨 2점");
   });
   it("lists each featured title once and summarizes exhibitions, awards and today's status", () => {
     expect(summary).toContain("대표작: A(2025)");

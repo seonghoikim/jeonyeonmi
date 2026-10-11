@@ -109,7 +109,7 @@ export function buildSections(row: PortfolioRowForCurator, lang: "ko" | "en", to
     const title = tt(a.title, a.titleEn);
     const medium = tt(a.medium, a.mediumEn);
     const category = tt(a.category, a.categoryEn);
-    const collected = a.collected ? ` · ${tt("컬렉션", "Collected")}` : "";
+    const collected = a.collected ? ` · ${tt("소장됨", "Sold")}` : "";
     const d = tt(a.description, a.descriptionEn);
     worksLines.push(`- ${title} (${a.year}) · ${medium} · ${a.size} · ${category}${collected}${d ? `\n  ${d}` : ""}`);
   }
@@ -147,7 +147,7 @@ export function buildSections(row: PortfolioRowForCurator, lang: "ko" | "en", to
     const bySeries = countBy(artworks, (a) => a.series || (isKo ? "시리즈 없음" : "no series")).map(([s, n]) => (isKo ? `${s} ${n}점` : `${s}: ${n}`)).join(", ");
     const collectedN = artworks.filter((a) => a.collected).length;
     factLines.push(isKo
-      ? `- 작품 총 ${artworks.length}점 (연도별: ${byYear} / 시리즈별: ${bySeries} / 컬렉션(소장) ${collectedN}점)`
+      ? `- 작품 총 ${artworks.length}점 (연도별: ${byYear} / 시리즈별: ${bySeries} / 소장됨 ${collectedN}점)`
       : `- ${artworks.length} works in total (by year: ${byYear} / by series: ${bySeries} / ${collectedN} in collections)`);
     const featured = [...new Set(artworks.filter((a) => a.heroFeatured).map((a) => `${tt(a.title, a.titleEn)}(${a.year})`))];
     if (featured.length) {

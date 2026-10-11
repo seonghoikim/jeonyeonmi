@@ -1,0 +1,31 @@
+name: Data patch
+
+# Manual. Applies scripts/data-patches/<patch>.mjs to the live content (see scripts/data-patch.mjs).
+# Always run mode=dry first and read the list of changes; then mode=apply.
+on:
+  workflow_dispatch:
+    inputs:
+      patch:
+        description: "file name in scripts/data-patches (without .mjs)"
+        required: true
+      mode:
+        description: "dry | apply"
+        required: true
+        default: "dry"
+
+permissions:
+  contents: read
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      PATCH: ${{ inputs.patch }}
+      MODE: ${{ inputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/data-patch.mjs
