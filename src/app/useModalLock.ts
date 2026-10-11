@@ -19,6 +19,10 @@ function unlockBodyScroll() {
   if (lockCount === 0) document.body.style.overflow = originalOverflow;
 }
 
+// Open modals, innermost last. Only the top one reacts to Escape/Tab — otherwise Escape in
+// the zoom viewer opened from a work/poster detail closed both at once.
+const openStack: object[] = [];
+
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -40,6 +44,8 @@ export function useModalLock<T extends HTMLElement>(active: boolean, onClose: ()
 
   useEffect(() => {
     if (!active) return;
+    const token = {};
+    openStack.push(token);
     lockBodyScroll();
     previouslyFocused.current = document.activeElement as HTMLElement | null;
 
@@ -52,6 +58,7 @@ export function useModalLock<T extends HTMLElement>(active: boolean, onClose: ()
     });
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if (openStack[openStack.length - 1] !== token) return;
       if (e.key === "Escape") { onCloseRef.current(); return; }
       if (e.key !== "Tab") return;
       const container = containerRef.current;
@@ -67,6 +74,8 @@ export function useModalLock<T extends HTMLElement>(active: boolean, onClose: ()
 
     return () => {
       cancelAnimationFrame(raf);
+      const i = openStack.indexOf(token);
+      if (i !== -1) openStack.splice(i, 1);
       unlockBodyScroll();
       window.removeEventListener("keydown", onKeyDown);
       previouslyFocused.current?.focus?.();
