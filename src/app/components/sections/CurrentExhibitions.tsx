@@ -37,7 +37,7 @@ export function CurrentExhibitions({
     ? currentExList.filter((e) => exStatus(e) === "지난전시")
     : currentExList.filter((e) => exStatus(e) === "지난전시" && e.visible);
 
-  // Poster detail — same pattern as the artwork detail: the poster at full resolution with the
+  // Poster detail — same pattern as the artwork detail: the poster (thumbnail size) with the
   // exhibition's details beside it, ‹ › / arrow keys / swipe to move between posters, and
   // "원본 보기" for the zoomable viewer.
   const posterList = editMode ? [] : [...activeList, ...pastList].filter((ex) => img(`current-${ex.id}`));
@@ -336,7 +336,10 @@ export function CurrentExhibitions({
         const ex = posterEx;
         const s = exStatus(ex);
         const statusText = s === "진행중" ? u.statusOngoing : s === "예정" ? u.statusUpcoming : u.statusPast;
+        // Shown at thumbnail size (~900px, a fraction of the original) like the artwork detail;
+        // the full-resolution poster only loads when "원본 보기" is tapped.
         const full = img(`current-${ex.id}`)!;
+        const shown = imgThumb(`current-${ex.id}`) || full;
         return (
           <div ref={posterRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={lang === "ko" ? ex.title : (ex.titleEn || ex.title)}
             className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-8 outline-none"
@@ -355,7 +358,7 @@ export function CurrentExhibitions({
               {posterList.length > 1 && <span className="absolute top-3.5 right-14 z-10 text-xs text-muted-foreground bg-card/80 px-1.5 py-0.5" style={MONO} aria-live="polite">{posterIdx + 1} / {posterList.length}</span>}
               {/* poster */}
               <div className="relative bg-background flex items-center justify-center" style={{ minHeight: "300px", maxHeight: "min(70vh, 640px)" }}>
-                <img src={full} alt={lang === "ko" ? ex.title : (ex.titleEn || ex.title)} className="w-full h-full object-contain" style={{ maxHeight: "min(70vh, 640px)" }} decoding="async" />
+                <img key={shown} src={shown} alt={lang === "ko" ? ex.title : (ex.titleEn || ex.title)} className="w-full h-full object-contain" style={{ maxHeight: "min(70vh, 640px)" }} decoding="async" />
                 <button onClick={(e) => { e.stopPropagation(); openLightbox(full); }} className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-background/80 hover:bg-background border border-border/60 hover:border-foreground/40 text-muted-foreground hover:text-foreground text-xs px-2.5 py-1.5 transition-all" style={MONO}>
                   <Maximize2 size={12} />{u.worksViewOriginal}
                 </button>
