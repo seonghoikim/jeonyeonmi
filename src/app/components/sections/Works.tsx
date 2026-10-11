@@ -323,7 +323,7 @@ export function Works({
           )}
           <div className="relative max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 bg-card max-h-[95dvh] overflow-y-auto hide-sb" onClick={(e) => e.stopPropagation()}>
             <button className="absolute top-2 right-2 z-10 bg-card/80 text-muted-foreground hover:text-foreground p-2.5 transition-colors" onClick={() => setSelectedWorkId(null)} aria-label={u.lbClose}><X size={18} /></button>
-            {!editMode && modalIdx !== -1 && filteredWorks.length > 1 && <span className="absolute top-4 right-14 z-10 text-xs text-muted-foreground" style={MONO} aria-live="polite">{modalIdx + 1} / {filteredWorks.length}</span>}
+            {!editMode && modalIdx !== -1 && filteredWorks.length > 1 && <span className="absolute top-3.5 right-14 z-10 text-xs text-muted-foreground bg-card/80 px-1.5 py-0.5" style={MONO} aria-live="polite">{modalIdx + 1} / {filteredWorks.length}</span>}
             {/* image panel */}
             <div className={`relative bg-background overflow-hidden flex items-center justify-center ${editMode ? "cursor-pointer" : ""}`} style={{ minHeight: "260px", maxHeight: "min(60vh, 560px)" }} onClick={() => editMode && triggerUpload(`artwork-${selectedWork.id}`, selectedWork.titleEn)}>
               {img(`artwork-${selectedWork.id}`) || selectedWork.image

@@ -1,9 +1,12 @@
-import { Plus, Upload, GripVertical, Eye, EyeOff, Edit3, Check, Trash2, ArrowUpRight, ChevronRight, MapPin } from "lucide-react";
+import { useRef, useState } from "react";
+import { Plus, Upload, GripVertical, Eye, EyeOff, Edit3, Check, Trash2, ArrowUpRight, ChevronRight, ChevronLeft, MapPin, X, Maximize2 } from "lucide-react";
 import { usePortfolioContext } from "../../PortfolioContext";
 import { moveItem, moveInFiltered, hSize, exStatus, isStatusFromDates, EX_BASE_TAG_ORDER, exBaseTagStyle, exBaseTagLabel, EX_COMPETITION_STYLE, type CurrentExhibition } from "../../data";
 import { ReorderButtons } from "../ReorderButtons";
 import { trackEvent } from "../../analytics";
 import { safeHref } from "../../safeHref";
+import { useModalLock } from "../../useModalLock";
+import { pressableProps } from "../../a11y";
 
 type CurrentExhibitionsProps = {
   currentExList: CurrentExhibition[];
@@ -25,7 +28,7 @@ export function CurrentExhibitions({
   pastExDefaultExpanded, onTogglePastExDefault,
   addCurrentEx, toggleCurrentExVisible, updateCurrentEx, deleteCurrentEx,
 }: CurrentExhibitionsProps) {
-  const { lang, u, MONO, SERIF, editMode, imgThumb, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, scrollTo, triggerUpload, C } = usePortfolioContext();
+  const { lang, u, MONO, SERIF, editMode, img, imgThumb, openLightbox, uploadingTarget, dragSrc, dragOverKey, setDragOverKey, scrollTo, triggerUpload, C } = usePortfolioContext();
 
   const activeList = editMode
     ? currentExList.filter((e) => exStatus(e) !== "지난전시")
@@ -33,6 +36,26 @@ export function CurrentExhibitions({
   const pastList = editMode
     ? currentExList.filter((e) => exStatus(e) === "지난전시")
     : currentExList.filter((e) => exStatus(e) === "지난전시" && e.visible);
+
+  // Poster detail — same pattern as the artwork detail: the poster at full resolution with the
+  // exhibition's details beside it, ‹ › / arrow keys / swipe to move between posters, and
+  // "원본 보기" for the zoomable viewer.
+  const posterList = editMode ? [] : [...activeList, ...pastList].filter((ex) => img(`current-${ex.id}`));
+  const [posterId, setPosterId] = useState<number | null>(null);
+  const posterIdx = posterList.findIndex((ex) => ex.id === posterId);
+  const posterEx = posterIdx === -1 ? null : posterList[posterIdx];
+  const closePoster = () => setPosterId(null);
+  const posterRef = useModalLock<HTMLDivElement>(!!posterEx, closePoster);
+  const openPoster = (ex: CurrentExhibition) => {
+    if (editMode || !img(`current-${ex.id}`)) return;
+    trackEvent("exhibition_poster_open", { exhibition: lang === "ko" ? ex.title : (ex.titleEn || ex.title) });
+    setPosterId(ex.id);
+  };
+  const goPoster = (delta: number) => {
+    const next = posterList[posterIdx + delta];
+    if (next) setPosterId(next.id);
+  };
+  const touchRef = useRef<{ x: number; y: number } | null>(null);
 
   return (
     <section id="current-exhibitions" className="py-16 sm:py-20 border-t border-border">
@@ -81,7 +104,9 @@ export function CurrentExhibitions({
                     portrait) — the old fixed 340px height cropped a chunk off the top/bottom
                     of any poster taller than that box. Sizing the box to the actual poster
                     ratio instead lets object-cover fill it without losing the top/bottom. */}
-                <div className={`current-ex-img relative overflow-hidden bg-card ${editMode ? "cursor-pointer" : ""}`} style={{ aspectRatio: "1 / 1.414" }} onClick={() => editMode && triggerUpload(`current-${ex.id}`, ex.titleEn)}>
+                <div className={`current-ex-img relative overflow-hidden bg-card ${editMode ? "cursor-pointer" : exImg ? "cursor-zoom-in" : ""}`} style={{ aspectRatio: "1 / 1.414" }}
+                  {...pressableProps(!editMode && !!exImg, () => openPoster(ex), lang === "ko" ? ex.title : (ex.titleEn || ex.title))}
+                  onClick={() => (editMode ? triggerUpload(`current-${ex.id}`, ex.titleEn) : openPoster(ex))}>
                   {exImg
                     ? <img src={exImg} alt={lang === "ko" ? ex.title : (ex.titleEn || ex.title)} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     : <img src="/poster-placeholder-v3.svg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />}
@@ -241,7 +266,9 @@ export function CurrentExhibitions({
                       )}
                       <span className="text-xs text-muted-foreground/80 w-16 shrink-0" style={MONO}>{ex.startDate.slice(0, 7)}</span>
                       {/* thumbnail */}
-                      <div className="shrink-0 overflow-hidden bg-secondary" style={{ width: 52, height: 68 }}>
+                      <div className={`shrink-0 overflow-hidden bg-secondary ${!editMode && pastThumb ? "cursor-zoom-in" : ""}`} style={{ width: 52, height: 68 }}
+                        {...pressableProps(!editMode && !!pastThumb, () => openPoster(ex), lang === "ko" ? ex.title : (ex.titleEn || ex.title))}
+                        onClick={() => { if (!editMode && pastThumb) openPoster(ex); }}>
                         {pastThumb
                           ? <img src={pastThumb} alt={lang === "ko" ? ex.title : ex.titleEn} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
                           : <img src="/favicon.svg" alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -304,6 +331,62 @@ export function CurrentExhibitions({
           </div>
         )}
       </div>
+      {/* ── POSTER DETAIL ── */}
+      {posterEx && (() => {
+        const ex = posterEx;
+        const s = exStatus(ex);
+        const statusText = s === "진행중" ? u.statusOngoing : s === "예정" ? u.statusUpcoming : u.statusPast;
+        const full = img(`current-${ex.id}`)!;
+        return (
+          <div ref={posterRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={lang === "ko" ? ex.title : (ex.titleEn || ex.title)}
+            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-8 outline-none"
+            onClick={closePoster}
+            onKeyDown={(e) => { if (e.key === "ArrowRight") { e.preventDefault(); goPoster(1); } if (e.key === "ArrowLeft") { e.preventDefault(); goPoster(-1); } }}
+            onTouchStart={(e) => { touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+            onTouchEnd={(e) => { const t = touchRef.current; touchRef.current = null; if (!t) return; const dx = e.changedTouches[0].clientX - t.x, dy = e.changedTouches[0].clientY - t.y; if (Math.abs(dx) >= 50 && Math.abs(dx) >= Math.abs(dy) * 1.5) goPoster(dx < 0 ? 1 : -1); }}>
+            {posterIdx > 0 && (
+              <button onClick={(e) => { e.stopPropagation(); goPoster(-1); }} aria-label={u.navPrev} className="absolute left-1 sm:left-4 top-40 sm:top-1/2 -translate-y-1/2 z-20 bg-card/85 border border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 p-2.5 sm:p-3 transition-colors"><ChevronLeft size={20} /></button>
+            )}
+            {posterIdx < posterList.length - 1 && (
+              <button onClick={(e) => { e.stopPropagation(); goPoster(1); }} aria-label={u.navNext} className="absolute right-1 sm:right-4 top-40 sm:top-1/2 -translate-y-1/2 z-20 bg-card/85 border border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 p-2.5 sm:p-3 transition-colors"><ChevronRight size={20} /></button>
+            )}
+            <div className="relative max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 bg-card max-h-[95dvh] overflow-y-auto hide-sb" onClick={(e) => e.stopPropagation()}>
+              <button className="absolute top-2 right-2 z-10 bg-card/80 text-muted-foreground hover:text-foreground p-2.5 transition-colors" onClick={closePoster} aria-label={u.lbClose}><X size={18} /></button>
+              {posterList.length > 1 && <span className="absolute top-3.5 right-14 z-10 text-xs text-muted-foreground bg-card/80 px-1.5 py-0.5" style={MONO} aria-live="polite">{posterIdx + 1} / {posterList.length}</span>}
+              {/* poster */}
+              <div className="relative bg-background flex items-center justify-center" style={{ minHeight: "300px", maxHeight: "min(70vh, 640px)" }}>
+                <img src={full} alt={lang === "ko" ? ex.title : (ex.titleEn || ex.title)} className="w-full h-full object-contain" style={{ maxHeight: "min(70vh, 640px)" }} decoding="async" />
+                <button onClick={(e) => { e.stopPropagation(); openLightbox(full); }} className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-background/80 hover:bg-background border border-border/60 hover:border-foreground/40 text-muted-foreground hover:text-foreground text-xs px-2.5 py-1.5 transition-all" style={MONO}>
+                  <Maximize2 size={12} />{u.worksViewOriginal}
+                </button>
+              </div>
+              {/* details */}
+              <div className="p-5 sm:p-8 lg:p-10 flex flex-col gap-5">
+                <div className="flex flex-wrap gap-1.5 pr-16">
+                  <span className={`text-xs px-2.5 py-1 tracking-widest ${s === "진행중" ? "bg-accent text-accent-foreground" : "border border-border text-muted-foreground"}`} style={MONO}>{statusText}</span>
+                  <span className={`text-xs px-2.5 py-1 tracking-widest border ${exBaseTagStyle(ex.tag)}`} style={MONO}>{exBaseTagLabel(ex.tag, u)}</span>
+                  {ex.isCompetition && <span className={`text-xs px-2.5 py-1 tracking-widest border ${EX_COMPETITION_STYLE}`} style={MONO}>{u.exCompetition}</span>}
+                </div>
+                <div>
+                  <h3 className={`font-light text-foreground mb-1 ${hSize("text-lg sm:text-xl", "text-xl sm:text-2xl", lang)}`} style={SERIF}>{lang === "ko" ? ex.title : (ex.titleEn || ex.title)}</h3>
+                  <p className="text-sm text-accent">{lang === "ko" ? ex.titleEn : ex.title}</p>
+                </div>
+                <div className="space-y-2 border-t border-border pt-5 text-sm font-light text-foreground">
+                  <p>{lang === "ko" ? ex.venue : (ex.venueEn || ex.venue)} · {lang === "ko" ? ex.location : (ex.locationEn || ex.location)}</p>
+                  <p style={MONO} className="text-xs text-muted-foreground">{ex.startDate} — {ex.endDate}</p>
+                  {ex.openingDate && <p className="text-xs text-accent" style={MONO}>{u.openingLabel} {ex.openingDate}</p>}
+                </div>
+                {(ex.url || ex.mapUrl) && (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {ex.url && <a href={safeHref(ex.url)} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("exhibition_link_click", { type: "detail", exhibition: lang === "ko" ? ex.title : ex.titleEn })} className="flex items-center gap-1.5 text-xs border border-border px-4 py-2.5 text-muted-foreground hover:text-accent hover:border-accent transition-colors" style={MONO}>{u.viewMore} <ArrowUpRight size={12} /></a>}
+                    {ex.mapUrl && <a href={safeHref(ex.mapUrl)} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("exhibition_link_click", { type: "map", exhibition: lang === "ko" ? ex.title : ex.titleEn })} className="flex items-center gap-1.5 text-xs border border-border px-4 py-2.5 text-muted-foreground hover:text-accent hover:border-accent transition-colors" style={MONO}><MapPin size={12} />{u.mapLabel}</a>}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </section>
   );
 }
