@@ -244,10 +244,10 @@ describe("artist notes", () => {
     expect(ko).toContain("작가가 직접 들려준 추가 정보");
     expect(ko).toContain("가장 먼저 만든 작품은 〈흰 결〉");
     expect(ko).toContain("SNS 연락처");
-    expect(ko).toContain("남편의 한마디");
+    expect(ko).toContain("안내자(호이)의 이야기처럼 말하지 말 것");
     const en = selectKnowledge("Where did the work begin?", buildSections(row, "en"));
     expect(en).toContain("Additional notes from the artist");
-    expect(en).toContain("one sentence from my husband");
+    expect(en).toContain("not speak of it as the guide");
   });
   it("survive keyword-picking when the knowledge base is large", () => {
     const big = { ...row, artworks: Array.from({ length: 400 }, (_, i) => ({ title: `작품${i}`, titleEn: `Work${i}`, year: "2026", medium: "한지", size: "1F", category: "회화", description: "긴 설명 ".repeat(20) })) };
