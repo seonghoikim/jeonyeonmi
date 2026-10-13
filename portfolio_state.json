@@ -1237,6 +1237,22 @@
       "venue": "광주시립미술관",
       "venueEn": "Gwangju Museum of Art",
       "visible": true
+    },
+    {
+      "endDate": "2026.12.19",
+      "id": 18,
+      "location": "서울",
+      "locationEn": "Seoul",
+      "mapUrl": "https://naver.me/GkRdJFJc",
+      "openingDate": "2026.12.12 PM 6:00",
+      "startDate": "2026.12.11",
+      "status": "예정",
+      "tag": "단체전",
+      "title": "대환장 파티 시즌 3 : 연희동편",
+      "titleEn": "The Grand Pandemonium Season 3: Yeonhui-dong Edition",
+      "venue": "온에어갤러리",
+      "venueEn": "OnAir Gallery",
+      "visible": true
     }
   ],
   "exhibitions": [
@@ -1862,7 +1878,7 @@
       "id": 5
     }
   ],
-  "updated_at": "2026-10-11T16:25:01.415+00:00",
+  "updated_at": "2026-10-13T14:38:50.829+00:00",
   "videos": [
     {
       "description": "경주아트페어 작가 인터뷰 영상",
