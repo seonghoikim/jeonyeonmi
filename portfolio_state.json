@@ -1,6 +1,19 @@
 {
   "activity_photos": [
     {
+      "caption": "PIABATGALLERY 12TH EXHIBITION",
+      "captionEn": "PIABATGALLERY 12TH EXHIBITION",
+      "extraPhotoIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "id": 17
+    },
+    {
       "caption": "2026 크리에이티브X성수, 성수아트페어",
       "captionEn": "2026 CreativeXSeongsu, Seongsu Art Fair",
       "extraPhotoIds": [
@@ -1257,6 +1270,18 @@
   ],
   "exhibitions": [
     {
+      "activityId": 17,
+      "id": 17,
+      "location": "서울",
+      "locationEn": "Seoul",
+      "tag": "단체전",
+      "title": "PIABATGALLERY 12TH EXHIBITION",
+      "titleEn": "PIABATGALLERY 12TH EXHIBITION",
+      "venue": "메세나아트",
+      "venueEn": "Mecanart",
+      "year": "2026.10"
+    },
+    {
       "activityId": 16,
       "id": 16,
       "location": "서울",
@@ -1511,6 +1536,20 @@
     "activity-16-7": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-7/1791459346407.jpg",
     "activity-16-7-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-7-thumb/1791459346476.jpg",
     "activity-16-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-16-thumb/new-photo-1791459172075.jpg",
+    "activity-17": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17/piabatgallery-12th-exhibition-1792248234282.webp",
+    "activity-17-1": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-1/piabatgallery-12th-exhibition-1792248306922.webp",
+    "activity-17-1-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-1-thumb/piabatgallery-12th-exhibition-1792248306586.webp",
+    "activity-17-2": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-2/piabatgallery-12th-exhibition-1792248308697.webp",
+    "activity-17-2-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-2-thumb/piabatgallery-12th-exhibition-1792248308702.webp",
+    "activity-17-3": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-3/piabatgallery-12th-exhibition-1792248310550.webp",
+    "activity-17-3-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-3-thumb/piabatgallery-12th-exhibition-1792248310492.webp",
+    "activity-17-4": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-4/piabatgallery-12th-exhibition-1792248312230.webp",
+    "activity-17-4-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-4-thumb/piabatgallery-12th-exhibition-1792248312154.webp",
+    "activity-17-5": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-5/piabatgallery-12th-exhibition-1792248313898.webp",
+    "activity-17-5-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-5-thumb/piabatgallery-12th-exhibition-1792248313868.webp",
+    "activity-17-6": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-6/piabatgallery-12th-exhibition-1792248315538.webp",
+    "activity-17-6-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-6-thumb/piabatgallery-12th-exhibition-1792248315532.webp",
+    "activity-17-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-17-thumb/piabatgallery-12th-exhibition-1792248234246.webp",
     "activity-2": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-2/179083163893016.webp",
     "activity-2-1": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-2-1/2026-contact-point-1786723866271.webp",
     "activity-2-1-thumb": "https://tkbfgxxwsfxhdhjnrdqv.supabase.co/storage/v1/object/public/portfolio/activity-2-1-thumb/1788617457416.webp",
@@ -1878,7 +1917,7 @@
       "id": 5
     }
   ],
-  "updated_at": "2026-10-13T14:38:50.829+00:00",
+  "updated_at": "2026-10-17T14:45:44.206+00:00",
   "videos": [
     {
       "description": "경주아트페어 작가 인터뷰 영상",
